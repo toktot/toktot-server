@@ -1,0 +1,46 @@
+# 운영 환경 설정 템플릿
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/toktot}
+    username: ${DB_USERNAME:YOUR_PROD_DB_USERNAME}
+    password: ${DB_PASSWORD:YOUR_PROD_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  sql:
+    init:
+      mode: never
+
+# 운영용 로깅
+logging:
+  level:
+    com.toktot: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+    root: WARN
+  file:
+    name: logs/toktot-prod.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 30
+
+# 운영환경 보안 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

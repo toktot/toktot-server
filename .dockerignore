@@ -1,0 +1,52 @@
+# Gradle 빌드 관련
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# IDE 관련
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS 관련
+.DS_Store
+Thumbs.db
+
+# Git 관련
+.git/
+.gitignore
+
+# 로그 파일
+logs/
+*.log
+
+# 임시 파일
+*.tmp
+*.temp
+
+# Docker 관련
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# 문서 및 README
+README.md
+*.md
+docs/
+
+# 테스트 관련
+src/test/
+
+# 환경설정 파일 (민감 정보 포함 가능)
+.env
+*.env
+
+# 백업 파일
+*.bak
+*.backup
+
+# 캐시 파일
+.cache/
