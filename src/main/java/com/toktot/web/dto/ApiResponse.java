@@ -1,4 +1,4 @@
-package com.toktot.web.dto.response;
+package com.toktot.web.dto;
 
 import com.toktot.common.exception.ErrorCode;
 
