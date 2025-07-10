@@ -41,6 +41,8 @@ public class SecurityConfig {
             "/api/v1/auth/register",
             "/api/v1/auth/login",
             "/api/v1/auth/kakao/**",
+            "/oauth2/**",
+            "/login/oauth2/**",
             "/api/health",
     };
 
@@ -56,6 +58,11 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
+                .oauth2Login(oauth2 -> oauth2
+                        .loginPage("/api/v1/auth/kakao/login")
+                        .defaultSuccessUrl("/api/v1/auth/kakao/callback")
+                        .failureUrl("/api/v1/auth/kakao/failure")
+                )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_URLS).permitAll()
                         .anyRequest().authenticated()
