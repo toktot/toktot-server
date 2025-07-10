@@ -2,8 +2,23 @@ spring:
   application:
     name: toktot
 
-  # JPA 공통 설정
+  # 데이터베이스 설정
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE}
+      minimum-idle: ${DB_MIN_IDLE}
+      connection-timeout: 30000
+      idle-timeout: 600000
+
+  # JPA 설정
   jpa:
+    hibernate:
+      ddl-auto: ${DDL_AUTO}
+    show-sql: ${SHOW_SQL}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -12,21 +27,64 @@ spring:
         jdbc:
           time_zone: Asia/Seoul
 
+  # SQL 초기화
+  sql:
+    init:
+      mode: ${SQL_INIT_MODE}
+
   # Jackson 시간대 설정
   jackson:
     time-zone: Asia/Seoul
     date-format: yyyy-MM-dd HH:mm:ss
 
+  # OAuth2 설정
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: ${KAKAO_REDIRECT_URI}
+            scope: profile_nickname,profile_image
+            client-name: Kakao
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
 # 서버 설정
 server:
-  port: 8080
+  port: ${SERVER_PORT}
   servlet:
     context-path: /
   error:
     include-message: always
     include-binding-errors: always
 
-# Actuator 설정 (헬스체크용)
+# JWT 설정
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION}
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION}
+
+# CORS 설정
+toktot:
+  security:
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000,http://localhost:8080}
+      allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS,PATCH}
+      allowed-headers: ${CORS_ALLOWED_HEADERS:Authorization,Content-Type,Accept,Origin,X-Requested-With}
+      max-age: ${CORS_MAX_AGE:3600}
+      allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
+    password:
+      strength: ${PASSWORD_STRENGTH:10}
+
+# Actuator 설정
 management:
   endpoints:
     web:
@@ -34,9 +92,19 @@ management:
         include: health,info
   endpoint:
     health:
-      show-details: when-authorized
+      show-details: ${HEALTH_SHOW_DETAILS}
 
-# 기본 로깅 설정
+# 로깅 설정
 logging:
+  level:
+    com.toktot: ${LOGGING_LEVEL_APP}
+    org.springframework.web: ${LOGGING_LEVEL_WEB}
+    org.springframework.security: ${LOGGING_LEVEL_SECURITY}
+    org.hibernate.SQL: ${LOGGING_LEVEL_SQL}
+    org.hibernate.type.descriptor.sql.BasicBinder: ${LOGGING_LEVEL_SQL_BINDER}
+    root: ${LOGGING_LEVEL_ROOT}
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: ${LOG_FILE_PATH}
