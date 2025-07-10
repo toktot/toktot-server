@@ -1,24 +1,63 @@
-# 개발 환경 설정 템플릿
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/toktot_dev
-    username: YOUR_DEV_DB_USERNAME
-    password: YOUR_DEV_DB_PASSWORD
+    url:
+    username:
+    password:
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
-    show-sql: true
+      ddl-auto:
+    show-sql:
 
   sql:
     init:
       mode: always
 
-# 개발용 로깅
+  kakao:
+    client-id:
+    client-secret:
+    redirect-uri:
+    authorization-grant-type:
+    client-authentication-method:
+    client-name:
+    scope:
+
 logging:
   level:
     com.toktot: DEBUG
     org.springframework.web: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# JWT 설정
+jwt:
+  secret: ${JWT_SECRET:toktot-jwt-secret-key-for-development-only-please-change-in-production}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION}
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION}
+
+# CORS 설정
+toktot:
+  security:
+    cors:
+      allowed-origins:
+        -
+      allowed-methods:
+        - "GET"
+        - "POST"
+        - "PUT"
+        - "DELETE"
+        - "OPTIONS"
+        - "PATCH"
+      allowed-headers:
+        - "Authorization"
+        - "Content-Type"
+        - "Accept"
+        - "Origin"
+        - "X-Requested-With"
+      max-age:
+      allow-credentials:
+    password:
+      strength:
