@@ -1,6 +1,6 @@
 package com.toktot.common.exception;
 
-import com.toktot.web.dto.response.ApiResponse;
+import com.toktot.web.dto.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
