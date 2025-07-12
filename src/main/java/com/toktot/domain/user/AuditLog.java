@@ -45,43 +45,12 @@ public class AuditLog {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String userAgent;
 
-    @Column(columnDefinition = "JSON")
+    @Column(columnDefinition = "TEXT")
     private String metadata;
 
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    public boolean isLoginRelated() {
-        return action == AuditAction.LOGIN_SUCCESS ||
-                action == AuditAction.LOGIN_FAILED ||
-                action == AuditAction.LOGOUT;
-    }
-
-    public boolean isSecurityRelated() {
-        return action == AuditAction.PASSWORD_CHANGE ||
-                action == AuditAction.ACCOUNT_LOCK ||
-                action == AuditAction.ACCOUNT_UNLOCK;
-    }
-
-    public boolean isDataAccess() {
-        return action == AuditAction.DATA_ACCESS ||
-                action == AuditAction.DATA_EXPORT;
-    }
-
-    public boolean isUserManagement() {
-        return action == AuditAction.USER_REGISTER ||
-                action == AuditAction.USER_UPDATE ||
-                action == AuditAction.USER_DELETE ||
-                action == AuditAction.PROFILE_UPDATE;
-    }
-
-    public boolean isAgreementRelated() {
-        return action == AuditAction.TERMS_AGREE ||
-                action == AuditAction.TERMS_WITHDRAW ||
-                action == AuditAction.PRIVACY_AGREE ||
-                action == AuditAction.PRIVACY_WITHDRAW;
-    }
 
     public static AuditLog createUserAction(User user, AuditAction action, String resource,
                                             String clientIp, String userAgent, String metadata) {
@@ -120,17 +89,6 @@ public class AuditLog {
         String metadata = String.format("{\"email\": \"%s\", \"reason\": \"%s\", \"timestamp\": \"%s\"}",
                 email, reason, LocalDateTime.now());
         return createAnonymousAction(AuditAction.LOGIN_FAILED, "/api/auth/login", clientIp, userAgent, metadata);
-    }
-
-    public static AuditLog createUserRegister(User user, String clientIp, String userAgent) {
-        String metadata = String.format("{\"auth_provider\": \"%s\", \"timestamp\": \"%s\"}",
-                user.getAuthProvider(), LocalDateTime.now());
-        return createUserAction(user, AuditAction.USER_REGISTER, "/api/auth/register", clientIp, userAgent, metadata);
-    }
-
-    public static AuditLog createPasswordChange(User user, String clientIp, String userAgent) {
-        String metadata = String.format("{\"timestamp\": \"%s\"}", LocalDateTime.now());
-        return createUserAction(user, AuditAction.PASSWORD_CHANGE, "/api/user/password", clientIp, userAgent, metadata);
     }
 
     private static void validateRequiredFields(AuditAction action, String clientIp, String userAgent) {

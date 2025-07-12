@@ -70,65 +70,8 @@ public class User {
         }
     }
 
-    public void updateEmail(String email) {
-        if (StringUtils.hasText(email)) {
-            this.email = email;
-        }
-    }
-
-    public void changePassword(String encodedPassword) {
-        if (StringUtils.hasText(encodedPassword)) {
-            this.password = encodedPassword;
-        }
-    }
-
-    public boolean isEmailUser() {
-        return AuthProvider.EMAIL.equals(this.authProvider);
-    }
-
-    public boolean isSocialUser() {
-        return AuthProvider.KAKAO.equals(this.authProvider);
-    }
-
-    public String getDisplayName() {
-        return this.nickname;
-    }
-
-    public boolean hasPassword() {
-        return StringUtils.hasText(this.password);
-    }
-
-    public String getIdentifier() {
-        return isEmailUser() ? this.email : this.oauthId;
-    }
-
-    public String getUsername() {
-        return getIdentifier();
-    }
-
-    public boolean isAccountNonExpired() {
-        return userProfile == null || userProfile.isAccountActive();
-    }
-
-    public boolean isAccountNonLocked() {
-        return userProfile == null || !userProfile.isAccountLocked();
-    }
-
-    public boolean isCredentialsNonExpired() {
-        return userProfile == null || !userProfile.needsPasswordChange();
-    }
-
     public boolean isEnabled() {
         return userProfile == null || userProfile.canLogin();
-    }
-
-    public static User createEmailUser(String email, String encodedPassword, String nickname) {
-        return User.builder()
-                .email(email)
-                .password(encodedPassword)
-                .authProvider(AuthProvider.EMAIL)
-                .nickname(nickname)
-                .build();
     }
 
     public static User createKakaoUser(String oauthId, String nickname, String profileImageUrl) {
@@ -139,4 +82,19 @@ public class User {
                 .profileImageUrl(profileImageUrl)
                 .build();
     }
+
+    public void assignUserProfile(UserProfile userProfile) {
+        this.userProfile = userProfile;
+        if (userProfile != null) {
+            userProfile.assignUser(this);
+        }
+    }
+
+    public void assignUserAgreement(UserAgreement userAgreement) {
+        this.userAgreement = userAgreement;
+        if (userAgreement != null) {
+            userAgreement.assignUser(this);
+        }
+    }
+
 }
