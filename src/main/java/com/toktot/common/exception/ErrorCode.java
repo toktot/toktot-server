@@ -14,6 +14,10 @@ public enum ErrorCode {
     TOKEN_INVALID("유효하지 않은 토큰입니다."),
     LOGIN_REQUIRED("로그인이 필요합니다."),
 
+    // 카카오 로그인 관련 에러
+    KAKAO_LOGIN_FAILED("카카오 로그인 중 오류가 발생했습니다. 다시 시도해주세요."),
+    KAKAO_TOKEN_INVALID("카카오 로그인 정보가 만료되었습니다. 다시 로그인해주세요."),
+
     // 회원가입/사용자 관리 에러 (USER)
     DUPLICATE_EMAIL("이미 사용중인 이메일입니다."),
     DUPLICATE_USERNAME("이미 사용중인 아이디입니다."),
@@ -68,10 +72,6 @@ public enum ErrorCode {
     UNKNOWN_ERROR("알 수 없는 오류가 발생했습니다.");
 
     private final String message;
-
-    public String getCode() {
-        return this.name();
-    }
 
     public boolean isAuthError() {
         return this.name().startsWith("INVALID_PASSWORD") ||
