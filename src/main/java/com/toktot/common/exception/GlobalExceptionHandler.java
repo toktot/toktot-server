@@ -63,10 +63,27 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleMessageNotReadable(HttpMessageNotReadableException e) {
-        log.warn("JSON 파싱 에러: {}", e.getMessage());
+        String message = e.getMessage();
 
+        if (message != null) {
+            if (message.contains("Required request body is missing")) {
+                log.warn("요청 본문 누락: {}", e.getMessage());
+                return ResponseEntity.ok(
+                        ApiResponse.error(ErrorCode.MISSING_REQUIRED_FIELD, "요청 본문이 필요합니다.")
+                );
+            }
+
+            if (message.contains("Cannot deserialize") || message.contains("missing")) {
+                log.warn("필수 필드 누락: {}", e.getMessage());
+                return ResponseEntity.ok(
+                        ApiResponse.error(ErrorCode.MISSING_REQUIRED_FIELD, "필수 필드가 누락되었습니다.")
+                );
+            }
+        }
+
+        log.warn("JSON 파싱 에러: {}", e.getMessage());
         return ResponseEntity.ok(
-                ApiResponse.error(ErrorCode.INVALID_FORMAT)
+                ApiResponse.error(ErrorCode.INVALID_FORMAT, "요청 형식이 올바르지 않습니다.")
         );
     }
 

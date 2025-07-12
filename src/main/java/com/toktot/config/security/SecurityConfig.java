@@ -41,6 +41,8 @@ public class SecurityConfig {
             "/api/v1/auth/register",
             "/api/v1/auth/login",
             "/api/v1/auth/kakao/**",
+            "/api/v1/auth/refresh",
+            "/api/v1/auth/logout",
             "/oauth2/**",
             "/login/oauth2/**",
             "/api/health",
