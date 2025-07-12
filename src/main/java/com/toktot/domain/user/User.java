@@ -74,6 +74,10 @@ public class User {
         return userProfile == null || userProfile.canLogin();
     }
 
+    public boolean isAccountNonLocked() {
+        return userProfile == null || !userProfile.isAccountLocked();
+    }
+
     public static User createKakaoUser(String oauthId, String nickname, String profileImageUrl) {
         return User.builder()
                 .oauthId(oauthId)
