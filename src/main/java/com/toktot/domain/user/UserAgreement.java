@@ -57,54 +57,6 @@ public class UserAgreement {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    public void agreeToTerms(String clientIp, String userAgent) {
-        this.termsAgreed = true;
-        this.termsAgreedAt = LocalDateTime.now();
-        this.termsWithdrawnAt = null;
-        updateAgreementInfo(clientIp, userAgent);
-    }
-
-    public void withdrawTerms(String clientIp, String userAgent) {
-        this.termsAgreed = false;
-        this.termsWithdrawnAt = LocalDateTime.now();
-        updateAgreementInfo(clientIp, userAgent);
-    }
-
-    public void agreeToPrivacy(String clientIp, String userAgent) {
-        this.privacyAgreed = true;
-        this.privacyAgreedAt = LocalDateTime.now();
-        this.privacyWithdrawnAt = null;
-        updateAgreementInfo(clientIp, userAgent);
-    }
-
-    public void withdrawPrivacy(String clientIp, String userAgent) {
-        this.privacyAgreed = false;
-        this.privacyWithdrawnAt = LocalDateTime.now();
-        updateAgreementInfo(clientIp, userAgent);
-    }
-
-    public void agreeToAll(String clientIp, String userAgent) {
-        agreeToTerms(clientIp, userAgent);
-        agreeToPrivacy(clientIp, userAgent);
-    }
-
-    private void updateAgreementInfo(String clientIp, String userAgent) {
-        this.clientIp = clientIp;
-        this.userAgent = userAgent;
-    }
-
-    public boolean hasAgreedToAll() {
-        return Boolean.TRUE.equals(termsAgreed) && Boolean.TRUE.equals(privacyAgreed);
-    }
-
-    public boolean hasWithdrawnAny() {
-        return Boolean.FALSE.equals(termsAgreed) || Boolean.FALSE.equals(privacyAgreed);
-    }
-
-    public Long getUserId() {
-        return this.id;
-    }
-
     public static UserAgreement createWithFullAgreement(User user, String clientIp, String userAgent) {
         LocalDateTime now = LocalDateTime.now();
         return UserAgreement.builder()
@@ -116,5 +68,9 @@ public class UserAgreement {
                 .clientIp(clientIp)
                 .userAgent(userAgent)
                 .build();
+    }
+
+    void assignUser(User user) {
+        this.user = user;
     }
 }
