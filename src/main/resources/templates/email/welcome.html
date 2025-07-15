@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+
+<body>
+<div class="container">
+    <div class="card">
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg
+                            width="36"
+                            height="36"
+                            viewBox="0 0 36 36"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                    >
+                        <rect width="36" height="36" rx="5.625" fill="#F6FCFF" />
+                        <path
+                                d="M2.8125 14.5285C2.8125 14.5285 7.7064 13.1806 11.4922 15.0698C14.7461 16.6937 16.699 20.483 16.699 20.483C16.699 20.483 18.4563 13.4458 23.4101 14.5285C29.9414 15.9548 33.1875 26.4375 33.1875 26.4375H32.0142C32.0142 26.4375 29.5295 20.2123 23.6709 20.2123C19.2385 20.2123 18.4563 26.4375 18.4563 26.4375C18.4563 26.4375 11.6773 17.7764 2.8125 21.0243V14.5285Z"
+                                fill="#3AC8FF"
+                        />
+                        <path
+                                d="M22.9922 12.9375C24.0018 12.9375 24.8203 12.119 24.8203 11.1094C24.8203 10.0997 24.0018 9.28125 22.9922 9.28125C21.9825 9.28125 21.1641 10.0997 21.1641 11.1094C21.1641 12.119 21.9825 12.9375 22.9922 12.9375Z"
+                                fill="#171D29"
+                        />
+                    </svg>
+                </div>
+                <span class="logo-text">TOKTOT</span>
+            </div>
+        </header>
+
+        <main class="content">
+            <h1 class="title">똑똣에 가입해 주셔서 감사해요!</h1>
+
+            <div class="description">
+                <span th:text="${nickname}"></span>님, 안녕하세요.
+                <p>이제 제주도의 음식점을 마음껏 두드려볼 수 있어요.</p>
+            </div>
+            <a th:href="${frontendUrl}" class="cta">음식점을 똑똣 두드려보기</a>
+        </main>
+    </div>
+</div>
+</body>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        background-color: #f5f5f5;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 504px;
+        min-height: 459px;
+    }
+
+    .card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        padding: 20px 20px 105px 20px;
+        text-align: center;
+    }
+
+    .header {
+        margin-bottom: 80px;
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 12px;
+    }
+
+    .logo-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .logo-text {
+        color: #4a5361;
+        font-size: 20px;
+        font-weight: 500;
+        line-height: 28px;
+    }
+
+    .content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+    }
+
+    .title {
+        color: #171d29;
+        font-size: 28px;
+        font-weight: 600;
+        line-height: 33.6px;
+        margin-bottom: 40px;
+    }
+
+    .description {
+        color: #333c4a;
+        font-size: 14px;
+        line-height: 21px;
+    }
+
+    .description p {
+        margin-bottom: 12px;
+    }
+
+    .cta {
+        color: #38deff;
+        font-size: 18px;
+        background-color: #171d29;
+        padding: 12px 85px;
+        border-radius: 20px;
+        font-weight: 600;
+        line-height: 25.2px;
+        word-wrap: break-word;
+    }
+</style>
+</html>

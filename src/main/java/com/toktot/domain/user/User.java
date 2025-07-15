@@ -78,6 +78,15 @@ public class User {
         return userProfile == null || !userProfile.isAccountLocked();
     }
 
+    public static User createEmailUser(String email, String password, String nickname) {
+        return User.builder()
+                .email(email.toLowerCase())
+                .password(password)
+                .authProvider(AuthProvider.EMAIL)
+                .nickname(nickname)
+                .build();
+    }
+
     public static User createKakaoUser(String oauthId, String nickname, String profileImageUrl) {
         return User.builder()
                 .oauthId(oauthId)
@@ -101,4 +110,9 @@ public class User {
         }
     }
 
+    public void updatePassword(String encodedPassword) {
+        if (StringUtils.hasText(encodedPassword)) {
+            this.password = encodedPassword;
+        }
+    }
 }

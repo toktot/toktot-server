@@ -1,7 +1,9 @@
 package com.toktot.web.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.toktot.common.exception.ErrorCode;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record ApiResponse<T>(
         boolean success,
         String message,
@@ -14,6 +16,10 @@ public record ApiResponse<T>(
 
     public static <T> ApiResponse<T> success(T data) {
         return new ApiResponse<>(true, null, null, data);
+    }
+
+    public static <T> ApiResponse<T> success(String message) {
+        return new ApiResponse<>(true, message, null, null);
     }
 
     public static <T> ApiResponse<T> error(ErrorCode errorCode) {

@@ -7,7 +7,7 @@ import com.toktot.domain.user.service.AuthService;
 import com.toktot.domain.user.service.KakaoOAuth2Service;
 import com.toktot.domain.user.service.AuditLogService;
 import com.toktot.web.dto.ApiResponse;
-import com.toktot.web.dto.auth.reqeust.KakaoLoginRequest;
+import com.toktot.web.dto.auth.request.login.KakaoLoginRequest;
 import com.toktot.web.dto.auth.response.TokenResponse;
 import com.toktot.web.util.ClientInfoExtractor;
 import jakarta.servlet.http.HttpServletRequest;
