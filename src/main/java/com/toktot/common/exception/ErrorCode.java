@@ -18,6 +18,11 @@ public enum ErrorCode {
     KAKAO_LOGIN_FAILED("카카오 로그인 중 오류가 발생했습니다. 다시 시도해주세요."),
     KAKAO_TOKEN_INVALID("카카오 로그인 정보가 만료되었습니다. 다시 로그인해주세요."),
 
+    // 이메일 인증 관련 에러
+    EMAIL_VERIFICATION_EXPIRED("이메일 인증 코드가 만료되었습니다."),
+    EMAIL_VERIFICATION_INVALID("유효하지 않은 인증 코드입니다."),
+    VERIFICATION_CODE_ALREADY_SENT("이미 인증 코드가 발송되었습니다. 잠시 후 다시 시도해주세요."),
+
     // 회원가입/사용자 관리 에러 (USER)
     DUPLICATE_EMAIL("이미 사용중인 이메일입니다."),
     DUPLICATE_USERNAME("이미 사용중인 아이디입니다."),
@@ -27,7 +32,15 @@ public enum ErrorCode {
     INVALID_USERNAME_FORMAT("아이디 형식이 올바르지 않습니다."),
     USERNAME_TOO_SHORT("아이디가 너무 짧습니다."),
     USERNAME_TOO_LONG("아이디가 너무 깁니다."),
-    EMAIL_NOT_VERIFIED("이메일 인증이 필요합니다."),
+
+    // 계정 상태 관련
+    ACCOUNT_LOCKED("계정이 잠금 상태입니다."),
+    ACCOUNT_DISABLED("비활성화된 계정입니다."),
+    LOGIN_ATTEMPTS_EXCEEDED("로그인 시도 횟수를 초과했습니다."),
+
+    // 비밀번호 재설정 관련
+    PASSWORD_RESET_TOKEN_INVALID("비밀번호 재설정 토큰이 유효하지 않습니다."),
+    PASSWORD_RESET_TOKEN_EXPIRED("비밀번호 재설정 토큰이 만료되었습니다."),
 
     // 권한 관련 에러 (PERMISSION)
     PERMISSION_DENIED("권한이 없습니다."),
@@ -61,6 +74,7 @@ public enum ErrorCode {
 
     // 외부 서비스 연동 에러 (EXTERNAL)
     EXTERNAL_SERVICE_ERROR("외부 서비스 오류입니다."),
+    EMAIL_NOT_VERIFIED("이메일 인증을 완료해주세요."),
     EMAIL_SEND_FAILED("이메일 전송에 실패했습니다."),
     FILE_UPLOAD_FAILED("파일 업로드에 실패했습니다."),
 
@@ -78,8 +92,9 @@ public enum ErrorCode {
                 this.name().startsWith("USER_NOT_FOUND") ||
                 this.name().startsWith("ACCOUNT_") ||
                 this.name().startsWith("TOKEN_") ||
-                this.name().equals("UNAUTHORIZED") ||
-                this.name().contains("LOGIN");
+                this.name().startsWith("LOGIN") ||
+                this.name().contains("LOGIN") ||
+                this.name().contains("VERIFICATION");
     }
 
     public boolean isValidationError() {
@@ -87,19 +102,24 @@ public enum ErrorCode {
                 this.name().startsWith("MISSING_") ||
                 this.name().startsWith("VALUE_") ||
                 this.name().contains("FORMAT") ||
-                this.name().contains("SIZE");
+                this.name().contains("SIZE") ||
+                this.name().startsWith("WEAK_") ||
+                this.name().startsWith("DUPLICATE_");
     }
 
     public boolean isPermissionError() {
         return this.name().contains("PERMISSION") ||
                 this.name().contains("ACCESS") ||
-                this.name().contains("REQUIRED");
+                this.name().contains("REQUIRED") ||
+                this.name().contains("DENIED");
     }
 
     public boolean isSystemError() {
         return this.name().contains("ERROR") ||
                 this.name().equals("SERVER_ERROR") ||
                 this.name().equals("DATABASE_ERROR") ||
-                this.name().equals("NETWORK_ERROR");
+                this.name().equals("NETWORK_ERROR") ||
+                this.name().contains("SERVICE") ||
+                this.name().contains("EXTERNAL");
     }
 }
