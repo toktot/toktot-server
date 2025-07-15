@@ -1,4 +1,4 @@
-package com.toktot.web.dto.auth.reqeust;
+package com.toktot.web.dto.auth.request.login;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
