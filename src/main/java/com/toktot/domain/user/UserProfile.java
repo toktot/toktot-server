@@ -4,6 +4,7 @@ import com.toktot.domain.user.type.AccountStatus;
 import com.toktot.domain.user.type.Gender;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -11,6 +12,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+@Slf4j
 @Entity
 @Table(name = "user_profiles")
 @EntityListeners(AuditingEntityListener.class)
@@ -92,5 +94,20 @@ public class UserProfile {
                 .accountStatus(AccountStatus.ACTIVE)
                 .failedLoginCount((byte) 0)
                 .build();
+    }
+
+    public void updatePasswordChangedAt() {
+        this.passwordChangedAt = LocalDateTime.now();
+    }
+
+    public void incrementFailedLoginCount() {
+        this.failedLoginCount++;
+
+        if (this.failedLoginCount >= MAX_FAILED_LOGIN_ATTEMPTS) {
+            this.lockedUntil = LocalDateTime.now().plusMinutes(LOCK_DURATION_MINUTES);
+            log.warn("계정 잠금 처리 - userId: {}, failedAttempts: {}, lockedUntil: {}",
+                    this.user != null ? this.user.getId() : "unknown",
+                    this.failedLoginCount, this.lockedUntil);
+        }
     }
 }
