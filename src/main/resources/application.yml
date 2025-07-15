@@ -32,10 +32,37 @@ spring:
     init:
       mode: ${SQL_INIT_MODE}
 
-  # Jackson 시간대 설정
-  jackson:
-    time-zone: Asia/Seoul
-    date-format: yyyy-MM-dd HH:mm:ss
+  # Redis 설정
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      database: ${REDIS_DATABASE}
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+          max-wait: 3000ms
+
+  # 이메일 설정
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
   # OAuth2 설정
   security:
@@ -57,6 +84,11 @@ spring:
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
 
+  # Jackson 설정
+  jackson:
+    time-zone: Asia/Seoul
+    date-format: yyyy-MM-dd HH:mm:ss
+
 # 서버 설정
 server:
   port: ${SERVER_PORT}
@@ -72,24 +104,34 @@ jwt:
   access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION}
   refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION}
 
-# CORS 설정
+# 똑똣 커스텀 설정
 toktot:
+  # 보안 설정
   security:
     cors:
-      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000,http://localhost:8080}
-      allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS,PATCH}
-      allowed-headers: ${CORS_ALLOWED_HEADERS:Authorization,Content-Type,Accept,Origin,X-Requested-With}
-      max-age: ${CORS_MAX_AGE:3600}
-      allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
+      allowed-origins: ${CORS_ALLOWED_ORIGINS}
+      allowed-methods: ${CORS_ALLOWED_METHODS}
+      allowed-headers: ${CORS_ALLOWED_HEADERS}
+      max-age: ${CORS_MAX_AGE}
+      allow-credentials: ${CORS_ALLOW_CREDENTIALS}
     password:
-      strength: ${PASSWORD_STRENGTH:10}
+      strength: ${PASSWORD_STRENGTH}
+
+  # 이메일 설정
+  email:
+    verification:
+      subject: "똑똣 이메일 인증 코드"
+      valid-minutes: 5
+    password-reset:
+      subject: "똑똣 비밀번호 재설정"
+      valid-hours: 1
+    from-name: "똑똣"
+
+  frontend:
+    url: http://localhost:3000
 
 # Actuator 설정
 management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
   endpoint:
     health:
       show-details: ${HEALTH_SHOW_DETAILS}
@@ -108,3 +150,4 @@ logging:
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
     name: ${LOG_FILE_PATH}
+
