@@ -54,9 +54,9 @@ jobs:
           script: |
             echo "🚀 Dev 서버 배포 시작..."
             
-            cd /home/ubuntu/toktot-server
+            cd /toktot-server
             
-            # 최신 설정 파일 pull (application.yml 포함)
+            # 최신 설정 파일 pull
             git pull origin dev
             
             # 환경변수 설정
