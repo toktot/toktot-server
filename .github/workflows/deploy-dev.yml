@@ -54,7 +54,7 @@ jobs:
           script: |
             echo "🚀 Dev 서버 배포 시작..."
             
-            cd /toktot-server
+            cd toktot-server
             
             # 최신 설정 파일 pull
             git pull origin dev
