@@ -4,53 +4,39 @@ spring:
 
   # 데이터베이스 설정
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
+    url: jdbc:postgresql://postgres:5432/toktot_dev
+    username: toktot_user
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: ${DB_POOL_SIZE}
-      minimum-idle: ${DB_MIN_IDLE}
+      maximum-pool-size: 10
+      minimum-idle: 2
       connection-timeout: 30000
       idle-timeout: 600000
 
   # JPA 설정
   jpa:
     hibernate:
-      ddl-auto: ${DDL_AUTO}
-    show-sql: ${SHOW_SQL}
+      ddl-auto: create-drop
+    show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
         use_sql_comments: true
-        jdbc:
-          time_zone: Asia/Seoul
-
-  # SQL 초기화
-  sql:
-    init:
-      mode: ${SQL_INIT_MODE}
 
   # Redis 설정
   data:
     redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT}
+      host: redis
+      port: 6379
       password: ${REDIS_PASSWORD}
-      database: ${REDIS_DATABASE}
-      timeout: 3000ms
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 2
-          max-wait: 3000ms
+      database: 0
 
   # 이메일 설정
   mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
+    host: smtp.gmail.com
+    port: 587
     username: ${MAIL_USERNAME}
     password: ${MAIL_PASSWORD}
     properties:
@@ -59,10 +45,6 @@ spring:
           auth: true
           starttls:
             enable: true
-            required: true
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
 
   # OAuth2 설정
   security:
@@ -72,82 +54,48 @@ spring:
           kakao:
             client-id: ${KAKAO_CLIENT_ID}
             client-secret: ${KAKAO_CLIENT_SECRET}
-            client-authentication-method: client_secret_post
-            authorization-grant-type: authorization_code
-            redirect-uri: ${KAKAO_REDIRECT_URI}
-            scope: profile_nickname,profile_image
-            client-name: Kakao
-        provider:
-          kakao:
-            authorization-uri: https://kauth.kakao.com/oauth/authorize
-            token-uri: https://kauth.kakao.com/oauth/token
-            user-info-uri: https://kapi.kakao.com/v2/user/me
-            user-name-attribute: id
-
-  # Jackson 설정
-  jackson:
-    time-zone: Asia/Seoul
-    date-format: yyyy-MM-dd HH:mm:ss
+            redirect-uri: http://13.209.53.44/api/v1/auth/kakao/callback
 
 # 서버 설정
 server:
-  port: ${SERVER_PORT}
-  servlet:
-    context-path: /
-  error:
-    include-message: always
-    include-binding-errors: always
+  port: 8080
 
 # JWT 설정
 jwt:
   secret: ${JWT_SECRET}
-  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION}
-  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION}
+  access-token-expiration: 3600000
+  refresh-token-expiration: 604800000
 
 # 똑똣 커스텀 설정
 toktot:
-  # 보안 설정
   security:
     cors:
-      allowed-origins: ${CORS_ALLOWED_ORIGINS}
-      allowed-methods: ${CORS_ALLOWED_METHODS}
-      allowed-headers: ${CORS_ALLOWED_HEADERS}
-      max-age: ${CORS_MAX_AGE}
-      allow-credentials: ${CORS_ALLOW_CREDENTIALS}
+      allowed-origins: http://localhost:3000
+      allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+      allowed-headers: "*"
+      max-age: 3600
+      allow-credentials: true
     password:
-      strength: ${PASSWORD_STRENGTH}
+      strength: 12
 
-  # 이메일 설정
-  email:
-    verification:
-      subject: "똑똣 이메일 인증 코드"
-      valid-minutes: 5
-    password-reset:
-      subject: "똑똣 비밀번호 재설정"
-      valid-hours: 1
-    from-name: "똑똣"
-
-  frontend:
-    url: http://localhost:3000
-
-# Actuator 설정
+# 모니터링 설정
 management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
   endpoint:
     health:
-      show-details: ${HEALTH_SHOW_DETAILS}
+      show-details: when-authorized
 
 # 로깅 설정
 logging:
   level:
-    com.toktot: ${LOGGING_LEVEL_APP}
-    org.springframework.web: ${LOGGING_LEVEL_WEB}
-    org.springframework.security: ${LOGGING_LEVEL_SECURITY}
-    org.hibernate.SQL: ${LOGGING_LEVEL_SQL}
-    org.hibernate.type.descriptor.sql.BasicBinder: ${LOGGING_LEVEL_SQL_BINDER}
-    root: ${LOGGING_LEVEL_ROOT}
+    com.toktot: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    root: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-  file:
-    name: ${LOG_FILE_PATH}
-
