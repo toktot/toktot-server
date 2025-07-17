@@ -61,39 +61,12 @@ public class User {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserAgreement userAgreement;
 
-    public void updateProfile(String nickname, String profileImageUrl) {
-        if (StringUtils.hasText(nickname)) {
-            this.nickname = nickname;
-        }
-        if (StringUtils.hasText(profileImageUrl)) {
-            this.profileImageUrl = profileImageUrl;
-        }
-    }
-
     public boolean isEnabled() {
         return userProfile == null || userProfile.canLogin();
     }
 
     public boolean isAccountNonLocked() {
         return userProfile == null || !userProfile.isAccountLocked();
-    }
-
-    public static User createEmailUser(String email, String password, String nickname) {
-        return User.builder()
-                .email(email.toLowerCase())
-                .password(password)
-                .authProvider(AuthProvider.EMAIL)
-                .nickname(nickname)
-                .build();
-    }
-
-    public static User createKakaoUser(String oauthId, String nickname, String profileImageUrl) {
-        return User.builder()
-                .oauthId(oauthId)
-                .authProvider(AuthProvider.KAKAO)
-                .nickname(nickname)
-                .profileImageUrl(profileImageUrl)
-                .build();
     }
 
     public void assignUserProfile(UserProfile userProfile) {

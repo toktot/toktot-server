@@ -9,6 +9,7 @@ import com.toktot.domain.user.service.AuditLogService;
 import com.toktot.web.dto.ApiResponse;
 import com.toktot.web.dto.auth.request.login.KakaoLoginRequest;
 import com.toktot.web.dto.auth.response.TokenResponse;
+import com.toktot.web.mapper.AuthResponseMapper;
 import com.toktot.web.util.ClientInfoExtractor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,6 +32,7 @@ public class KakaoAuthController {
     private final KakaoOAuth2Service kakaoOAuth2Service;
     private final AuthService authService;
     private final AuditLogService auditLogService;
+    private final AuthResponseMapper authResponseMapper;
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<TokenResponse>> kakaoLogin(
@@ -50,9 +52,11 @@ public class KakaoAuthController {
 
             logSuccessfulLogin(user, clientIp);
 
+            String successMessage = authResponseMapper.toLoginSuccessMessage(user);
+            TokenResponse publicTokenResponse = authResponseMapper.toPublicTokenResponse(tokenResponse);
+
             return ResponseEntity.ok(
-                    ApiResponse.success("카카오 로그인이 완료되었습니다.",
-                            createPublicTokenResponse(tokenResponse))
+                    ApiResponse.success(successMessage, publicTokenResponse)
             );
 
         } catch (ToktotException e) {
@@ -89,14 +93,6 @@ public class KakaoAuthController {
     private void logSuccessfulLogin(User user, String clientIp) {
         log.info("카카오 로그인 API 성공 - userId: {}, nickname: {}, clientIp: {}",
                 user.getId(), user.getNickname(), clientIp);
-    }
-
-    private TokenResponse createPublicTokenResponse(TokenResponse tokenResponse) {
-        return TokenResponse.of(
-                tokenResponse.accessToken(),
-                null,
-                tokenResponse.expiresIn()
-        );
     }
 
     private ResponseEntity<ApiResponse<TokenResponse>> handleLoginBusinessError(
