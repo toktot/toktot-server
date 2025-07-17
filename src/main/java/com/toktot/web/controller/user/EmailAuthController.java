@@ -10,6 +10,7 @@ import com.toktot.web.dto.auth.request.password.PasswordResetCompleteRequest;
 import com.toktot.web.dto.auth.request.password.PasswordResetSendRequest;
 import com.toktot.web.dto.auth.request.register.*;
 import com.toktot.web.dto.auth.response.*;
+import com.toktot.web.mapper.AuthResponseMapper;
 import com.toktot.web.util.ClientInfoExtractor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,11 +27,12 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class EmailAuthController {
 
-    private final EmailVerificationService emailVerificationService;
     private final EmailAuthService emailAuthService;
+    private final EmailVerificationService emailVerificationService;
     private final PasswordResetService passwordResetService;
     private final AuthService authService;
     private final AuditLogService auditLogService;
+    private final AuthResponseMapper authResponseMapper;
 
     @PostMapping("/email/send")
     public ResponseEntity<ApiResponse<EmailSendResponse>> sendVerificationEmail(
@@ -43,14 +45,16 @@ public class EmailAuthController {
 
         try {
             emailAuthService.checkEmailDuplicate(request.email());
-
             emailVerificationService.sendVerificationCode(request.email());
 
             log.info("이메일 인증 코드 발송 성공 - email: {}, clientIp: {}", request.email(), clientIp);
 
+            EmailSendResponse response = authResponseMapper.toEmailSendResponse(
+                    request.email(), "인증 코드가 발송되었습니다."
+            );
+
             return ResponseEntity.ok(
-                    ApiResponse.success("인증 코드가 발송되었습니다.",
-                            EmailSendResponse.success(request.email(), "인증 코드가 발송되었습니다."))
+                    ApiResponse.success("인증 코드가 발송되었습니다.", response)
             );
 
         } catch (ToktotException e) {
@@ -109,17 +113,20 @@ public class EmailAuthController {
 
             log.info("닉네임 사용 가능 - nickname: {}, clientIp: {}", request.nickname(), clientIp);
 
+            NicknameCheckResponse response = authResponseMapper.toNicknameAvailableResponse(request.nickname());
+
             return ResponseEntity.ok(
-                    ApiResponse.success("사용 가능한 닉네임입니다.",
-                            NicknameCheckResponse.available(request.nickname()))
+                    ApiResponse.success("사용 가능한 닉네임입니다.", response)
             );
 
         } catch (ToktotException e) {
             if (e.getErrorCode() == ErrorCode.DUPLICATE_USERNAME) {
                 log.info("닉네임 중복 - nickname: {}, clientIp: {}", request.nickname(), clientIp);
+
+                NicknameCheckResponse response = authResponseMapper.toNicknameUnavailableResponse(request.nickname());
+
                 return ResponseEntity.ok(
-                        ApiResponse.success("닉네임 중복 확인 완료",
-                                NicknameCheckResponse.unavailable(request.nickname()))
+                        ApiResponse.success("닉네임 중복 확인 완료", response)
                 );
             }
 
@@ -159,8 +166,10 @@ public class EmailAuthController {
             log.info("회원가입 성공 - userId: {}, email: {}, nickname: {}, clientIp: {}",
                     user.getId(), request.email(), request.nickname(), clientIp);
 
+            String successMessage = authResponseMapper.toRegistrationSuccessMessage(user);
+
             return ResponseEntity.ok(
-                    ApiResponse.success("회원가입이 완료되었습니다.")
+                    ApiResponse.success(successMessage)
             );
 
         } catch (ToktotException e) {
@@ -201,9 +210,11 @@ public class EmailAuthController {
             log.info("이메일 로그인 성공 - userId: {}, email: {}, clientIp: {}",
                     user.getId(), request.email(), clientIp);
 
+            String successMessage = authResponseMapper.toLoginSuccessMessage(user);
+            TokenResponse publicTokenResponse = authResponseMapper.toPublicTokenResponse(tokenResponse);
+
             return ResponseEntity.ok(
-                    ApiResponse.success("로그인이 완료되었습니다.",
-                            createPublicTokenResponse(tokenResponse))
+                    ApiResponse.success(successMessage, publicTokenResponse)
             );
 
         } catch (ToktotException e) {
@@ -234,9 +245,12 @@ public class EmailAuthController {
 
             log.info("비밀번호 재설정 코드 발송 성공 - email: {}, clientIp: {}", request.email(), clientIp);
 
+            EmailSendResponse response = authResponseMapper.toEmailSendResponse(
+                    request.email(), "비밀번호 재설정 링크가 발송되었습니다."
+            );
+
             return ResponseEntity.ok(
-                    ApiResponse.success("비밀번호 재설정 링크가 발송되었습니다.",
-                            EmailSendResponse.success(request.email(), "비밀번호 재설정 링크가 발송되었습니다."))
+                    ApiResponse.success("비밀번호 재설정 링크가 발송되었습니다.", response)
             );
 
         } catch (ToktotException e) {
@@ -313,13 +327,5 @@ public class EmailAuthController {
         } catch (Exception e) {
             log.warn("로그인 감사로그 기록 실패 - userId: {}, error: {}", user.getId(), e.getMessage());
         }
-    }
-
-    private TokenResponse createPublicTokenResponse(TokenResponse tokenResponse) {
-        return TokenResponse.of(
-                tokenResponse.accessToken(),
-                null,
-                tokenResponse.expiresIn()
-        );
     }
 }

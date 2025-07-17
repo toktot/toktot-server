@@ -8,6 +8,7 @@ import com.toktot.domain.user.UserProfile;
 import com.toktot.domain.user.repository.UserRepository;
 import com.toktot.domain.user.type.AuthProvider;
 import com.toktot.web.dto.auth.response.KakaoUserInfoResponse;
+import com.toktot.web.mapper.AuthRequestMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class KakaoOAuth2Service {
 
     private final UserRepository userRepository;
     private final KakaoApiClient kakaoApiClient;
+    private final AuthRequestMapper authRequestMapper;
 
     public User processKakaoLogin(String authorizationCode, String clientIp, String userAgent) {
         logKakaoLoginStart(clientIp, userAgent);
@@ -170,9 +172,7 @@ public class KakaoOAuth2Service {
 
     private void logNicknameInfo(KakaoUserInfoResponse userInfo) {
         if (!userInfo.hasValidNickname()) {
-            String generatedNickname = generateDefaultNickname(userInfo);
-            log.info("카카오 닉네임 없음, 기본값 사용 - kakaoId: {}, generatedNickname: {}",
-                    userInfo.id(), generatedNickname);
+            log.info("카카오 닉네임 없음, 기본값 사용 예정 - kakaoId: {}", userInfo.id());
         }
     }
 
@@ -198,30 +198,19 @@ public class KakaoOAuth2Service {
     }
 
     private User createNewKakaoUser(KakaoUserInfoResponse userInfo, String clientIp, String userAgent) {
-        String nickname = determineNickname(userInfo);
         log.info("새 카카오 사용자 생성 시작 - kakaoId: {}, nickname: {}, clientIp: {}",
-                userInfo.id(), nickname, clientIp);
+                userInfo.id(), userInfo.nickname(), clientIp);
 
-        User newUser = buildKakaoUser(userInfo, nickname);
+        User newUser = authRequestMapper.toUserEntity(userInfo);
         User savedUser = userRepository.save(newUser);
 
         setupUserRelations(savedUser, clientIp, userAgent);
         User finalUser = userRepository.save(savedUser);
 
         log.info("새 카카오 사용자 생성 완료 - userId: {}, kakaoId: {}, nickname: {}, clientIp: {}",
-                finalUser.getId(), userInfo.id(), nickname, clientIp);
+                finalUser.getId(), userInfo.id(), finalUser.getNickname(), clientIp);
 
         return finalUser;
-    }
-
-    private String determineNickname(KakaoUserInfoResponse userInfo) {
-        return userInfo.hasValidNickname() ? userInfo.nickname() : generateDefaultNickname(userInfo);
-    }
-
-    private User buildKakaoUser(KakaoUserInfoResponse userInfo, String nickname) {
-        User newUser = User.createKakaoUser(userInfo.id(), nickname, userInfo.profileImageUrl());
-        log.debug("새 카카오 사용자 객체 생성 완료 - kakaoId: {}", userInfo.id());
-        return newUser;
     }
 
     private void setupUserRelations(User savedUser, String clientIp, String userAgent) {
@@ -248,12 +237,5 @@ public class KakaoOAuth2Service {
         user.assignUserProfile(userProfile);
         user.assignUserAgreement(userAgreement);
         log.debug("사용자 연관관계 설정 완료 - userId: {}", user.getId());
-    }
-
-    private String generateDefaultNickname(KakaoUserInfoResponse userInfo) {
-        if (userInfo.hasValidNickname()) {
-            return userInfo.nickname();
-        }
-        return "카카오사용자" + userInfo.id().substring(Math.max(0, userInfo.id().length() - 4));
     }
 }
