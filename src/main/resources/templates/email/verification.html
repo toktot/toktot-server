@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 504px;
+            min-height: 459px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 20px 20px 64px 20px;
+            text-align: center;
+        }
+
+        .header {
+            margin-bottom: 80px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-text {
+            color: #4a5361;
+            font-size: 20px;
+            font-weight: 500;
+            line-height: 28px;
+        }
+
+        .content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .title {
+            color: #171d29;
+            font-size: 28px;
+            font-weight: 600;
+            line-height: 33.6px;
+        }
+
+        .verification-code-box {
+            background: #171d29;
+            border-radius: 18px;
+            padding: 43px 108px;
+            margin: 0 83px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .verification-code {
+            font-size: 32px;
+            font-weight: 600;
+            color: #38deff;
+            letter-spacing: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .description {
+            color: #333c4a;
+            font-size: 14px;
+            line-height: 21px;
+        }
+
+        .description p {
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg
+                            width="36"
+                            height="36"
+                            viewBox="0 0 36 36"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                    >
+                        <rect width="36" height="36" rx="5.625" fill="#F6FCFF" />
+                        <path
+                                d="M2.8125 14.5285C2.8125 14.5285 7.7064 13.1806 11.4922 15.0698C14.7461 16.6937 16.699 20.483 16.699 20.483C16.699 20.483 18.4563 13.4458 23.4101 14.5285C29.9414 15.9548 33.1875 26.4375 33.1875 26.4375H32.0142C32.0142 26.4375 29.5295 20.2123 23.6709 20.2123C19.2385 20.2123 18.4563 26.4375 18.4563 26.4375C18.4563 26.4375 11.6773 17.7764 2.8125 21.0243V14.5285Z"
+                                fill="#3AC8FF"
+                        />
+                        <path
+                                d="M22.9922 12.9375C24.0018 12.9375 24.8203 12.119 24.8203 11.1094C24.8203 10.0997 24.0018 9.28125 22.9922 9.28125C21.9825 9.28125 21.1641 10.0997 21.1641 11.1094C21.1641 12.119 21.9825 12.9375 22.9922 12.9375Z"
+                                fill="#171D29"
+                        />
+                    </svg>
+                </div>
+                <span class="logo-text">TOKTOT</span>
+            </div>
+        </header>
+
+        <main class="content">
+            <h1 class="title">이메일 인증번호 안내</h1>
+
+            <div class="verification-code-box">
+                <div class="verification-code" th:text="${verificationCode}"></div>
+            </div>
+
+            <div class="description">
+                <p>
+                    똑똑 계정에 등록한 이메일 주소가 올바른지 확인하기 위한
+                    인증번호입니다.
+                </p>
+                <p>아래의 인증번호를 복사하여 이메일 인증을 완료해 주세요.</p>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>
