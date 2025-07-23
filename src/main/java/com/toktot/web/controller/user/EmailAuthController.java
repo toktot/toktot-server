@@ -41,13 +41,21 @@ public class EmailAuthController {
     ) {
         String clientIp = ClientInfoExtractor.getClientIp(httpRequest);
 
-        log.info("이메일 인증 코드 발송 요청 - email: {}, clientIp: {}", request.email(), clientIp);
+        log.atInfo()
+                .setMessage("Email verification code send request received")
+                .addKeyValue("email", request.email())
+                .addKeyValue("clientIp", clientIp)
+                .log();
 
         try {
             emailAuthService.checkEmailDuplicate(request.email());
             emailVerificationService.sendVerificationCode(request.email());
 
-            log.info("이메일 인증 코드 발송 성공 - email: {}, clientIp: {}", request.email(), clientIp);
+            log.atInfo()
+                    .setMessage("Email verification code sent successfully")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
 
             EmailSendResponse response = authResponseMapper.toEmailSendResponse(
                     request.email(), "인증 코드가 발송되었습니다."
@@ -58,13 +66,23 @@ public class EmailAuthController {
             );
 
         } catch (ToktotException e) {
-            log.warn("이메일 인증 코드 발송 실패 - email: {}, error: {}, clientIp: {}",
-                    request.email(), e.getMessage(), clientIp);
+            log.atWarn()
+                    .setMessage("Email verification code send failed")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("errorCode", e.getErrorCodeName())
+                    .addKeyValue("errorMessage", e.getMessage())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
             return ResponseEntity.ok(ApiResponse.error(e.getErrorCode(), e.getMessage()));
 
         } catch (Exception e) {
-            log.error("이메일 인증 코드 발송 중 시스템 오류 - email: {}, clientIp: {}, error: {}",
-                    request.email(), clientIp, e.getMessage(), e);
+            log.atError()
+                    .setMessage("Email verification code send system error")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("clientIp", clientIp)
+                    .addKeyValue("error", e.getMessage())
+                    .setCause(e)
+                    .log();
             return ResponseEntity.ok(ApiResponse.error(ErrorCode.SERVER_ERROR));
         }
     }
@@ -76,25 +94,43 @@ public class EmailAuthController {
     ) {
         String clientIp = ClientInfoExtractor.getClientIp(httpRequest);
 
-        log.info("이메일 인증 코드 확인 요청 - email: {}, clientIp: {}", request.email(), clientIp);
+        log.atInfo()
+                .setMessage("Email verification request received")
+                .addKeyValue("email", request.email())
+                .addKeyValue("clientIp", clientIp)
+                .log();
 
         try {
             emailVerificationService.verifyCode(request.email(), request.verificationCode());
 
-            log.info("이메일 인증 성공 - email: {}, clientIp: {}", request.email(), clientIp);
+            log.atInfo()
+                    .setMessage("Email verification successful")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
 
             return ResponseEntity.ok(
                     ApiResponse.success("이메일 인증이 완료되었습니다.", "verified")
             );
 
         } catch (ToktotException e) {
-            log.warn("이메일 인증 실패 - email: {}, error: {}, clientIp: {}",
-                    request.email(), e.getMessage(), clientIp);
+            log.atWarn()
+                    .setMessage("Email verification failed")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("errorCode", e.getErrorCodeName())
+                    .addKeyValue("errorMessage", e.getMessage())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
             return ResponseEntity.ok(ApiResponse.error(e.getErrorCode(), e.getMessage()));
 
         } catch (Exception e) {
-            log.error("이메일 인증 중 시스템 오류 - email: {}, clientIp: {}, error: {}",
-                    request.email(), clientIp, e.getMessage(), e);
+            log.atError()
+                    .setMessage("Email verification system error")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("clientIp", clientIp)
+                    .addKeyValue("error", e.getMessage())
+                    .setCause(e)
+                    .log();
             return ResponseEntity.ok(ApiResponse.error(ErrorCode.SERVER_ERROR));
         }
     }
@@ -106,12 +142,20 @@ public class EmailAuthController {
     ) {
         String clientIp = ClientInfoExtractor.getClientIp(httpRequest);
 
-        log.info("닉네임 중복 확인 요청 - nickname: {}, clientIp: {}", request.nickname(), clientIp);
+        log.atInfo()
+                .setMessage("Nickname duplicate check request received")
+                .addKeyValue("nickname", request.nickname())
+                .addKeyValue("clientIp", clientIp)
+                .log();
 
         try {
             emailAuthService.checkNicknameDuplicate(request.nickname());
 
-            log.info("닉네임 사용 가능 - nickname: {}, clientIp: {}", request.nickname(), clientIp);
+            log.atInfo()
+                    .setMessage("Nickname available")
+                    .addKeyValue("nickname", request.nickname())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
 
             NicknameCheckResponse response = authResponseMapper.toNicknameAvailableResponse(request.nickname());
 
@@ -121,7 +165,11 @@ public class EmailAuthController {
 
         } catch (ToktotException e) {
             if (e.getErrorCode() == ErrorCode.DUPLICATE_USERNAME) {
-                log.info("닉네임 중복 - nickname: {}, clientIp: {}", request.nickname(), clientIp);
+                log.atInfo()
+                        .setMessage("Nickname already taken")
+                        .addKeyValue("nickname", request.nickname())
+                        .addKeyValue("clientIp", clientIp)
+                        .log();
 
                 NicknameCheckResponse response = authResponseMapper.toNicknameUnavailableResponse(request.nickname());
 
@@ -130,13 +178,23 @@ public class EmailAuthController {
                 );
             }
 
-            log.warn("닉네임 중복 확인 실패 - nickname: {}, error: {}, clientIp: {}",
-                    request.nickname(), e.getMessage(), clientIp);
+            log.atWarn()
+                    .setMessage("Nickname check failed")
+                    .addKeyValue("nickname", request.nickname())
+                    .addKeyValue("errorCode", e.getErrorCodeName())
+                    .addKeyValue("errorMessage", e.getMessage())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
             return ResponseEntity.ok(ApiResponse.error(e.getErrorCode(), e.getMessage()));
 
         } catch (Exception e) {
-            log.error("닉네임 중복 확인 중 시스템 오류 - nickname: {}, clientIp: {}, error: {}",
-                    request.nickname(), clientIp, e.getMessage(), e);
+            log.atError()
+                    .setMessage("Nickname check system error")
+                    .addKeyValue("nickname", request.nickname())
+                    .addKeyValue("clientIp", clientIp)
+                    .addKeyValue("error", e.getMessage())
+                    .setCause(e)
+                    .log();
             return ResponseEntity.ok(ApiResponse.error(ErrorCode.SERVER_ERROR));
         }
     }
@@ -149,8 +207,12 @@ public class EmailAuthController {
         String clientIp = ClientInfoExtractor.getClientIp(httpRequest);
         String userAgent = ClientInfoExtractor.getUserAgent(httpRequest);
 
-        log.info("회원가입 요청 - email: {}, nickname: {}, clientIp: {}",
-                request.email(), request.nickname(), clientIp);
+        log.atInfo()
+                .setMessage("User registration request received")
+                .addKeyValue("email", request.email())
+                .addKeyValue("nickname", request.nickname())
+                .addKeyValue("clientIp", clientIp)
+                .log();
 
         try {
             User user = emailAuthService.registerEmailUser(
@@ -163,8 +225,13 @@ public class EmailAuthController {
 
             recordSuccessfulRegistration(user, clientIp, userAgent);
 
-            log.info("회원가입 성공 - userId: {}, email: {}, nickname: {}, clientIp: {}",
-                    user.getId(), request.email(), request.nickname(), clientIp);
+            log.atInfo()
+                    .setMessage("User registration successful")
+                    .addKeyValue("userId", user.getId())
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("nickname", request.nickname())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
 
             String successMessage = authResponseMapper.toRegistrationSuccessMessage(user);
 
@@ -173,14 +240,24 @@ public class EmailAuthController {
             );
 
         } catch (ToktotException e) {
-            log.warn("회원가입 실패 - email: {}, error: {}, clientIp: {}",
-                    request.email(), e.getMessage(), clientIp);
+            log.atWarn()
+                    .setMessage("User registration failed")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("errorCode", e.getErrorCodeName())
+                    .addKeyValue("errorMessage", e.getMessage())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
             auditLogService.recordLoginFailure(request.email(), clientIp, userAgent, e.getMessage());
             return ResponseEntity.ok(ApiResponse.error(e.getErrorCode(), e.getMessage()));
 
         } catch (Exception e) {
-            log.error("회원가입 중 시스템 오류 - email: {}, clientIp: {}, error: {}",
-                    request.email(), clientIp, e.getMessage(), e);
+            log.atError()
+                    .setMessage("User registration system error")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("clientIp", clientIp)
+                    .addKeyValue("error", e.getMessage())
+                    .setCause(e)
+                    .log();
             auditLogService.recordLoginFailure(request.email(), clientIp, userAgent, "시스템 오류");
             return ResponseEntity.ok(ApiResponse.error(ErrorCode.SERVER_ERROR));
         }
@@ -195,7 +272,11 @@ public class EmailAuthController {
         String clientIp = ClientInfoExtractor.getClientIp(httpRequest);
         String userAgent = ClientInfoExtractor.getUserAgent(httpRequest);
 
-        log.info("이메일 로그인 요청 - email: {}, clientIp: {}", request.email(), clientIp);
+        log.atInfo()
+                .setMessage("Email login request received")
+                .addKeyValue("email", request.email())
+                .addKeyValue("clientIp", clientIp)
+                .log();
 
         try {
             User user = emailAuthService.authenticateEmailUser(
@@ -207,8 +288,12 @@ public class EmailAuthController {
             TokenResponse tokenResponse = generateAndSetTokens(user, httpResponse);
             recordSuccessfulLogin(user, clientIp, userAgent);
 
-            log.info("이메일 로그인 성공 - userId: {}, email: {}, clientIp: {}",
-                    user.getId(), request.email(), clientIp);
+            log.atInfo()
+                    .setMessage("Email login successful")
+                    .addKeyValue("userId", user.getId())
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
 
             String successMessage = authResponseMapper.toLoginSuccessMessage(user);
             TokenResponse publicTokenResponse = authResponseMapper.toPublicTokenResponse(tokenResponse);
@@ -218,14 +303,24 @@ public class EmailAuthController {
             );
 
         } catch (ToktotException e) {
-            log.warn("이메일 로그인 실패 - email: {}, error: {}, clientIp: {}",
-                    request.email(), e.getMessage(), clientIp);
+            log.atWarn()
+                    .setMessage("Email login failed")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("errorCode", e.getErrorCodeName())
+                    .addKeyValue("errorMessage", e.getMessage())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
             auditLogService.recordLoginFailure(request.email(), clientIp, userAgent, e.getMessage());
             return ResponseEntity.ok(ApiResponse.error(e.getErrorCode(), e.getMessage()));
 
         } catch (Exception e) {
-            log.error("이메일 로그인 중 시스템 오류 - email: {}, clientIp: {}, error: {}",
-                    request.email(), clientIp, e.getMessage(), e);
+            log.atError()
+                    .setMessage("Email login system error")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("clientIp", clientIp)
+                    .addKeyValue("error", e.getMessage())
+                    .setCause(e)
+                    .log();
             auditLogService.recordLoginFailure(request.email(), clientIp, userAgent, "시스템 오류");
             return ResponseEntity.ok(ApiResponse.error(ErrorCode.SERVER_ERROR));
         }
@@ -238,12 +333,20 @@ public class EmailAuthController {
     ) {
         String clientIp = ClientInfoExtractor.getClientIp(httpRequest);
 
-        log.info("비밀번호 재설정 코드 발송 요청 - email: {}, clientIp: {}", request.email(), clientIp);
+        log.atInfo()
+                .setMessage("Password reset code send request received")
+                .addKeyValue("email", request.email())
+                .addKeyValue("clientIp", clientIp)
+                .log();
 
         try {
             passwordResetService.sendPasswordResetCode(request.email());
 
-            log.info("비밀번호 재설정 코드 발송 성공 - email: {}, clientIp: {}", request.email(), clientIp);
+            log.atInfo()
+                    .setMessage("Password reset code sent successfully")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
 
             EmailSendResponse response = authResponseMapper.toEmailSendResponse(
                     request.email(), "비밀번호 재설정 링크가 발송되었습니다."
@@ -254,13 +357,23 @@ public class EmailAuthController {
             );
 
         } catch (ToktotException e) {
-            log.warn("비밀번호 재설정 코드 발송 실패 - email: {}, error: {}, clientIp: {}",
-                    request.email(), e.getMessage(), clientIp);
+            log.atWarn()
+                    .setMessage("Password reset code send failed")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("errorCode", e.getErrorCodeName())
+                    .addKeyValue("errorMessage", e.getMessage())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
             return ResponseEntity.ok(ApiResponse.error(e.getErrorCode(), e.getMessage()));
 
         } catch (Exception e) {
-            log.error("비밀번호 재설정 코드 발송 중 시스템 오류 - email: {}, clientIp: {}, error: {}",
-                    request.email(), clientIp, e.getMessage(), e);
+            log.atError()
+                    .setMessage("Password reset code send system error")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("clientIp", clientIp)
+                    .addKeyValue("error", e.getMessage())
+                    .setCause(e)
+                    .log();
             return ResponseEntity.ok(ApiResponse.error(ErrorCode.SERVER_ERROR));
         }
     }
@@ -271,7 +384,12 @@ public class EmailAuthController {
             HttpServletRequest httpRequest
     ) {
         String clientIp = ClientInfoExtractor.getClientIp(httpRequest);
-        log.info("비밀번호 재설정 요청 - email: {}, clientIp: {}", request.email(), clientIp);
+
+        log.atInfo()
+                .setMessage("Password reset request received")
+                .addKeyValue("email", request.email())
+                .addKeyValue("clientIp", clientIp)
+                .log();
 
         try {
             passwordResetService.resetPassword(
@@ -280,20 +398,34 @@ public class EmailAuthController {
                     request.newPassword()
             );
 
-            log.info("비밀번호 재설정 성공 - email: {}, clientIp: {}", request.email(), clientIp);
+            log.atInfo()
+                    .setMessage("Password reset successful")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
 
             return ResponseEntity.ok(
                     ApiResponse.success("비밀번호가 재설정되었습니다.", "completed")
             );
 
         } catch (ToktotException e) {
-            log.warn("비밀번호 재설정 실패 - email: {}, error: {}, clientIp: {}",
-                    request.email(), e.getMessage(), clientIp);
+            log.atWarn()
+                    .setMessage("Password reset failed")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("errorCode", e.getErrorCodeName())
+                    .addKeyValue("errorMessage", e.getMessage())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
             return ResponseEntity.ok(ApiResponse.error(e.getErrorCode(), e.getMessage()));
 
         } catch (Exception e) {
-            log.error("비밀번호 재설정 중 시스템 오류 - email: {}, clientIp: {}, error: {}",
-                    request.email(), clientIp, e.getMessage(), e);
+            log.atError()
+                    .setMessage("Password reset system error")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("clientIp", clientIp)
+                    .addKeyValue("error", e.getMessage())
+                    .setCause(e)
+                    .log();
             return ResponseEntity.ok(ApiResponse.error(ErrorCode.SERVER_ERROR));
         }
     }
@@ -306,7 +438,10 @@ public class EmailAuthController {
         );
         httpResponse.addHeader("Set-Cookie", refreshCookie.toString());
 
-        log.debug("JWT 토큰 생성 및 쿠키 설정 완료 - userId: {}", user.getId());
+        log.atDebug()
+                .setMessage("JWT tokens generated and cookie set")
+                .addKeyValue("userId", user.getId())
+                .log();
 
         return tokenResponse;
     }
@@ -314,18 +449,34 @@ public class EmailAuthController {
     private void recordSuccessfulRegistration(User user, String clientIp, String userAgent) {
         try {
             auditLogService.recordLoginSuccess(user, clientIp, userAgent, "EMAIL_REGISTER");
-            log.debug("회원가입 감사로그 기록 완료 - userId: {}", user.getId());
+
+            log.atDebug()
+                    .setMessage("Registration audit log recorded")
+                    .addKeyValue("userId", user.getId())
+                    .log();
         } catch (Exception e) {
-            log.warn("회원가입 감사로그 기록 실패 - userId: {}, error: {}", user.getId(), e.getMessage());
+            log.atWarn()
+                    .setMessage("Failed to record registration audit log")
+                    .addKeyValue("userId", user.getId())
+                    .addKeyValue("error", e.getMessage())
+                    .log();
         }
     }
 
     private void recordSuccessfulLogin(User user, String clientIp, String userAgent) {
         try {
             auditLogService.recordLoginSuccess(user, clientIp, userAgent, "EMAIL");
-            log.debug("로그인 감사로그 기록 완료 - userId: {}", user.getId());
+
+            log.atDebug()
+                    .setMessage("Login audit log recorded")
+                    .addKeyValue("userId", user.getId())
+                    .log();
         } catch (Exception e) {
-            log.warn("로그인 감사로그 기록 실패 - userId: {}, error: {}", user.getId(), e.getMessage());
+            log.atWarn()
+                    .setMessage("Failed to record login audit log")
+                    .addKeyValue("userId", user.getId())
+                    .addKeyValue("error", e.getMessage())
+                    .log();
         }
     }
 }
