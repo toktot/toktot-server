@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <springProfile name="!prod">
+        <!-- 개발 환경: 콘솔 출력 (사람이 읽기 좋은 형태) -->
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}</pattern>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <springProfile name="prod">
+        <!-- 운영 환경: 구조화된 JSON 로그 -->
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="co.elastic.logging.logback.EcsEncoder">
+                <serviceName>${spring.application.name:-toktot}</serviceName>
+                <serviceVersion>1.0.0</serviceVersion>
+                <serviceEnvironment>${spring.profiles.active:-unknown}</serviceEnvironment>
+                <serviceNodeName>${HOSTNAME:localhost}</serviceNodeName>
+                <includeMarkers>true</includeMarkers>
+                <includeMdc>true</includeMdc>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!-- 애플리케이션 로그 파일 (항상 JSON) -->
+    <appender name="APPLICATION_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/app/logs/application.json</file>
+        <encoder class="co.elastic.logging.logback.EcsEncoder">
+            <serviceName>${spring.application.name:-toktot}</serviceName>
+            <serviceVersion>1.0.0</serviceVersion>
+            <serviceEnvironment>${spring.profiles.active:-unknown}</serviceEnvironment>
+            <serviceNodeName>${HOSTNAME:localhost}</serviceNodeName>
+            <includeMarkers>true</includeMarkers>
+            <includeMdc>true</includeMdc>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>/app/logs/application.%d{yyyy-MM-dd}.%i.json</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- 에러 로그 분리 -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/app/logs/error.json</file>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder class="co.elastic.logging.logback.EcsEncoder">
+            <serviceName>${spring.application.name:-toktot}</serviceName>
+            <serviceVersion>1.0.0</serviceVersion>
+            <serviceEnvironment>${spring.profiles.active:-unknown}</serviceEnvironment>
+            <serviceNodeName>${HOSTNAME:localhost}</serviceNodeName>
+            <includeMarkers>true</includeMarkers>
+            <includeMdc>true</includeMdc>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>/app/logs/error.%d{yyyy-MM-dd}.json</fileNamePattern>
+            <maxHistory>90</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <!-- 보안 이벤트 로그 -->
+    <appender name="SECURITY_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/app/logs/security.json</file>
+        <encoder class="co.elastic.logging.logback.EcsEncoder">
+            <serviceName>${spring.application.name:-toktot}</serviceName>
+            <serviceVersion>1.0.0</serviceVersion>
+            <serviceEnvironment>${spring.profiles.active:-unknown}</serviceEnvironment>
+            <serviceNodeName>${HOSTNAME:localhost}</serviceNodeName>
+            <includeMarkers>true</includeMarkers>
+            <includeMdc>true</includeMdc>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>/app/logs/security.%d{yyyy-MM-dd}.json</fileNamePattern>
+            <maxHistory>365</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <!-- 비동기 어펜더 (성능 최적화) -->
+    <appender name="ASYNC_APPLICATION" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="APPLICATION_FILE"/>
+        <queueSize>256</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
+    </appender>
+
+    <appender name="ASYNC_ERROR" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="ERROR_FILE"/>
+        <queueSize>256</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>true</includeCallerData>
+    </appender>
+
+    <!-- 루트 로거 -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_APPLICATION"/>
+        <appender-ref ref="ASYNC_ERROR"/>
+    </root>
+
+    <!-- 애플리케이션 로거 -->
+    <logger name="com.toktot" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_APPLICATION"/>
+        <appender-ref ref="ASYNC_ERROR"/>
+    </logger>
+
+    <!-- 보안 로거 -->
+    <logger name="SECURITY" level="INFO" additivity="false">
+        <appender-ref ref="SECURITY_FILE"/>
+    </logger>
+
+    <!-- 데이터베이스 로거 -->
+    <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_APPLICATION"/>
+    </logger>
+
+    <!-- Spring Security 로거 -->
+    <logger name="org.springframework.security" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_APPLICATION"/>
+        <appender-ref ref="SECURITY_FILE"/>
+    </logger>
+</configuration>

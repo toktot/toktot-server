@@ -66,6 +66,32 @@ jwt:
   access-token-expiration: 3600000
   refresh-token-expiration: 604800000
 
+# 로깅 설정 (Spring Boot 3.4+)
+logging:
+  structured:
+    format:
+      console: ecs
+      file: ecs
+    ecs:
+      service:
+        name: ${spring.application.name}
+        version: 1.0.0
+        environment: ${spring.profiles.active:dev}
+        node-name: ${HOSTNAME:localhost}
+
+  # 로그 레벨 설정
+  level:
+    com.toktot: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    root: INFO
+
+  # 콘솔 패턴 설정 (개발 환경용)
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
+
 # 똑똣 커스텀 설정
 toktot:
   security:
@@ -87,15 +113,3 @@ management:
   endpoint:
     health:
       show-details: when-authorized
-
-# 로깅 설정
-logging:
-  level:
-    com.toktot: DEBUG
-    org.springframework.web: INFO
-    org.springframework.security: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-    root: INFO
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
