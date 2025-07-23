@@ -43,7 +43,7 @@ public class KakaoAuthController {
         String clientIp = ClientInfoExtractor.getClientIp(httpRequest);
         String userAgent = ClientInfoExtractor.getUserAgent(httpRequest);
 
-        logLoginAttempt(clientIp, userAgent);
+        logLoginAttempt(clientIp, userAgent, request.code());
 
         try {
             User user = processKakaoAuthentication(request, clientIp, userAgent);
@@ -66,12 +66,22 @@ public class KakaoAuthController {
         }
     }
 
-    private void logLoginAttempt(String clientIp, String userAgent) {
-        log.info("카카오 로그인 API 호출 - clientIp: {}, userAgent: {}",
-                clientIp, userAgent.substring(0, Math.min(50, userAgent.length())));
+    private void logLoginAttempt(String clientIp, String userAgent, String authCode) {
+        log.atInfo()
+                .setMessage("Kakao login API request received")
+                .addKeyValue("clientIp", clientIp)
+                .addKeyValue("userAgent", userAgent.substring(0, Math.min(50, userAgent.length())))
+                .addKeyValue("authCodeLength", authCode.length())
+                .addKeyValue("authCodePrefix", authCode.substring(0, Math.min(8, authCode.length())))
+                .log();
     }
 
     private User processKakaoAuthentication(KakaoLoginRequest request, String clientIp, String userAgent) {
+        log.atDebug()
+                .setMessage("Processing Kakao authentication")
+                .addKeyValue("clientIp", clientIp)
+                .log();
+
         return kakaoOAuth2Service.processKakaoLogin(request.code(), clientIp, userAgent);
     }
 
@@ -83,23 +93,50 @@ public class KakaoAuthController {
         );
         httpResponse.addHeader("Set-Cookie", refreshCookie.toString());
 
+        log.atDebug()
+                .setMessage("JWT tokens generated and cookie set for Kakao login")
+                .addKeyValue("userId", user.getId())
+                .log();
+
         return tokenResponse;
     }
 
     private void recordSuccessfulLogin(User user, String clientIp, String userAgent) {
-        auditLogService.recordLoginSuccess(user, clientIp, userAgent, "KAKAO");
+        try {
+            auditLogService.recordLoginSuccess(user, clientIp, userAgent, "KAKAO");
+
+            log.atDebug()
+                    .setMessage("Kakao login audit log recorded")
+                    .addKeyValue("userId", user.getId())
+                    .log();
+        } catch (Exception e) {
+            log.atWarn()
+                    .setMessage("Failed to record Kakao login audit log")
+                    .addKeyValue("userId", user.getId())
+                    .addKeyValue("error", e.getMessage())
+                    .log();
+        }
     }
 
     private void logSuccessfulLogin(User user, String clientIp) {
-        log.info("카카오 로그인 API 성공 - userId: {}, nickname: {}, clientIp: {}",
-                user.getId(), user.getNickname(), clientIp);
+        log.atInfo()
+                .setMessage("Kakao login API successful")
+                .addKeyValue("userId", user.getId())
+                .addKeyValue("nickname", user.getNickname())
+                .addKeyValue("authProvider", user.getAuthProvider())
+                .addKeyValue("clientIp", clientIp)
+                .log();
     }
 
     private ResponseEntity<ApiResponse<TokenResponse>> handleLoginBusinessError(
             ToktotException e, String clientIp, String userAgent) {
 
-        log.warn("카카오 로그인 API 비즈니스 실패 - errorCode: {}, message: {}, clientIp: {}",
-                e.getErrorCodeName(), e.getMessage(), clientIp);
+        log.atWarn()
+                .setMessage("Kakao login API business failure")
+                .addKeyValue("errorCode", e.getErrorCodeName())
+                .addKeyValue("errorMessage", e.getMessage())
+                .addKeyValue("clientIp", clientIp)
+                .log();
 
         auditLogService.recordLoginFailure("kakao_user", clientIp, userAgent, e.getMessage());
 
@@ -109,8 +146,13 @@ public class KakaoAuthController {
     private ResponseEntity<ApiResponse<TokenResponse>> handleLoginSystemError(
             Exception e, String clientIp, String userAgent) {
 
-        log.error("카카오 로그인 API 시스템 오류 - clientIp: {}, userAgent: {}, error: {}",
-                clientIp, userAgent, e.getMessage(), e);
+        log.atError()
+                .setMessage("Kakao login API system error")
+                .addKeyValue("clientIp", clientIp)
+                .addKeyValue("userAgent", userAgent.substring(0, Math.min(50, userAgent.length())))
+                .addKeyValue("error", e.getMessage())
+                .setCause(e)
+                .log();
 
         auditLogService.recordLoginFailure("kakao_user", clientIp, userAgent, "시스템 오류");
 

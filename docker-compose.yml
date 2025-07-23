@@ -51,9 +51,11 @@ services:
       - MAIL_PASSWORD=${MAIL_PASSWORD}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - TZ=Asia/Seoul
+      - SPRING_PROFILES_ACTIVE=dev
     ports:
       - "8080:8080"
     volumes:
+      - app_logs:/app/logs
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     depends_on:
@@ -73,4 +75,6 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  app_logs:
     driver: local

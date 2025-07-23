@@ -12,13 +12,25 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ToktotException.class)
-    public ResponseEntity<ApiResponse<Void>> handleToktotException(ToktotException e) {
-        log.warn("비즈니스 에러 발생: [{}] {}", e.getErrorCodeName(), e.getMessage());
+    public ResponseEntity<ApiResponse<Void>> handleToktotException(ToktotException e, HttpServletRequest request) {
+        log.atWarn()
+                .setMessage("Business error occurred")
+                .addKeyValue("errorCode", e.getErrorCodeName())
+                .addKeyValue("errorMessage", e.getMessage())
+                .addKeyValue("requestUri", request.getRequestURI())
+                .addKeyValue("requestMethod", request.getMethod())
+                .addKeyValue("isAuthError", e.isAuthError())
+                .addKeyValue("isValidationError", e.isValidationError())
+                .addKeyValue("isPermissionError", e.isPermissionError())
+                .addKeyValue("isSystemError", e.isSystemError())
+                .log();
 
         return ResponseEntity.ok(
                 ApiResponse.error(e.getErrorCode(), e.getMessage())
@@ -26,12 +38,20 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException e) {
+    public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException e, HttpServletRequest request) {
         FieldError fieldError = e.getBindingResult().getFieldErrors().get(0);
         String errorMessage = fieldError.getDefaultMessage();
         String fieldName = fieldError.getField();
+        Object rejectedValue = fieldError.getRejectedValue();
 
-        log.warn("Validation 에러: 필드[{}] - {}", fieldName, errorMessage);
+        log.atWarn()
+                .setMessage("Validation error occurred")
+                .addKeyValue("fieldName", fieldName)
+                .addKeyValue("errorMessage", errorMessage)
+                .addKeyValue("rejectedValue", rejectedValue != null ? rejectedValue.toString() : "null")
+                .addKeyValue("requestUri", request.getRequestURI())
+                .addKeyValue("requestMethod", request.getMethod())
+                .log();
 
         return ResponseEntity.ok(
                 ApiResponse.error(ErrorCode.INVALID_INPUT, errorMessage)
@@ -39,10 +59,16 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<ApiResponse<Void>> handleMissingParameter(MissingServletRequestParameterException e) {
+    public ResponseEntity<ApiResponse<Void>> handleMissingParameter(MissingServletRequestParameterException e, HttpServletRequest request) {
         String message = String.format("필수 파라미터가 누락되었습니다: %s", e.getParameterName());
 
-        log.warn("파라미터 누락: {}", e.getParameterName());
+        log.atWarn()
+                .setMessage("Missing parameter error")
+                .addKeyValue("parameterName", e.getParameterName())
+                .addKeyValue("parameterType", e.getParameterType())
+                .addKeyValue("requestUri", request.getRequestURI())
+                .addKeyValue("requestMethod", request.getMethod())
+                .log();
 
         return ResponseEntity.ok(
                 ApiResponse.error(ErrorCode.MISSING_REQUIRED_FIELD, message)
@@ -50,11 +76,17 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException e, HttpServletRequest request) {
         String message = String.format("파라미터 타입이 올바르지 않습니다: %s", e.getName());
 
-        log.warn("파라미터 타입 오류: {} (기대값: {}, 실제값: {})",
-                e.getName(), e.getRequiredType(), e.getValue());
+        log.atWarn()
+                .setMessage("Parameter type mismatch error")
+                .addKeyValue("parameterName", e.getName())
+                .addKeyValue("expectedType", e.getRequiredType() != null ? e.getRequiredType().getSimpleName() : "unknown")
+                .addKeyValue("actualValue", e.getValue())
+                .addKeyValue("requestUri", request.getRequestURI())
+                .addKeyValue("requestMethod", request.getMethod())
+                .log();
 
         return ResponseEntity.ok(
                 ApiResponse.error(ErrorCode.INVALID_FORMAT, message)
@@ -62,34 +94,59 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponse<Void>> handleMessageNotReadable(HttpMessageNotReadableException e) {
+    public ResponseEntity<ApiResponse<Void>> handleMessageNotReadable(HttpMessageNotReadableException e, HttpServletRequest request) {
         String message = e.getMessage();
+        String errorType = "JSON_PARSING_ERROR";
 
         if (message != null) {
             if (message.contains("Required request body is missing")) {
-                log.warn("요청 본문 누락: {}", e.getMessage());
+                errorType = "MISSING_REQUEST_BODY";
+                log.atWarn()
+                        .setMessage("Request body missing error")
+                        .addKeyValue("errorType", errorType)
+                        .addKeyValue("requestUri", request.getRequestURI())
+                        .addKeyValue("requestMethod", request.getMethod())
+                        .log();
                 return ResponseEntity.ok(
                         ApiResponse.error(ErrorCode.MISSING_REQUIRED_FIELD, "요청 본문이 필요합니다.")
                 );
             }
 
             if (message.contains("Cannot deserialize") || message.contains("missing")) {
-                log.warn("필수 필드 누락: {}", e.getMessage());
+                errorType = "FIELD_DESERIALIZATION_ERROR";
+                log.atWarn()
+                        .setMessage("Field deserialization error")
+                        .addKeyValue("errorType", errorType)
+                        .addKeyValue("requestUri", request.getRequestURI())
+                        .addKeyValue("requestMethod", request.getMethod())
+                        .log();
                 return ResponseEntity.ok(
                         ApiResponse.error(ErrorCode.MISSING_REQUIRED_FIELD, "필수 필드가 누락되었습니다.")
                 );
             }
         }
 
-        log.warn("JSON 파싱 에러: {}", e.getMessage());
+        log.atWarn()
+                .setMessage("JSON parsing error")
+                .addKeyValue("errorType", errorType)
+                .addKeyValue("errorMessage", e.getMessage())
+                .addKeyValue("requestUri", request.getRequestURI())
+                .addKeyValue("requestMethod", request.getMethod())
+                .log();
+
         return ResponseEntity.ok(
                 ApiResponse.error(ErrorCode.INVALID_FORMAT, "요청 형식이 올바르지 않습니다.")
         );
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException e) {
-        log.warn("잘못된 인수: {}", e.getMessage());
+    public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException e, HttpServletRequest request) {
+        log.atWarn()
+                .setMessage("Illegal argument error")
+                .addKeyValue("errorMessage", e.getMessage())
+                .addKeyValue("requestUri", request.getRequestURI())
+                .addKeyValue("requestMethod", request.getMethod())
+                .log();
 
         return ResponseEntity.ok(
                 ApiResponse.error(ErrorCode.INVALID_INPUT)
@@ -97,8 +154,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<ApiResponse<Void>> handleIllegalState(IllegalStateException e) {
-        log.warn("잘못된 상태: {}", e.getMessage());
+    public ResponseEntity<ApiResponse<Void>> handleIllegalState(IllegalStateException e, HttpServletRequest request) {
+        log.atWarn()
+                .setMessage("Illegal state error")
+                .addKeyValue("errorMessage", e.getMessage())
+                .addKeyValue("requestUri", request.getRequestURI())
+                .addKeyValue("requestMethod", request.getMethod())
+                .log();
 
         return ResponseEntity.ok(
                 ApiResponse.error(ErrorCode.OPERATION_NOT_ALLOWED)
@@ -106,8 +168,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(NoHandlerFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleNotFound(NoHandlerFoundException e) {
-        log.warn("404 에러: {} {}", e.getHttpMethod(), e.getRequestURL());
+    public ResponseEntity<ApiResponse<Void>> handleNotFound(NoHandlerFoundException e, HttpServletRequest request) {
+        log.atWarn()
+                .setMessage("404 Not Found error")
+                .addKeyValue("requestUri", e.getRequestURL())
+                .addKeyValue("httpMethod", e.getHttpMethod())
+                .addKeyValue("headers", e.getHeaders().toString())
+                .log();
 
         return ResponseEntity.status(404).body(
                 ApiResponse.error(ErrorCode.RESOURCE_NOT_FOUND)
@@ -115,12 +182,20 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleServerError(Exception e) {
-        log.error("예상치 못한 서버 에러 발생", e);
+    public ResponseEntity<ApiResponse<Void>> handleServerError(Exception e, HttpServletRequest request) {
+        log.atError()
+                .setMessage("Unexpected server error occurred")
+                .addKeyValue("errorType", e.getClass().getSimpleName())
+                .addKeyValue("errorMessage", e.getMessage())
+                .addKeyValue("requestUri", request.getRequestURI())
+                .addKeyValue("requestMethod", request.getMethod())
+                .addKeyValue("userAgent", request.getHeader("User-Agent"))
+                .addKeyValue("remoteAddr", request.getRemoteAddr())
+                .setCause(e)
+                .log();
 
         return ResponseEntity.status(500).body(
                 ApiResponse.error(ErrorCode.SERVER_ERROR)
         );
     }
-
 }

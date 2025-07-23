@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Arrays;
+import java.util.Date;
 
 @Slf4j
 @RestController
@@ -64,8 +65,11 @@ public class TokenRefreshController {
     }
 
     private void logRefreshAttempt(String clientIp, String userAgent) {
-        log.info("토큰 갱신 요청 - clientIp: {}, userAgent: {}",
-                clientIp, userAgent.substring(0, Math.min(50, userAgent.length())));
+        log.atInfo()
+                .setMessage("Token refresh request received")
+                .addKeyValue("clientIp", clientIp)
+                .addKeyValue("userAgent", userAgent.substring(0, Math.min(50, userAgent.length())))
+                .log();
     }
 
     private String extractAndValidateRefreshToken(HttpServletRequest request,
@@ -74,32 +78,81 @@ public class TokenRefreshController {
         String refreshToken = extractRefreshTokenFromCookie(request);
 
         if (!StringUtils.hasText(refreshToken)) {
-            log.warn("리프레시 토큰이 없음 - clientIp: {}", clientIp);
+            log.atWarn()
+                    .setMessage("Refresh token not found in cookie")
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
             throw new ToktotException(ErrorCode.TOKEN_INVALID, "리프레시 토큰이 필요합니다.");
         }
 
-        if (!jwtTokenProvider.validateToken(refreshToken) || !jwtTokenProvider.isRefreshToken(refreshToken)) {
-            log.warn("유효하지 않은 리프레시 토큰 - clientIp: {}", clientIp);
+        if (!jwtTokenProvider.validateToken(refreshToken)) {
+            log.atWarn()
+                    .setMessage("Invalid refresh token")
+                    .addKeyValue("clientIp", clientIp)
+                    .addKeyValue("tokenLength", refreshToken.length())
+                    .log();
             clearRefreshTokenCookie(response);
             throw new ToktotException(ErrorCode.TOKEN_INVALID, "리프레시 토큰이 유효하지 않습니다.");
         }
+
+        if (!jwtTokenProvider.isRefreshToken(refreshToken)) {
+            log.atWarn()
+                    .setMessage("Token is not refresh type")
+                    .addKeyValue("clientIp", clientIp)
+                    .addKeyValue("tokenType", jwtTokenProvider.getTokenType(refreshToken))
+                    .log();
+            clearRefreshTokenCookie(response);
+            throw new ToktotException(ErrorCode.TOKEN_INVALID, "올바른 리프레시 토큰이 아닙니다.");
+        }
+
+        if (jwtTokenProvider.isTokenExpired(refreshToken)) {
+            log.atWarn()
+                    .setMessage("Refresh token expired")
+                    .addKeyValue("clientIp", clientIp)
+                    .addKeyValue("expiration", jwtTokenProvider.getExpirationFromToken(refreshToken))
+                    .log();
+            clearRefreshTokenCookie(response);
+            throw new ToktotException(ErrorCode.TOKEN_EXPIRED, "리프레시 토큰이 만료되었습니다.");
+        }
+
+        log.atDebug()
+                .setMessage("Refresh token validation successful")
+                .addKeyValue("clientIp", clientIp)
+                .log();
 
         return refreshToken;
     }
 
     private User validateUserFromToken(String refreshToken, HttpServletResponse response, String clientIp) {
         Long userId = jwtTokenProvider.getUserIdFromToken(refreshToken);
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> {
-                    log.warn("존재하지 않는 사용자 - userId: {}, clientIp: {}", userId, clientIp);
+                    log.atWarn()
+                            .setMessage("User not found for token refresh")
+                            .addKeyValue("userId", userId)
+                            .addKeyValue("clientIp", clientIp)
+                            .log();
                     return new ToktotException(ErrorCode.USER_NOT_FOUND, "사용자를 찾을 수 없습니다.");
                 });
 
         if (!user.isEnabled() || !user.isAccountNonLocked()) {
-            log.warn("비활성화되거나 잠긴 계정 - userId: {}, clientIp: {}", userId, clientIp);
+            log.atWarn()
+                    .setMessage("Account disabled or locked during token refresh")
+                    .addKeyValue("userId", userId)
+                    .addKeyValue("isEnabled", user.isEnabled())
+                    .addKeyValue("isAccountNonLocked", user.isAccountNonLocked())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
             clearRefreshTokenCookie(response);
             throw new ToktotException(ErrorCode.PERMISSION_DENIED, "계정이 비활성화되었거나 잠금 상태입니다.");
         }
+
+        log.atDebug()
+                .setMessage("User validation successful for token refresh")
+                .addKeyValue("userId", userId)
+                .addKeyValue("clientIp", clientIp)
+                .log();
 
         return user;
     }
@@ -112,6 +165,12 @@ public class TokenRefreshController {
         );
         response.addHeader("Set-Cookie", newRefreshCookie.toString());
 
+        log.atDebug()
+                .setMessage("New tokens generated and cookie set")
+                .addKeyValue("userId", user.getId())
+                .addKeyValue("expiresIn", tokenResponse.expiresIn())
+                .log();
+
         return tokenResponse;
     }
 
@@ -119,12 +178,22 @@ public class TokenRefreshController {
         if (user.getUserProfile() != null) {
             user.getUserProfile().recordSuccessfulLogin(clientIp);
             userRepository.save(user);
+
+            log.atDebug()
+                    .setMessage("User login info updated during token refresh")
+                    .addKeyValue("userId", user.getId())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
         }
     }
 
     private void logSuccessfulRefresh(User user, String clientIp) {
-        log.info("토큰 갱신 성공 - userId: {}, authProvider: {}, clientIp: {}",
-                user.getId(), user.getAuthProvider(), clientIp);
+        log.atInfo()
+                .setMessage("Token refresh successful")
+                .addKeyValue("userId", user.getId())
+                .addKeyValue("authProvider", user.getAuthProvider())
+                .addKeyValue("clientIp", clientIp)
+                .log();
     }
 
     private TokenResponse createPublicTokenResponse(TokenResponse tokenResponse) {
@@ -138,13 +207,21 @@ public class TokenRefreshController {
     private void clearRefreshTokenCookie(HttpServletResponse response) {
         ResponseCookie clearCookie = authService.createLogoutCookie();
         response.addHeader("Set-Cookie", clearCookie.toString());
+
+        log.atDebug()
+                .setMessage("Refresh token cookie cleared")
+                .log();
     }
 
     private ResponseEntity<ApiResponse<TokenResponse>> handleRefreshBusinessError(
             ToktotException e, String clientIp) {
 
-        log.warn("토큰 갱신 비즈니스 실패 - errorCode: {}, message: {}, clientIp: {}",
-                e.getErrorCodeName(), e.getMessage(), clientIp);
+        log.atWarn()
+                .setMessage("Token refresh business failure")
+                .addKeyValue("errorCode", e.getErrorCodeName())
+                .addKeyValue("errorMessage", e.getMessage())
+                .addKeyValue("clientIp", clientIp)
+                .log();
 
         return ResponseEntity.ok(ApiResponse.error(e.getErrorCode(), e.getMessage()));
     }
@@ -152,7 +229,13 @@ public class TokenRefreshController {
     private ResponseEntity<ApiResponse<TokenResponse>> handleRefreshSystemError(
             Exception e, String clientIp) {
 
-        log.error("토큰 갱신 중 시스템 오류 - clientIp: {}, error: {}", clientIp, e.getMessage(), e);
+        log.atError()
+                .setMessage("Token refresh system error")
+                .addKeyValue("clientIp", clientIp)
+                .addKeyValue("error", e.getMessage())
+                .setCause(e)
+                .log();
+
         return ResponseEntity.ok(ApiResponse.error(ErrorCode.SERVER_ERROR));
     }
 
