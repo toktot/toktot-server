@@ -36,7 +36,7 @@
             <includeMarkers>true</includeMarkers>
             <includeMdc>true</includeMdc>
         </encoder>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <fileNamePattern>/app/logs/application.%d{yyyy-MM-dd}.%i.json</fileNamePattern>
             <maxFileSize>100MB</maxFileSize>
             <maxHistory>30</maxHistory>
