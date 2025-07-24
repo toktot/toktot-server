@@ -1,6 +1,7 @@
 package com.toktot.web.mapper;
 
 import com.toktot.domain.user.User;
+import com.toktot.web.dto.auth.response.EmailCheckResponse;
 import com.toktot.web.dto.auth.response.EmailSendResponse;
 import com.toktot.web.dto.auth.response.NicknameCheckResponse;
 import com.toktot.web.dto.auth.response.TokenResponse;
@@ -69,5 +70,15 @@ public class AuthResponseMapper {
                 user.getId(), user.getNickname(), message);
 
         return message;
+    }
+
+    public EmailCheckResponse toEmailAvailableResponse(String email) {
+        log.debug("이메일 사용 가능 응답 생성 - email: {}", email);
+        return EmailCheckResponse.available(email);
+    }
+
+    public EmailCheckResponse toEmailUnavailableResponse(String email) {
+        log.debug("이메일 사용 불가 응답 생성 - email: {}", email);
+        return EmailCheckResponse.unavailable(email);
     }
 }

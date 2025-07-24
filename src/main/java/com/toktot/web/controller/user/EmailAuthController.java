@@ -430,6 +430,70 @@ public class EmailAuthController {
         }
     }
 
+    @PostMapping("/email/check")
+    public ResponseEntity<ApiResponse<EmailCheckResponse>> checkEmailDuplicate(
+            @Valid @RequestBody EmailCheckRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        String clientIp = ClientInfoExtractor.getClientIp(httpRequest);
+
+        log.atInfo()
+                .setMessage("Email duplicate check request received")
+                .addKeyValue("email", request.email())
+                .addKeyValue("clientIp", clientIp)
+                .log();
+
+        try {
+            emailAuthService.checkEmailDuplicate(request.email());
+
+            log.atInfo()
+                    .setMessage("Email available")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
+
+            EmailCheckResponse response = authResponseMapper.toEmailAvailableResponse(request.email());
+
+            return ResponseEntity.ok(
+                    ApiResponse.success("사용 가능한 이메일입니다.", response)
+            );
+
+        } catch (ToktotException e) {
+            if (e.getErrorCode() == ErrorCode.DUPLICATE_EMAIL) {
+                log.atInfo()
+                        .setMessage("Email already taken")
+                        .addKeyValue("email", request.email())
+                        .addKeyValue("clientIp", clientIp)
+                        .log();
+
+                EmailCheckResponse response = authResponseMapper.toEmailUnavailableResponse(request.email());
+
+                return ResponseEntity.ok(
+                        ApiResponse.success("이메일 중복 확인 완료", response)
+                );
+            }
+
+            log.atWarn()
+                    .setMessage("Email check failed")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("errorCode", e.getErrorCodeName())
+                    .addKeyValue("errorMessage", e.getMessage())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
+            return ResponseEntity.ok(ApiResponse.error(e.getErrorCode(), e.getMessage()));
+
+        } catch (Exception e) {
+            log.atError()
+                    .setMessage("Email check system error")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("clientIp", clientIp)
+                    .addKeyValue("error", e.getMessage())
+                    .setCause(e)
+                    .log();
+            return ResponseEntity.ok(ApiResponse.error(ErrorCode.SERVER_ERROR));
+        }
+    }
+
     private TokenResponse generateAndSetTokens(User user, HttpServletResponse httpResponse) {
         TokenResponse tokenResponse = authService.generateTokens(user);
 
