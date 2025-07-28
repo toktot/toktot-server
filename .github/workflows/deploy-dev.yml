@@ -59,6 +59,11 @@ jobs:
             # 최신 설정 파일 pull
             git pull origin dev
             
+            # 필요한 디렉토리 생성
+            mkdir -p nginx/conf.d
+            mkdir -p certbot/www
+            mkdir -p certbot/conf
+            
             # 환경변수 설정
             export DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
             export POSTGRES_PASSWORD="${{ secrets.DB_PASSWORD }}"
@@ -88,14 +93,28 @@ jobs:
             echo "📊 컨테이너 상태:"
             docker-compose ps
             
-            # 헬스체크
-            echo "🔍 헬스체크 실행..."
-            if curl -f http://localhost:8080/actuator/health; then
+            # nginx 헬스체크
+            echo "🔍 Nginx 헬스체크 실행..."
+            if curl -f http://localhost/health; then
+              echo "✅ Nginx 정상 동작 확인!"
+            else
+              echo "❌ Nginx 헬스체크 실패! 로그:"
+              docker-compose logs --tail=20 nginx
+            fi
+            
+            # 애플리케이션 헬스체크 (nginx를 통해)
+            echo "🔍 애플리케이션 헬스체크 실행..."
+            if curl -f http://localhost/actuator/health; then
               echo "✅ Dev 서버 배포 성공!"
             else
-              echo "❌ 헬스체크 실패! 로그:"
+              echo "❌ 애플리케이션 헬스체크 실패! 로그:"
               docker-compose logs --tail=50 app
+              echo "Nginx 로그:"
+              docker-compose logs --tail=20 nginx
               exit 1
             fi
             
             echo "🎉 Dev 서버 배포 완료!"
+            echo "📌 접속 URL: http://${{ secrets.EC2_HOST }}"
+            echo "📌 SSL 설정이 필요한 경우 scripts/setup-ssl.sh 스크립트를 실행하세요"
+            
