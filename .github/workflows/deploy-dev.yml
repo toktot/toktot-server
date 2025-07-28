@@ -115,6 +115,3 @@ jobs:
             fi
             
             echo "🎉 Dev 서버 배포 완료!"
-            echo "📌 접속 URL: http://${{ secrets.EC2_HOST }}"
-            echo "📌 SSL 설정이 필요한 경우 scripts/setup-ssl.sh 스크립트를 실행하세요"
-            
