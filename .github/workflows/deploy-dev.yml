@@ -53,11 +53,11 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script: |
             echo "🚀 Dev 서버 배포 시작..."
-
             cd toktot-server
-
-            # 최신 설정 파일 pull
-            git pull origin dev
+            
+            # 로컬 브랜치를 dev로 강제 체크아웃하고 origin/dev 기준으로 리셋
+            git fetch origin
+            git checkout -B dev origin/dev
 
             # 필요한 디렉토리 생성
             mkdir -p nginx/conf.d
