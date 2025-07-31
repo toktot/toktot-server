@@ -53,49 +53,51 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script: |
             echo "🚀 Dev 서버 배포 시작..."
-            
+
             cd toktot-server
-            
+
             # 최신 설정 파일 pull
             git pull origin dev
-            
+
             # 필요한 디렉토리 생성
             mkdir -p nginx/conf.d
             mkdir -p certbot/www
             mkdir -p certbot/conf
-            
-            # 환경변수 설정
-            export DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
-            export POSTGRES_PASSWORD="${{ secrets.DB_PASSWORD }}"
-            export JWT_SECRET="${{ secrets.JWT_SECRET }}"
-            export KAKAO_CLIENT_ID="${{ secrets.KAKAO_CLIENT_ID }}"
-            export KAKAO_CLIENT_SECRET="${{ secrets.KAKAO_CLIENT_SECRET }}"
-            export MAIL_USERNAME="${{ secrets.MAIL_USERNAME }}"
-            export MAIL_PASSWORD="${{ secrets.MAIL_PASSWORD }}"
-            export REDIS_PASSWORD="${{ secrets.REDIS_PASSWORD }}"
-            export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
-            export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-            export S3_BUCKET_NAME="${{ secrets.S3_BUCKET_NAME }}"
-            
+
             # 최신 이미지 pull
-            docker pull $DOCKERHUB_USERNAME/toktot:dev
-            
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/toktot:dev
+
             # 기존 컨테이너 중지
             docker-compose down || true
-            
+
             # 사용하지 않는 이미지 정리
             docker image prune -f
-            
-            # 새 컨테이너 실행
+
+            # ⭐ 환경변수와 함께 docker-compose 실행 ⭐
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" \
+            POSTGRES_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+            KAKAO_CLIENT_ID="${{ secrets.KAKAO_CLIENT_ID }}" \
+            KAKAO_CLIENT_SECRET="${{ secrets.KAKAO_CLIENT_SECRET }}" \
+            MAIL_USERNAME="${{ secrets.MAIL_USERNAME }}" \
+            MAIL_PASSWORD="${{ secrets.MAIL_PASSWORD }}" \
+            REDIS_PASSWORD="${{ secrets.REDIS_PASSWORD }}" \
+            AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
+            AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+            S3_BUCKET_NAME="${{ secrets.S3_BUCKET_NAME }}" \
             docker-compose up -d
-            
+
             echo "⏳ 서버 시작 대기 중..."
             sleep 45
-            
+
+            # 환경변수 전달 확인
+            echo "🔍 컨테이너 환경변수 확인:"
+            docker exec toktot-dev-app env | grep -E "(AWS|S3|JWT)" | head -5 || echo "환경변수 확인 실패"
+
             # 컨테이너 상태 확인
             echo "📊 컨테이너 상태:"
             docker-compose ps
-            
+
             # nginx 헬스체크
             echo "🔍 Nginx 헬스체크 실행..."
             if curl -f http://localhost/health; then
@@ -104,7 +106,7 @@ jobs:
               echo "❌ Nginx 헬스체크 실패! 로그:"
               docker-compose logs --tail=20 nginx
             fi
-            
+
             # 애플리케이션 헬스체크 (nginx를 통해)
             echo "🔍 애플리케이션 헬스체크 실행..."
             if curl -f http://localhost/actuator/health; then
@@ -112,9 +114,7 @@ jobs:
             else
               echo "❌ 애플리케이션 헬스체크 실패! 로그:"
               docker-compose logs --tail=50 app
-              echo "Nginx 로그:"
-              docker-compose logs --tail=20 nginx
               exit 1
             fi
-            
+
             echo "🎉 Dev 서버 배포 완료!"
