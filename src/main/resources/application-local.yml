@@ -40,10 +40,9 @@ toktot:
       allowed-origins: http://localhost:3000
   frontend:
     url: http://localhost:3000
-  storage:
-    s3:
-      bucket-name: ${S3_BUCKET_NAME}
-      region: ap-northeast-2
+  s3:
+    bucket-name: ${S3_BUCKET_NAME}
+    region: ap-northeast-2
   review:
     session:
       ttl-hours: 24
