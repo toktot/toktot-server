@@ -40,6 +40,24 @@ toktot:
       allowed-origins: http://localhost:3000
   frontend:
     url: http://localhost:3000
+  storage:
+    s3:
+      bucket-name: ${S3_BUCKET_NAME}
+      region: ap-northeast-2
+  review:
+    session:
+      ttl-hours: 24
+    image:
+      max-count: 5
+      max-size-mb: 5
+      allowed-types: image/jpeg,image/png
+
+# AWS S3 설정
+aws:
+  region: ap-northeast-2
+  credentials:
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
 
 management:
   endpoint:
