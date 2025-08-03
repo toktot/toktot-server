@@ -21,7 +21,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/reviews/images")
+@RequestMapping("/v1/reviews/images")
 @RequiredArgsConstructor
 public class ReviewImageController {
 
