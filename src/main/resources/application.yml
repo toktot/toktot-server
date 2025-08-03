@@ -96,7 +96,9 @@ logging:
 toktot:
   security:
     cors:
-      allowed-origins: http://localhost:3000, https://*.vercel.app
+      allowed-origins:
+        - http://localhost:3000
+        - https://toktot-client.vercel.app
       allowed-methods: GET,POST,PUT,DELETE,OPTIONS
       allowed-headers: "*"
       max-age: 3600
