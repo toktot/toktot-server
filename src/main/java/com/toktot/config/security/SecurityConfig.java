@@ -51,7 +51,7 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_URLS = {
             // 인증 관련 API
-            "/api/v1/auth/**",
+            "/v1/auth/**",
 
             // OAuth2 관련
             "/oauth2/**",
@@ -69,10 +69,10 @@ public class SecurityConfig {
     }
 
     static final String[] PROTECTED_URLS = {
-            "/api/v1/users/**",
-            "/api/v1/reviews/**",
-            "/api/v1/bookmarks/**",
-            "/api/v1/routes/**"
+            "/v1/users/**",
+            "/v1/reviews/**",
+            "/v1/bookmarks/**",
+            "/v1/routes/**"
     };
 
     @Bean
@@ -90,9 +90,9 @@ public class SecurityConfig {
                 .logout(AbstractHttpConfigurer::disable)
 
                 .oauth2Login(oauth2 -> oauth2
-                        .loginPage("/api/v1/auth/kakao/login")
-                        .defaultSuccessUrl("/api/v1/auth/kakao/callback")
-                        .failureUrl("/api/v1/auth/kakao/failure")
+                        .loginPage("/v1/auth/kakao/login")
+                        .defaultSuccessUrl("/v1/auth/kakao/callback")
+                        .failureUrl("/v1/auth/kakao/failure")
                 )
 
                 .authorizeHttpRequests(auth -> auth
