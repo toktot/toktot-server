@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -23,6 +24,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Configuration
@@ -61,6 +63,9 @@ public class SecurityConfig {
             "/api/health",
             "/actuator/health",
             "/actuator/info",
+
+            // CORS 프리플라이트 요청 허용
+            "/v1/**"  // OPTIONS 요청을 위해 임시로 추가
     };
 
     public static boolean isPublicUrl(String path) {
@@ -96,10 +101,12 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(PUBLIC_URLS).permitAll()
                         .requestMatchers(PROTECTED_URLS).authenticated()
                         .anyRequest().authenticated()
                 )
+
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
 
                 .exceptionHandling(exceptions -> exceptions
@@ -122,22 +129,60 @@ public class SecurityConfig {
         log.info("Spring Security 설정 완료 - JWT 필터 적용됨");
         return http.build();
     }
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         log.debug("CORS 설정 구성 시작 - Origins: {}", allowedOrigins);
 
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(allowedOrigins);
-        configuration.setAllowedMethods(allowedMethods);
-        configuration.setAllowedHeaders(allowedHeaders);
+
+        if (allowedOrigins != null && !allowedOrigins.isEmpty()) {
+            List<String> directOrigins = allowedOrigins.stream()
+                    .filter(origin -> !origin.contains("*"))
+                    .collect(Collectors.toList());
+
+            List<String> patternOrigins = allowedOrigins.stream()
+                    .filter(origin -> origin.contains("*"))
+                    .collect(Collectors.toList());
+
+            if (!directOrigins.isEmpty()) {
+                configuration.setAllowedOrigins(directOrigins);
+            }
+
+            if (!patternOrigins.isEmpty()) {
+                configuration.setAllowedOriginPatterns(patternOrigins);
+            }
+        }
+
+        if (allowedMethods != null) {
+            configuration.setAllowedMethods(allowedMethods);
+        } else {
+            configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        }
+
+        if (allowedHeaders != null) {
+            configuration.setAllowedHeaders(allowedHeaders);
+        } else {
+            configuration.setAllowedHeaders(Arrays.asList("*"));
+        }
+
+        configuration.setExposedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "X-Requested-With",
+                "Access-Control-Allow-Origin",
+                "Access-Control-Allow-Credentials"
+        ));
+
         configuration.setAllowCredentials(allowCredentials);
         configuration.setMaxAge(maxAge);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
 
-        log.debug("CORS 설정 완료");
+        log.debug("CORS 설정 완료 - AllowedOrigins: {}, AllowedMethods: {}",
+                configuration.getAllowedOrigins(),
+                configuration.getAllowedMethods());
+
         return source;
     }
 
