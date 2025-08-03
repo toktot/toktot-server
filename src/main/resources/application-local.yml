@@ -23,7 +23,7 @@ spring:
       client:
         registration:
           kakao:
-            redirect-uri: http://localhost:8080/api/v1/auth/kakao/callback
+            redirect-uri: http://localhost:3000/kakao/callback
 
 # 로깅 설정 (더 자세히)
 logging:
