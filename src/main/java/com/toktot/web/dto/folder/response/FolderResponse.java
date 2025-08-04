@@ -26,7 +26,7 @@ public record FolderResponse(
         return FolderResponse.builder()
                 .folderId(folder.getId())
                 .folderName(folder.getFolderName())
-                .reviewCount(reviewCount)
+                .reviewCount(reviewCount != null ? reviewCount : 0L)
                 .build();
     }
 
