@@ -2,6 +2,7 @@ package com.toktot.web.dto.folder.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
@@ -11,7 +12,7 @@ public record FolderReviewCreateRequest(
         List<Long> folderIds,
 
         @JsonProperty(value = "review_id")
-        @NotEmpty(message = "저장할 리뷰를 선택해주세요.")
+        @NotNull(message = "저장할 리뷰를 선택해주세요.")
         Long reviewId
 ) {
 }
