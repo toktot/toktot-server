@@ -63,9 +63,6 @@ public class SecurityConfig {
             "/api/health",
             "/actuator/health",
             "/actuator/info",
-
-            // CORS 프리플라이트 요청 허용
-            "/v1/**"  // OPTIONS 요청을 위해 임시로 추가
     };
 
     public static boolean isPublicUrl(String path) {
@@ -76,8 +73,8 @@ public class SecurityConfig {
     static final String[] PROTECTED_URLS = {
             "/v1/users/**",
             "/v1/reviews/**",
-            "/v1/bookmarks/**",
-            "/v1/routes/**"
+            "/v1/folders/**",
+            "/v1/routes/**",
     };
 
     @Bean
