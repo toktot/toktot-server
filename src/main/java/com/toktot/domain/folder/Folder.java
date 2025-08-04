@@ -47,9 +47,13 @@ public class Folder {
     private LocalDateTime updatedAt;
 
     public static Folder create(User user, String folderName) {
+        if (folderName == null || folderName.trim().isBlank()) {
+            folderName = DEFAULT_FOLDER_NAME;
+        }
+
         return Folder.builder()
                 .user(user)
-                .folderName(folderName)
+                .folderName(folderName.trim())
                 .build();
     }
 
