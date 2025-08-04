@@ -83,7 +83,15 @@ public enum ErrorCode {
     DATABASE_ERROR("데이터베이스 오류가 발생했습니다."),
     NETWORK_ERROR("네트워크 오류가 발생했습니다."),
     TIMEOUT_ERROR("요청 시간이 초과되었습니다."),
-    UNKNOWN_ERROR("알 수 없는 오류가 발생했습니다.");
+    UNKNOWN_ERROR("알 수 없는 오류가 발생했습니다."),
+
+    // 리뷰 조회 에러 (REVIEW)
+    REVIEW_NOT_FOUND("존재하지 않는 리뷰 입니다."),
+
+    // 폴더 에러 (FOLDER)
+    FOLDER_NOT_FOUND("존재하지 않는 폴더 입니다.");
+
+    ;
 
     private final String message;
 
