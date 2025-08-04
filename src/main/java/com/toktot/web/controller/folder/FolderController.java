@@ -56,17 +56,16 @@ public class FolderController {
     @PostMapping("/review-save")
     public ResponseEntity<ApiResponse<List<FolderResponse>>> createReviewToFolders(
             @AuthenticationPrincipal User user,
-            @RequestBody FolderReviewCreateRequest request,
-            @RequestBody Long reviewId) {
+            @RequestBody FolderReviewCreateRequest request) {
 
         log.atInfo()
                 .setMessage("Save review in folder creation request received")
                 .addKeyValue("userId", user.getId())
-                .addKeyValue("reviewId", reviewId)
+                .addKeyValue("reviewId", request.reviewId())
                 .addKeyValue("folders", request.folderIds())
                 .log();
 
-        folderService.createFolderReviews(user, request.folderIds(), reviewId);
+        folderService.createFolderReviews(user, request.folderIds(), request.reviewId());
         List<FolderResponse> response = folderService.readFolders(user);
 
         return ResponseEntity.ok(ApiResponse.success(response));
