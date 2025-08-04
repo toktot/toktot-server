@@ -4,6 +4,7 @@ import com.toktot.domain.folder.service.FolderService;
 import com.toktot.domain.user.User;
 import com.toktot.web.dto.ApiResponse;
 import com.toktot.web.dto.folder.request.FolderCreateRequest;
+import com.toktot.web.dto.folder.request.FolderReviewCreateRequest;
 import com.toktot.web.dto.folder.response.FolderResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -43,11 +44,30 @@ public class FolderController {
             @AuthenticationPrincipal User user) {
 
         log.atInfo()
-                .setMessage("Review foloder read request received")
+                .setMessage("Review folder read request received")
                 .addKeyValue("userId", user.getId())
                 .log();
 
-        List<FolderResponse> response = folderService.ReadFolders(user);
+        List<FolderResponse> response = folderService.readFolders(user);
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/review-save")
+    public ResponseEntity<ApiResponse<List<FolderResponse>>> createReviewToFolders(
+            @AuthenticationPrincipal User user,
+            @RequestBody FolderReviewCreateRequest request,
+            @RequestBody Long reviewId) {
+
+        log.atInfo()
+                .setMessage("Save review in folder creation request received")
+                .addKeyValue("userId", user.getId())
+                .addKeyValue("reviewId", reviewId)
+                .addKeyValue("folders", request.folderIds())
+                .log();
+
+        folderService.createFolderReviews(user, request.folderIds(), reviewId);
+        List<FolderResponse> response = folderService.readFolders(user);
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }

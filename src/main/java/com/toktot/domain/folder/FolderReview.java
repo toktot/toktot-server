@@ -32,4 +32,11 @@ public class FolderReview {
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public static FolderReview create(Folder folder, Review review) {
+        return FolderReview.builder()
+                .folder(folder)
+                .review(review)
+                .build();
+    }
 }
