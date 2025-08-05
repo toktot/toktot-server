@@ -44,7 +44,7 @@ public class AuthService {
                 .secure(true)
                 .sameSite("Strict")
                 .maxAge(Duration.ofMillis(refreshTokenExpirationMs))
-                .path("/api/v1/auth")
+                .path("/")
                 .build();
     }
 
@@ -56,7 +56,7 @@ public class AuthService {
                 .secure(true)
                 .sameSite("Strict")
                 .maxAge(Duration.ZERO)
-                .path("/api/v1/auth")
+                .path("/")
                 .build();
     }
 }
