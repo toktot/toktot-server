@@ -1,5 +1,8 @@
 package com.toktot.config;
 
+import com.toktot.domain.localfood.LocalFood;
+import com.toktot.domain.localfood.LocalFoodType;
+import com.toktot.domain.localfood.repository.LocalFoodRepository;
 import com.toktot.domain.restaurant.Restaurant;
 import com.toktot.domain.restaurant.repository.RestaurantRepository;
 import com.toktot.domain.user.User;
@@ -15,6 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.IntStream;
 
 @Slf4j
 @Component
@@ -23,6 +27,7 @@ public class DataInitializer implements CommandLineRunner {
 
     private final RestaurantRepository restaurantRepository;
     private final UserRepository userRepository;
+    private final LocalFoodRepository localFoodRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -30,10 +35,45 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) {
         log.info("=== 똑똣 초기 데이터 삽입 시작 ===");
 
+        insertLocalFoodData();
         insertRestaurantData();
         insertTestUser();
 
         log.info("=== 똑똣 초기 데이터 삽입 완료 ===");
+    }
+
+    private void insertLocalFoodData() {
+        // 이미 데이터가 있으면 건너뛰기
+        if (localFoodRepository.count() > 0) {
+            log.info("🔄 향토음식 데이터가 이미 {}개 존재합니다. 삽입을 건너뜁니다.",
+                    localFoodRepository.count());
+            return;
+        }
+
+        log.info("🍽️ 향토음식 데이터 삽입 중...");
+
+        // LocalFoodType enum의 모든 값을 순서대로 가져와서 LocalFood 엔티티 생성
+        LocalFoodType[] foodTypes = LocalFoodType.values();
+
+        List<LocalFood> localFoods = IntStream.range(0, foodTypes.length)
+                .mapToObj(i -> LocalFood.builder()
+                        .localFoodType(foodTypes[i])
+                        .displayOrder(i + 1) // 1부터 시작하는 순서
+                        .isActive(true)
+                        .build())
+                .toList();
+
+        localFoodRepository.saveAll(localFoods);
+
+        log.info("🎉 향토음식 데이터 {}개 삽입 완료!", localFoods.size());
+
+        // 삽입된 데이터 로그 출력
+        localFoods.forEach(food ->
+                log.debug("📋 향토음식 등록: {} ({}), 순서: {}",
+                        food.getLocalFoodType().getDisplayName(),
+                        food.getLocalFoodType().getIconName(),
+                        food.getDisplayOrder())
+        );
     }
 
     private void insertRestaurantData() {
