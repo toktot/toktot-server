@@ -89,7 +89,10 @@ public enum ErrorCode {
     REVIEW_NOT_FOUND("존재하지 않는 리뷰 입니다."),
 
     // 폴더 에러 (FOLDER)
-    FOLDER_NOT_FOUND("존재하지 않는 폴더 입니다.");
+    FOLDER_NOT_FOUND("존재하지 않는 폴더 입니다."),
+
+    // API 에러 (API)
+    API_NOT_FOUND("존재하지 않는 요청 입니다.");
 
     ;
 
