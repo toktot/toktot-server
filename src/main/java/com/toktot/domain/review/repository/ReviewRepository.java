@@ -13,7 +13,6 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     SELECT DISTINCT r FROM Review r
     JOIN FETCH r.user u
     LEFT JOIN FETCH r.images i
-    LEFT JOIN FETCH i.tooltips t
     WHERE r.restaurant.id = :restaurantId
     """)
     Page<Review> findByRestaurantIdWithDetails(@Param("restaurantId") Long restaurantId, Pageable pageable);
