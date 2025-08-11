@@ -63,7 +63,7 @@ server:
 # JWT 설정
 jwt:
   secret: ${JWT_SECRET}
-  access-token-expiration: 3600000
+  access-token-expiration: 604800000
   refresh-token-expiration: 604800000
 
 # 로깅 설정 (Spring Boot 3.4+)
