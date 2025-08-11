@@ -2,6 +2,7 @@ package com.toktot.domain.review;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -43,6 +44,7 @@ public class ReviewImage {
 
     @OneToMany(mappedBy = "reviewImage", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
+    @BatchSize(size = 20)
     private List<Tooltip> tooltips = new ArrayList<>();
 
     @CreatedDate
