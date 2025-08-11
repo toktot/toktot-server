@@ -14,6 +14,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Table(name = "reviews")
@@ -70,5 +71,13 @@ public class Review {
     public void addKeyword(ReviewKeyword reviewKeyword) {
         this.keywords.add(reviewKeyword);
         reviewKeyword.assignReview(this);
+    }
+
+    public boolean isWriter(Long userId) {
+        if (userId == null) {
+            return false;
+        }
+
+        return Objects.equals(this.user.getId(), userId);
     }
 }
