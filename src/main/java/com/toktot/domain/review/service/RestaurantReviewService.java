@@ -21,7 +21,7 @@ import java.math.BigDecimal;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(readOnly = true)
 public class RestaurantReviewService {
 
     private final UserRepository userRepository;
@@ -36,7 +36,8 @@ public class RestaurantReviewService {
 
         Page<Review> reviewPage = reviewRepository.findByRestaurantIdWithDetails(restaurantId, pageable);
 
-        log.info("리뷰 조회 완료 - 총 {}개 중 {}개 조회", reviewPage.getTotalElements(), reviewPage.getNumberOfElements());
+        log.info("리뷰 조회 완료 - 총 {}개 중 {}개 조회",
+                reviewPage.getTotalElements(), reviewPage.getNumberOfElements());
 
         return reviewPage.map(review -> convertToReviewResponse(review, userId));
     }
@@ -51,8 +52,6 @@ public class RestaurantReviewService {
     private ReviewResponse convertToReviewResponse(Review review, Long userId) {
         return ReviewResponse.from(review, userId, getReviewUserResponse(review.getUser()));
     }
-
-
 
     private ReviewUserResponse getReviewUserResponse(User user) {
         Integer reviewCount = userRepository.countReviewsByUserId(user.getId());
