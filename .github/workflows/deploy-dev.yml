@@ -154,7 +154,7 @@ jobs:
             for sql_file in src/main/resources/data/*.sql; do
               if [ -f "$sql_file" ]; then
                 echo "📄 실행 중: $(basename $sql_file)"
-                if docker exec -i toktot-dev-postgres psql -U toktot_user -d toktot_dev < "$sql_file"; then
+                if docker exec -i toktot-dev-db psql -U toktot_user -d toktot_dev < "$sql_file"; then
                   echo "✅ $(basename $sql_file) 실행 성공"
                   sql_executed=true
                 else
