@@ -125,54 +125,54 @@ jobs:
             max_attempts=3
             attempt=1
             while [ $attempt -le $max_attempts ]; do
-            if docker exec toktot-dev-db pg_isready -U toktot_user -d toktot_dev > /dev/null 2>&1; then
-            echo "✅ PostgreSQL 연결 확인 완료!"
-            break
-            fi
-            echo "⏳ PostgreSQL 연결 재시도... ($attempt/$max_attempts)"
-            sleep 1
-            attempt=$((attempt + 1))
+              if docker exec toktot-dev-db pg_isready -U toktot_user -d toktot_dev > /dev/null 2>&1; then
+                echo "✅ PostgreSQL 연결 확인 완료!"
+                break
+              fi
+              echo "⏳ PostgreSQL 연결 재시도... ($attempt/$max_attempts)"
+              sleep 1
+              attempt=$((attempt + 1))
             done
             
             if [ $attempt -gt $max_attempts ]; then
-            echo "❌ PostgreSQL 연결 실패! 헬스체크는 성공했지만 DB 연결에 문제가 있습니다."
-            docker-compose logs --tail=10 postgres
-            exit 1
+              echo "❌ PostgreSQL 연결 실패! 헬스체크는 성공했지만 DB 연결에 문제가 있습니다."
+              docker-compose logs --tail=10 postgres
+              exit 1
             fi
             
             # data 폴더의 SQL 스크립트 파일 확인
             echo "📁 SQL 스크립트 파일 확인:"
             if ls src/main/resources/data/*.sql 1> /dev/null 2>&1; then
-            echo "✅ SQL 파일들을 찾았습니다:"
-            ls -la src/main/resources/data/*.sql
+              echo "✅ SQL 파일들을 찾았습니다:"
+              ls -la src/main/resources/data/*.sql
             else
-            echo "⚠️ SQL 파일을 찾을 수 없습니다."
-            echo "🎉 Dev 서버 배포 완료 (SQL 스크립트 없음)!"
-            exit 0
+              echo "⚠️ SQL 파일을 찾을 수 없습니다."
+              echo "🎉 Dev 서버 배포 완료 (SQL 스크립트 없음)!"
+              exit 0
             fi
             
             # SQL 스크립트 실행 (파일명 순서대로)
             sql_executed=false
             for sql_file in src/main/resources/data/*.sql; do
-            if [ -f "$sql_file" ]; then
-          echo "📄 실행 중: $(basename $sql_file)"
-            if docker exec -i toktot-dev-db psql -U toktot_user -d toktot_dev < "$sql_file"; then
-            echo "✅ $(basename $sql_file) 실행 성공"
-            sql_executed=true
-            else
-            echo "❌ $(basename $sql_file) 실행 실패"
-            # 실패한 스크립트 로그 확인
-            echo "🔍 PostgreSQL 로그 확인:"
-            docker-compose logs --tail=5 postgres
-            # 실패해도 다른 스크립트는 계속 실행
-            fi
-            fi
+              if [ -f "$sql_file" ]; then
+                echo "📄 실행 중: $(basename $sql_file)"
+                if docker exec -i toktot-dev-db psql -U toktot_user -d toktot_dev < "$sql_file"; then
+                  echo "✅ $(basename $sql_file) 실행 성공"
+                  sql_executed=true
+                else
+                  echo "❌ $(basename $sql_file) 실행 실패"
+                  # 실패한 스크립트 로그 확인
+                  echo "🔍 PostgreSQL 로그 확인:"
+                  docker-compose logs --tail=5 postgres
+                  # 실패해도 다른 스크립트는 계속 실행
+                fi
+              fi
             done
             
             if [ "$sql_executed" = true ]; then
-            echo "✅ SQL 스크립트 실행 완료!"
+              echo "✅ SQL 스크립트 실행 완료!"
             else
-            echo "⚠️ 실행할 SQL 스크립트가 없습니다."
+              echo "⚠️ 실행할 SQL 스크립트가 없습니다."
             fi
             
             # 최종 데이터베이스 상태 확인
