@@ -209,6 +209,7 @@ docker-compose.*.override.yml
 # Docker volumes data (로컬 개발용)
 docker-volumes/
 data/
+!src/main/resources/data/
 
 ### 환경 변수 및 설정 파일 ###
 # 민감한 정보가 포함된 환경 설정
