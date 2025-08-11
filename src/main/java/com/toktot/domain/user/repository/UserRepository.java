@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
+import java.math.BigDecimal;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -17,15 +17,24 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByNickname(String nickname);
 
-    boolean existsByOauthId(String oauthId);
-
-    @Query("SELECT u FROM User u WHERE LOWER(u.nickname) LIKE LOWER(CONCAT('%', :nickname, '%'))")
-    List<User> findByNicknameContainingIgnoreCase(@Param("nickname") String nickname);
-
     @Query("SELECT u FROM User u WHERE " +
             "(u.email = :identifier AND u.authProvider = 'EMAIL') OR " +
             "(u.oauthId = :identifier AND u.authProvider = :authProvider)")
     Optional<User> findByIdentifierAndAuthProvider(@Param("identifier") String identifier,
                                                    @Param("authProvider") AuthProvider authProvider);
 
+    @Query("""
+    SELECT COUNT(r) FROM Review r
+    WHERE r.user.id = :userId
+    """)
+    Integer countReviewsByUserId(@Param("userId") Long userId);
+
+    @Query("""
+    SELECT AVG(t.rating) FROM Review r
+    JOIN r.images i
+    JOIN i.tooltips t
+    WHERE r.user.id = :userId
+    AND t.rating IS NOT NULL
+    """)
+    BigDecimal calculateAverageRatingByUserId(@Param("userId") Long userId);
 }

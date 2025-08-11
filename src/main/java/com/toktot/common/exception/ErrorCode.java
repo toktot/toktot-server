@@ -51,6 +51,10 @@ public enum ErrorCode {
     POST_NOT_FOUND("게시글을 찾을 수 없습니다."),
     COMMENT_NOT_FOUND("댓글을 찾을 수 없습니다."),
     FILE_NOT_FOUND("파일을 찾을 수 없습니다."),
+    RESTAURANT_NOT_FOUND("가게를 찾을 수 없습니다."),
+    REVIEW_NOT_FOUND("존재하지 않는 리뷰 입니다."),
+    FOLDER_NOT_FOUND("존재하지 않는 폴더 입니다."),
+    API_NOT_FOUND("존재하지 않는 요청 입니다."),
 
     // 입력값 검증 에러 (VALIDATION)
     INVALID_INPUT("입력값이 올바르지 않습니다."),
@@ -84,15 +88,6 @@ public enum ErrorCode {
     NETWORK_ERROR("네트워크 오류가 발생했습니다."),
     TIMEOUT_ERROR("요청 시간이 초과되었습니다."),
     UNKNOWN_ERROR("알 수 없는 오류가 발생했습니다."),
-
-    // 리뷰 조회 에러 (REVIEW)
-    REVIEW_NOT_FOUND("존재하지 않는 리뷰 입니다."),
-
-    // 폴더 에러 (FOLDER)
-    FOLDER_NOT_FOUND("존재하지 않는 폴더 입니다."),
-
-    // API 에러 (API)
-    API_NOT_FOUND("존재하지 않는 요청 입니다.");
 
     ;
 

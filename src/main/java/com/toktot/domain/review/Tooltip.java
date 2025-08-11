@@ -84,4 +84,8 @@ public class Tooltip {
         this.reviewImage = reviewImage;
     }
 
+    public boolean isFood() {
+        return tooltipType == TooltipType.FOOD;
+    }
+
 }
