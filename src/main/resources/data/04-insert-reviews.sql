@@ -1,14 +1,3 @@
--- =====================================================
--- TokTot 프로젝트 - Review 테이블 더미데이터 (최종 수정버전)
--- 실제 엔티티 컬럼명에 정확히 맞춰 작성
--- =====================================================
-
--- ✅ 확인된 실제 테이블 구조:
--- reviews: id, user_id, restaurant_id, created_at, updated_at
--- review_images: id, review_id, image_id, s3_key, image_url, file_size, image_order, created_at
--- review_keywords: id, review_id, keyword_type, created_at
--- tooltips: id, review_image_id, tooltip_type, x_position, y_position, rating, menu_name, total_price, serving_size, detailed_review, created_at
-
 -- 더미 리뷰 데이터 (reviews 테이블)
 INSERT INTO reviews (user_id, restaurant_id, created_at, updated_at) VALUES
 -- 제주 흑돼지 전문점 리뷰들 (실제 존재하는 user_id, restaurant_id로 수정 필요)
@@ -44,43 +33,43 @@ INSERT INTO reviews (user_id, restaurant_id, created_at, updated_at) VALUES
 -- 리뷰 이미지 데이터 (review_images 테이블)
 INSERT INTO review_images (review_id, image_id, s3_key, image_url, file_size, image_order, created_at) VALUES
 -- 리뷰 1의 이미지들 (흑돼지 전문점)
-(1, 'img_001_1', 'reviews/2024/08/img_001_1.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_001_1.jpg', 2048576, 1, '2024-08-01 12:30:00'),
-(1, 'img_001_2', 'reviews/2024/08/img_001_2.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_001_2.jpg', 1825739, 2, '2024-08-01 12:30:00'),
+(1, 'img_001_1', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 2048576, 1, '2024-08-01 12:30:00'),
+(1, 'img_001_2', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 1825739, 2, '2024-08-01 12:30:00'),
 
 -- 리뷰 2의 이미지들
-(2, 'img_002_1', 'reviews/2024/08/img_002_1.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_002_1.jpg', 3145728, 1, '2024-08-02 18:45:00'),
-(2, 'img_002_2', 'reviews/2024/08/img_002_2.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_002_2.jpg', 2234567, 2, '2024-08-02 18:45:00'),
+(2, 'img_002_1', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 3145728, 1, '2024-08-02 18:45:00'),
+(2, 'img_002_2', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 2234567, 2, '2024-08-02 18:45:00'),
 
 -- 리뷰 3의 이미지들
-(3, 'img_003_1', 'reviews/2024/08/img_003_1.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_003_1.jpg', 2567890, 1, '2024-08-03 20:15:00'),
+(3, 'img_003_1', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 2567890, 1, '2024-08-03 20:15:00'),
 
 -- 리뷰 4의 이미지들 (갈치구이)
-(4, 'img_004_1', 'reviews/2024/08/img_004_1.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_004_1.jpg', 2890123, 1, '2024-08-01 13:20:00'),
-(4, 'img_004_2', 'reviews/2024/08/img_004_2.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_004_2.jpg', 2345678, 2, '2024-08-01 13:20:00'),
+(4, 'img_004_1', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 2890123, 1, '2024-08-01 13:20:00'),
+(4, 'img_004_2', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 2345678, 2, '2024-08-01 13:20:00'),
 
 -- 리뷰 5의 이미지들
-(5, 'img_005_1', 'reviews/2024/08/img_005_1.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_005_1.jpg', 3456789, 1, '2024-08-04 19:30:00'),
-(5, 'img_005_2', 'reviews/2024/08/img_005_2.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_005_2.jpg', 2123456, 2, '2024-08-04 19:30:00'),
+(5, 'img_005_1', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 3456789, 1, '2024-08-04 19:30:00'),
+(5, 'img_005_2', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 2123456, 2, '2024-08-04 19:30:00'),
 
 -- 리뷰 6의 이미지들
-(6, 'img_006_1', 'reviews/2024/08/img_006_1.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_006_1.jpg', 2678901, 1, '2024-08-05 14:45:00'),
+(6, 'img_006_1', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 2678901, 1, '2024-08-05 14:45:00'),
 
 -- 리뷰 7의 이미지들 (성산 해녀의집)
-(7, 'img_007_1', 'reviews/2024/08/img_007_1.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_007_1.jpg', 2987654, 1, '2024-08-02 11:15:00'),
-(7, 'img_007_2', 'reviews/2024/08/img_007_2.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_007_2.jpg', 2456789, 2, '2024-08-02 11:15:00'),
+(7, 'img_007_1', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 2987654, 1, '2024-08-02 11:15:00'),
+(7, 'img_007_2', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 2456789, 2, '2024-08-02 11:15:00'),
 
 -- 리뷰 8의 이미지들
-(8, 'img_008_1', 'reviews/2024/08/img_008_1.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_008_1.jpg', 3234567, 1, '2024-08-06 16:20:00'),
+(8, 'img_008_1', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 3234567, 1, '2024-08-06 16:20:00'),
 
 -- 나머지 리뷰들도 각각 1-2개씩 이미지 추가
-(9, 'img_009_1', 'reviews/2024/08/img_009_1.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_009_1.jpg', 2765432, 1, '2024-08-03 12:45:00'),
-(10, 'img_010_1', 'reviews/2024/08/img_010_1.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_010_1.jpg', 2543210, 1, '2024-08-07 13:30:00'),
-(11, 'img_011_1', 'reviews/2024/08/img_011_1.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_011_1.jpg', 2876543, 1, '2024-08-04 15:20:00'),
-(12, 'img_012_1', 'reviews/2024/08/img_012_1.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_012_1.jpg', 2654321, 1, '2024-08-08 11:45:00'),
-(13, 'img_013_1', 'reviews/2024/08/img_013_1.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_013_1.jpg', 2987123, 1, '2024-08-05 18:10:00'),
-(14, 'img_014_1', 'reviews/2024/08/img_014_1.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_014_1.jpg', 2345987, 1, '2024-08-09 19:25:00'),
-(15, 'img_015_1', 'reviews/2024/08/img_015_1.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_015_1.jpg', 2198765, 1, '2024-08-06 08:30:00'),
-(16, 'img_016_1', 'reviews/2024/08/img_016_1.jpg', 'https://toktot-images.s3.amazonaws.com/reviews/2024/08/img_016_1.jpg', 2567123, 1, '2024-08-10 09:15:00');
+(9, 'img_009_1', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 2765432, 1, '2024-08-03 12:45:00'),
+(10, 'img_010_1', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 2543210, 1, '2024-08-07 13:30:00'),
+(11, 'img_011_1', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 2876543, 1, '2024-08-04 15:20:00'),
+(12, 'img_012_1', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 2654321, 1, '2024-08-08 11:45:00'),
+(13, 'img_013_1', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 2987123, 1, '2024-08-05 18:10:00'),
+(14, 'img_014_1', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 2345987, 1, '2024-08-09 19:25:00'),
+(15, 'img_015_1', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 2198765, 1, '2024-08-06 08:30:00'),
+(16, 'img_016_1', 'Property+1%3DVariant3.png', 'https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/Property+1%3DVariant3.png', 2567123, 1, '2024-08-10 09:15:00');
 
 -- 리뷰 키워드 데이터 (review_keywords 테이블)
 INSERT INTO review_keywords (review_id, keyword_type, created_at) VALUES
