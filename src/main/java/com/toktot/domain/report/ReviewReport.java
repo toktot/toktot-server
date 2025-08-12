@@ -7,6 +7,8 @@ import com.toktot.domain.user.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -42,6 +44,7 @@ public class ReviewReport {
     private Review review;
 
     @Column(name = "report_types", nullable = false, columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
     private String reportTypes;
 
     @Column(name = "other_reason", length = 500)
