@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public record ReviewReportRequest(
         @JsonProperty(value = "review_id")
@@ -28,9 +29,12 @@ public record ReviewReportRequest(
         String otherReason
 ) {
         public String getReportTypesAsJson() {
+                if (reportTypes == null || reportTypes.isEmpty()) {
+                        return "[]";
+                }
+
                 return reportTypes.stream()
-                        .map(Enum::name)
-                        .reduce("[", (acc, type) -> acc.equals("[") ? acc + "\"" + type + "\"" : acc + ",\"" + type + "\"")
-                        + "]";
+                        .map(type -> "\"" + type.name() + "\"")
+                        .collect(Collectors.joining(",", "[", "]"));
         }
 }
