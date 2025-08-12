@@ -45,6 +45,8 @@ public enum ErrorCode {
     // 권한 관련 에러 (PERMISSION)
     PERMISSION_DENIED("권한이 없습니다."),
     ACCESS_DENIED("접근이 거부되었습니다."),
+    CANNOT_REPORT_OWN_REVIEW("본인이 작성한 리뷰는 신고할 수 없습니다."),
+    DUPLICATE_REPORT("이미 신고한 리뷰입니다."),
 
     // 리소스 관련 에러 (RESOURCE)
     RESOURCE_NOT_FOUND("리소스를 찾을 수 없습니다."),

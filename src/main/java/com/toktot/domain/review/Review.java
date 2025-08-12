@@ -1,5 +1,6 @@
 package com.toktot.domain.review;
 
+import com.toktot.domain.report.ReviewReport;
 import com.toktot.domain.restaurant.Restaurant;
 import com.toktot.domain.user.User;
 import jakarta.persistence.*;
@@ -53,6 +54,14 @@ public class Review {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "report_count", nullable = false)
+    private Integer reportCount = 0;
+
+    @Column(name = "is_hidden", nullable = false)
+    private Boolean isHidden = false;
+
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ReviewReport> reports = new ArrayList<>();
 
     public static Review create(User user, Restaurant restaurant) {
         return Review.builder()
@@ -79,5 +88,9 @@ public class Review {
         }
 
         return Objects.equals(this.user.getId(), userId);
+    }
+
+    public void increaseReportCount() {
+        this.reportCount++;
     }
 }
