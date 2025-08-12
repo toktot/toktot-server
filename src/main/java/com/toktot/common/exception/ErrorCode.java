@@ -48,6 +48,9 @@ public enum ErrorCode {
     CANNOT_REPORT_OWN_REVIEW("본인이 작성한 리뷰는 신고할 수 없습니다."),
     DUPLICATE_REPORT("이미 신고한 리뷰입니다."),
 
+    // 폴더 관련 에러 (FOLDER) - 기본 폴더 생성 실패 에러만 추가
+    DEFAULT_FOLDER_CREATION_FAILED("기본 폴더 생성에 실패했습니다."),
+
     // 리소스 관련 에러 (RESOURCE)
     RESOURCE_NOT_FOUND("리소스를 찾을 수 없습니다."),
     POST_NOT_FOUND("게시글을 찾을 수 없습니다."),
