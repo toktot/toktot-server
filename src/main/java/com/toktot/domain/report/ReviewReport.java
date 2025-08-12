@@ -52,7 +52,7 @@ public class ReviewReport {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private ReportStatus status = ReportStatus.PENDING;
+    private ReportStatus status;
 
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
@@ -71,6 +71,7 @@ public class ReviewReport {
                 .reportTypes(reportTypes)
                 .reporterType(reporterType)
                 .otherReason(otherReason)
+                .status(ReportStatus.PENDING)
                 .build();
     }
 }
