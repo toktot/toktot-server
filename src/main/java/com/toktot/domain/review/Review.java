@@ -69,6 +69,8 @@ public class Review {
                 .restaurant(restaurant)
                 .images(new ArrayList<>())
                 .keywords(new ArrayList<>())
+                .isHidden(false)
+                .reportCount(0)
                 .build();
     }
 
