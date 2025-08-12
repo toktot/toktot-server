@@ -11,11 +11,13 @@ import java.util.List;
 public interface FolderRepository extends JpaRepository<Folder, Long> {
 
     @Query("SELECT new com.toktot.web.dto.folder.response.FolderResponse(" +
-            "f.id, f.folderName, COUNT(fr.review.id), f.createdAt) " +
+            "f.id, f.folderName, COUNT(fr.review.id), f.createdAt, f.isDefault) " +
             "FROM Folder f " +
             "LEFT JOIN f.folderReviews fr " +
             "WHERE f.user.id = :userId " +
             "GROUP BY f.id " +
-            "ORDER BY f.createdAt DESC")
+            "ORDER BY f.isDefault DESC, f.createdAt ASC")
     List<FolderResponse> findFoldersWithReviewCountByUserId(@Param("userId") Long userId);
+
+
 }
