@@ -1,6 +1,7 @@
 package com.toktot.domain.folder.repository;
 
 import com.toktot.domain.folder.Folder;
+import com.toktot.domain.user.User;
 import com.toktot.web.dto.folder.response.FolderResponse;
 import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,5 +20,5 @@ public interface FolderRepository extends JpaRepository<Folder, Long> {
             "ORDER BY f.isDefault DESC, f.createdAt ASC")
     List<FolderResponse> findFoldersWithReviewCountByUserId(@Param("userId") Long userId);
 
-
+    boolean existsByUserAndIsDefaultTrue(User user);
 }

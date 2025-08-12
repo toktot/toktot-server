@@ -12,6 +12,7 @@ import com.toktot.domain.user.User;
 import com.toktot.web.dto.folder.response.FolderResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,8 +28,13 @@ public class FolderService {
     private final FolderRepository folderRepository;
     private final FolderReviewRepository folderReviewRepository;
 
+    @Lazy
+    private final FolderService self;
+
     @Transactional
     public FolderResponse createFolder(User user, String folderName) {
+        self.ensureDefaultFolderExists(user);
+
         Folder folder = Folder.createNewFolder(user, folderName);
         folderRepository.save(folder);
 
@@ -36,14 +42,19 @@ public class FolderService {
     }
 
     public List<FolderResponse> readFolders(User user) {
-        List<FolderResponse> response = folderRepository.findFoldersWithReviewCountByUserId(user.getId());
+        self.ensureDefaultFolderExists(user);
 
-        if (response.isEmpty()) {
-            Folder defaultFolder = folderRepository.save(Folder.createDefaultFolder(user));
-            response.add(FolderResponse.fromNewFolder(defaultFolder));
+        return folderRepository.findFoldersWithReviewCountByUserId(user.getId());
+    }
+
+    @Transactional
+    public void ensureDefaultFolderExists(User user) {
+        boolean hasDefaultFolder = folderRepository.existsByUserAndIsDefaultTrue(user);
+
+        if (!hasDefaultFolder) {
+            folderRepository.save(Folder.createDefaultFolder(user));
+            log.info("Created default folder for user: {}", user.getId());
         }
-
-        return response;
     }
 
     @Transactional
