@@ -1,5 +1,6 @@
 package com.toktot.domain.user;
 
+import com.toktot.domain.report.ReviewReport;
 import com.toktot.domain.user.type.AuthProvider;
 import jakarta.persistence.*;
 import lombok.*;
@@ -9,6 +10,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users", indexes = {
@@ -61,6 +64,21 @@ public class User {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserAgreement userAgreement;
 
+    @Column(name = "report_count", nullable = false)
+    private Integer reportCount = 0;
+
+    @Column(name = "is_suspended", nullable = false)
+    private Boolean isSuspended = false;
+
+    @Column(name = "suspension_until")
+    private LocalDateTime suspensionUntil;
+
+    @Column(name = "warning_count", nullable = false)
+    private Integer warningCount = 0;
+
+    @OneToMany(mappedBy = "reporter", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ReviewReport> reportedReviews = new ArrayList<>();
+
     public boolean isEnabled() {
         return userProfile == null || userProfile.canLogin();
     }
@@ -87,5 +105,9 @@ public class User {
         if (StringUtils.hasText(encodedPassword)) {
             this.password = encodedPassword;
         }
+    }
+
+    public void increaseReportCount() {
+        this.reportCount++;
     }
 }
