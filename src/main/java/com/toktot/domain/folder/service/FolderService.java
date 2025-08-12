@@ -29,14 +29,21 @@ public class FolderService {
 
     @Transactional
     public FolderResponse createFolder(User user, String folderName) {
-        Folder folder = Folder.create(user, folderName);
+        Folder folder = Folder.createNewFolder(user, folderName);
         folderRepository.save(folder);
 
-        return FolderResponse.from(folder);
+        return FolderResponse.fromNewFolder(folder);
     }
 
     public List<FolderResponse> readFolders(User user) {
-        return folderRepository.findFoldersWithReviewCountByUserId(user.getId());
+        List<FolderResponse> response = folderRepository.findFoldersWithReviewCountByUserId(user.getId());
+
+        if (response.isEmpty()) {
+            Folder defaultFolder = folderRepository.save(Folder.createDefaultFolder(user));
+            response.add(FolderResponse.fromNewFolder(defaultFolder));
+        }
+
+        return response;
     }
 
     @Transactional

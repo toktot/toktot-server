@@ -20,7 +20,8 @@ import java.util.List;
 @Builder
 public class Folder {
 
-    private static final String DEFAULT_FOLDER_NAME = "이름이 없는 폴더";
+    private static final String DEFAULT_NEW_FOLDER_NAME = "이름이 없는 폴더";
+    private static final String DEFAULT_FOLDER_NAME = "기본 폴더";
     private static final int MAX_FOLDER_NAME_LENGTH = 50;
 
     @Id
@@ -34,9 +35,9 @@ public class Folder {
     @Column(name = "folder_name", nullable = false, length = MAX_FOLDER_NAME_LENGTH)
     private String folderName;
 
-    @OneToMany(mappedBy = "folder", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Column(name = "is_default", nullable = false)
     @Builder.Default
-    private List<FolderReview> folderReviews = new ArrayList<>();
+    private Boolean isDefault = false;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -46,14 +47,27 @@ public class Folder {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public static Folder create(User user, String folderName) {
+    @OneToMany(mappedBy = "folder", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<FolderReview> folderReviews = new ArrayList<>();
+
+    public static Folder createDefaultFolder(User user) {
+        return Folder.builder()
+                .user(user)
+                .folderName(DEFAULT_FOLDER_NAME)
+                .isDefault(true)
+                .build();
+    }
+
+    public static Folder createNewFolder(User user, String folderName) {
         if (folderName == null || folderName.trim().isBlank()) {
-            folderName = DEFAULT_FOLDER_NAME;
+            folderName = DEFAULT_NEW_FOLDER_NAME;
         }
 
         return Folder.builder()
                 .user(user)
                 .folderName(folderName.trim())
+                .isDefault(false)
                 .build();
     }
 
