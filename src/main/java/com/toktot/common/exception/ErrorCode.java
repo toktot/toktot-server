@@ -46,7 +46,9 @@ public enum ErrorCode {
     PERMISSION_DENIED("권한이 없습니다."),
     ACCESS_DENIED("접근이 거부되었습니다."),
     CANNOT_REPORT_OWN_REVIEW("본인이 작성한 리뷰는 신고할 수 없습니다."),
-    DUPLICATE_REPORT("이미 신고한 리뷰입니다."),
+    DUPLICATE_REVIEW_REPORT("이미 신고한 리뷰입니다."),
+    CANNOT_REPORT_OWN_USER("본인을 신고할 수 없습니다."),
+    DUPLICATE_USER_REPORT("이미 신고한 사용자입니다."),
 
     // 폴더 관련 에러 (FOLDER) - 기본 폴더 생성 실패 에러만 추가
     DEFAULT_FOLDER_CREATION_FAILED("기본 폴더 생성에 실패했습니다."),

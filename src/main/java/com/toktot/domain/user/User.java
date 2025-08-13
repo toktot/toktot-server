@@ -74,9 +74,11 @@ public class User {
     private LocalDateTime suspensionUntil;
 
     @Column(name = "warning_count", nullable = false)
+    @Builder.Default
     private Integer warningCount = 0;
 
     @OneToMany(mappedBy = "reporter", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<ReviewReport> reportedReviews = new ArrayList<>();
 
     public boolean isEnabled() {
