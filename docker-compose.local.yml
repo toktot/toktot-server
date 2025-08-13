@@ -38,9 +38,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    # 메모리 오버커밋 설정
-    sysctls:
-      - vm.overcommit_memory=1
     command: >
       redis-server 
       --appendonly yes
@@ -89,4 +86,3 @@ volumes:
     driver: local
   redis_local_data:
     driver: local
-    
