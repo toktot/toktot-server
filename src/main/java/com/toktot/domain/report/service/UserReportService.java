@@ -23,6 +23,7 @@ public class UserReportService {
 
     public void canReportUser(Long reporterUserId, Long reportedUserId) {
         checkSelfReport(reporterUserId, reportedUserId);
+        checkReportedUser(reportedUserId);
         checkDuplicateReport(reporterUserId, reportedUserId);
     }
 
@@ -55,6 +56,12 @@ public class UserReportService {
     private void checkDuplicateReport(Long reporterUserId, Long reportedUserId) {
         if (userReportRepository.existsByReporterIdAndReportedUserId(reporterUserId, reportedUserId)) {
             throw new ToktotException(ErrorCode.DUPLICATE_USER_REPORT);
+        }
+    }
+
+    private void checkReportedUser(Long reportedUserId) {
+        if (!userRepository.existsById(reportedUserId)) {
+            throw new ToktotException(ErrorCode.USER_NOT_FOUND);
         }
     }
 
