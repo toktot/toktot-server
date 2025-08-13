@@ -6,17 +6,17 @@ import com.toktot.domain.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
-@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class FolderDefaultService {
 
     private final FolderRepository folderRepository;
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void ensureDefaultFolderExists(User user) {
         boolean hasDefaultFolder = folderRepository.existsByUserAndIsDefaultTrue(user);
 
