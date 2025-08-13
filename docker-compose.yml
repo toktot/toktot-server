@@ -17,8 +17,8 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
+      interval: 180s
+      timeout: 60s
       retries: 3
 
   certbot:
@@ -47,8 +47,8 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U toktot_user -d toktot_dev"]
-      interval: 30s
-      timeout: 10s
+      interval: 180s
+      timeout: 60s
       retries: 3
 
   redis:
@@ -65,10 +65,20 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
+      interval: 180s
+      timeout: 60s
       retries: 3
-    command: redis-server --appendonly yes
+    # 메모리 오버커밋 및 성능 최적화 설정
+    sysctls:
+      - vm.overcommit_memory=1
+    command: >
+      redis-server 
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --tcp-keepalive 60
+      --timeout 300
+      --save 900 1 300 10 60 10000
 
   app:
     image: ${DOCKERHUB_USERNAME}/toktot:dev
@@ -100,8 +110,8 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
+      interval: 180s
+      timeout: 60s
       retries: 3
       start_period: 60s
 

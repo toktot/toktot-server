@@ -6,10 +6,13 @@ services:
       POSTGRES_DB: toktot_local
       POSTGRES_USER: toktot_user
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: Asia/Seoul
     ports:
       - "5432:5432"
     volumes:
       - postgres_local_data:/var/lib/postgresql/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U toktot_user -d toktot_local"]
@@ -21,9 +24,30 @@ services:
   redis:
     image: redis:7-alpine
     container_name: toktot-local-redis
+    environment:
+      TZ: Asia/Seoul
     ports:
       - "6379:6379"
+    volumes:
+      - redis_local_data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # 메모리 오버커밋 설정
+    sysctls:
+      - vm.overcommit_memory=1
+    command: >
+      redis-server 
+      --appendonly yes
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
+      --tcp-keepalive 60
+      --timeout 300
 
   app:
     build: .
@@ -47,12 +71,22 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - TZ=Asia/Seoul
     ports:
       - "8080:8080"
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
 
 volumes:
   postgres_local_data:
+    driver: local
+  redis_local_data:
+    driver: local
+    
