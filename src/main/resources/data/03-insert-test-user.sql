@@ -21,6 +21,3 @@ INSERT INTO users (
       ('test8@toktot.com', '$2a$10$qY6Vt7tYeD6jqkIp5Tv8mO/Ps6tkdhGDa20mw0v3pFv7OIBx6ZGsq', 'EMAIL', '테스트사용자8', 0, false, NULL, 0, NOW(), NOW()),
       ('test9@toktot.com', '$2a$10$qY6Vt7tYeD6jqkIp5Tv8mO/Ps6tkdhGDa20mw0v3pFv7OIBx6ZGsq', 'EMAIL', '테스트사용자9', 0, false, NULL, 0, NOW(), NOW()),
       ('test10@toktot.com', '$2a$10$qY6Vt7tYeD6jqkIp5Tv8mO/Ps6tkdhGDa20mw0v3pFv7OIBx6ZGsq', 'EMAIL', '테스트사용자10', 0, false, NULL, 0, NOW(), NOW());
-
-select * from users;
-select * from reviews;

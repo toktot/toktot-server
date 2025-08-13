@@ -20,13 +20,19 @@ public record FolderResponse(
         Long reviewCount,
 
         @JsonProperty(value = "created_at")
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+
+        @JsonProperty(value = "is_default")
+        Boolean isDefault
 ) {
 
-    public static FolderResponse from(Folder folder) {
+    public static FolderResponse fromNewFolder(Folder folder) {
         return FolderResponse.builder()
                 .folderId(folder.getId())
                 .folderName(folder.getFolderName())
+                .reviewCount(0L)
+                .createdAt(folder.getCreatedAt())
+                .isDefault(folder.getIsDefault())
                 .build();
     }
 
@@ -35,6 +41,8 @@ public record FolderResponse(
                 .folderId(folder.getId())
                 .folderName(folder.getFolderName())
                 .reviewCount(reviewCount != null ? reviewCount : 0L)
+                .createdAt(folder.getCreatedAt())
+                .isDefault(folder.getIsDefault())
                 .build();
     }
 

@@ -12,6 +12,7 @@ import com.toktot.domain.user.User;
 import com.toktot.web.dto.folder.response.FolderResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,15 +28,22 @@ public class FolderService {
     private final FolderRepository folderRepository;
     private final FolderReviewRepository folderReviewRepository;
 
+    @Lazy
+    private final FolderDefaultService folderDefaultService;
+
     @Transactional
     public FolderResponse createFolder(User user, String folderName) {
-        Folder folder = Folder.create(user, folderName);
+        folderDefaultService.ensureDefaultFolderExists(user);
+
+        Folder folder = Folder.createNewFolder(user, folderName);
         folderRepository.save(folder);
 
-        return FolderResponse.from(folder);
+        return FolderResponse.fromNewFolder(folder);
     }
 
     public List<FolderResponse> readFolders(User user) {
+        folderDefaultService.ensureDefaultFolderExists(user);
+
         return folderRepository.findFoldersWithReviewCountByUserId(user.getId());
     }
 
