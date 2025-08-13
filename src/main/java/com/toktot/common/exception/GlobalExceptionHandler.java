@@ -112,10 +112,25 @@ public class GlobalExceptionHandler {
                 );
             }
 
-            if (message.contains("Cannot deserialize") || message.contains("missing")) {
-                errorType = "FIELD_DESERIALIZATION_ERROR";
+            if (message.contains("Cannot deserialize value") &&
+                    (message.contains("not one of the values accepted for Enum") ||
+                            message.contains("value not one of declared Enum"))) {
+                errorType = "INVALID_ENUM_VALUE";
                 log.atWarn()
-                        .setMessage("Field deserialization error")
+                        .setMessage("Invalid enum value error")
+                        .addKeyValue("errorType", errorType)
+                        .addKeyValue("requestUri", request.getRequestURI())
+                        .addKeyValue("requestMethod", request.getMethod())
+                        .log();
+                return ResponseEntity.ok(
+                        ApiResponse.error(ErrorCode.INVALID_INPUT, "유효하지 않은 선택값입니다.")
+                );
+            }
+
+            if (message.contains("missing") && !message.contains("Cannot deserialize")) {
+                errorType = "FIELD_MISSING_ERROR";
+                log.atWarn()
+                        .setMessage("Field missing error")
                         .addKeyValue("errorType", errorType)
                         .addKeyValue("requestUri", request.getRequestURI())
                         .addKeyValue("requestMethod", request.getMethod())
