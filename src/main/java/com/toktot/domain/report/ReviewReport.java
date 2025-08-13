@@ -47,7 +47,7 @@ public class ReviewReport {
     @JdbcTypeCode(SqlTypes.JSON)
     private String reportTypes;
 
-    @Column(name = "other_reason", length = 500)
+    @Column(name = "other_reason", length = 500, nullable = false)
     private String otherReason;
 
     @Enumerated(EnumType.STRING)
