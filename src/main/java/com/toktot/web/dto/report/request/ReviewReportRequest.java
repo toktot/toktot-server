@@ -25,7 +25,8 @@ public record ReviewReportRequest(
         List<ReviewReportType> reportTypes,
 
         @JsonProperty(value = "other_reason")
-        @Size(max = 500, message = "기타 사유는 최대 500자까지 입력 가능합니다.")
+        @NotEmpty(message = "상세 사유를 입력해 주세요.")
+        @Size(max = 500, message = "상세 사유는 최대 500자까지 입력 가능합니다.")
         String otherReason
 ) {
         public String getReportTypesAsJson() {
