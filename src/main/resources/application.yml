@@ -55,6 +55,15 @@ spring:
             client-id: ${KAKAO_CLIENT_ID}
             client-secret: ${KAKAO_CLIENT_SECRET}
             redirect-uri: http://localhost:3000/kakao/callback
+  # 파일 설정
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5MB
+      max-request-size: 25MB
+      file-size-threshold: 1MB
+      location: ${java.io.tmpdir}
+      resolve-lazily: false
 
 # 서버 설정
 server:
