@@ -13,12 +13,11 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequestMapping("/v1/report/review")
+@RequestMapping("/v1/report/reviews")
 @RequiredArgsConstructor
 public class ReviewReportController {
 
     private final ReviewReportService reviewReportService;
-
 
     @GetMapping("/{reviewId}/can-report")
     public ResponseEntity<ApiResponse<Boolean>> canReportReview(
@@ -31,8 +30,8 @@ public class ReviewReportController {
                 .addKeyValue("reviewId", reviewId)
                 .log();
 
-        boolean response = reviewReportService.canReportReview(user.getId(), reviewId);
-        return ResponseEntity.ok(ApiResponse.success(response));
+        reviewReportService.canReportReview(user.getId(), reviewId);
+        return ResponseEntity.ok(ApiResponse.success("신고 가능한 리뷰입니다."));
     }
 
     @PostMapping
@@ -46,8 +45,9 @@ public class ReviewReportController {
                 .addKeyValue("reviewId", request.reviewId())
                 .addKeyValue("reportTypes", request.reportTypes())
                 .log();
+
         reviewReportService.reportReview(request, user);
-        return ResponseEntity.ok(ApiResponse.success("신고 접수되었습니다."));
+        return ResponseEntity.ok(ApiResponse.success("신고가 접수되었습니다."));
     }
 }
 

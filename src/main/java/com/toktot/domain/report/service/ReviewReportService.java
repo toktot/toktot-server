@@ -22,14 +22,17 @@ public class ReviewReportService {
     private final ReviewReportRepository reviewReportRepository;
     private final ReviewRepository reviewRepository;
 
-    public boolean canReportReview(Long userId, Long reviewId) {
-        return !reviewReportRepository.existsByReporter_IdAndReview_Id(userId, reviewId);
+    public void canReportReview(Long userId, Long reviewId) {
+        Review review = findReview(reviewId);
+        checkSelfReport(userId, review.getUser().getId());
+        checkDuplicateReport(userId, review.getId());
     }
 
     @Transactional
     public void reportReview(ReviewReportRequest request, User reporter) {
         Review targetReview = findReview(request.reviewId());
-        validateReviewReport(targetReview, reporter.getId());
+        checkSelfReport(reporter.getId(), targetReview.getUser().getId());
+        checkDuplicateReport(reporter.getId(), targetReview.getId());
 
         ReviewReport reviewReport = ReviewReport.create(
                 reporter,
@@ -49,13 +52,15 @@ public class ReviewReportService {
                 .orElseThrow(() -> new ToktotException(ErrorCode.REVIEW_NOT_FOUND));
     }
 
-    private void validateReviewReport(Review targetReview, Long reporterId) {
-        if (targetReview.getUser().getId().equals(reporterId)) {
+    private void checkSelfReport(Long reporterId, Long reportedUserId) {
+        if (reporterId.equals(reportedUserId)) {
             throw new ToktotException(ErrorCode.CANNOT_REPORT_OWN_REVIEW);
         }
+    }
 
-        if (!canReportReview(reporterId, targetReview.getId())) {
-            throw new ToktotException(ErrorCode.DUPLICATE_REPORT);
+    private void checkDuplicateReport(Long reporterId, Long reviewId) {
+        if (reviewReportRepository.existsByReporter_IdAndReview_Id(reporterId, reviewId)) {
+            throw new ToktotException(ErrorCode.DUPLICATE_REVIEW_REPORT);
         }
     }
 }
