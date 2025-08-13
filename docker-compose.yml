@@ -68,9 +68,6 @@ services:
       interval: 180s
       timeout: 60s
       retries: 3
-    # 메모리 오버커밋 및 성능 최적화 설정
-    sysctls:
-      - vm.overcommit_memory=1
     command: >
       redis-server 
       --appendonly yes
