@@ -29,11 +29,11 @@ public class FolderService {
     private final FolderReviewRepository folderReviewRepository;
 
     @Lazy
-    private final FolderService self;
+    private final FolderDefaultService folderDefaultService;
 
     @Transactional
     public FolderResponse createFolder(User user, String folderName) {
-        self.ensureDefaultFolderExists(user);
+        folderDefaultService.ensureDefaultFolderExists(user);
 
         Folder folder = Folder.createNewFolder(user, folderName);
         folderRepository.save(folder);
@@ -42,19 +42,9 @@ public class FolderService {
     }
 
     public List<FolderResponse> readFolders(User user) {
-        self.ensureDefaultFolderExists(user);
+        folderDefaultService.ensureDefaultFolderExists(user);
 
         return folderRepository.findFoldersWithReviewCountByUserId(user.getId());
-    }
-
-    @Transactional
-    public void ensureDefaultFolderExists(User user) {
-        boolean hasDefaultFolder = folderRepository.existsByUserAndIsDefaultTrue(user);
-
-        if (!hasDefaultFolder) {
-            folderRepository.save(Folder.createDefaultFolder(user));
-            log.info("Created default folder for user: {}", user.getId());
-        }
     }
 
     @Transactional
