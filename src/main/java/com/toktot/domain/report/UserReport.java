@@ -51,6 +51,9 @@ public class UserReport {
     @Builder.Default
     private ReportStatus status = ReportStatus.PENDING;
 
+    @Column(name = "privacy_consent", nullable = false)
+    private Boolean privacyConsent;
+
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
 
@@ -61,12 +64,13 @@ public class UserReport {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    public static UserReport create(User reporter, User reportedUser, String reportTypes, String otherReason) {
+    public static UserReport create(User reporter, User reportedUser, String reportTypes, String otherReason, Boolean privacyConsent) {
         return UserReport.builder()
                 .reporter(reporter)
                 .reportedUser(reportedUser)
                 .reportTypes(reportTypes)
                 .otherReason(otherReason)
+                .privacyConsent(privacyConsent)
                 .status(ReportStatus.PENDING)
                 .build();
     }

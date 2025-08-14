@@ -54,6 +54,9 @@ public class ReviewReport {
     @Column(name = "status", nullable = false, length = 20)
     private ReportStatus status;
 
+    @Column(name = "privacy_consent", nullable = false)
+    private Boolean privacyConsent;
+
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
 
@@ -64,13 +67,14 @@ public class ReviewReport {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    public static ReviewReport create(User reporter, Review review, String reportTypes, ReporterType reporterType, String otherReason) {
+    public static ReviewReport create(User reporter, Review review, String reportTypes, ReporterType reporterType, String otherReason, Boolean privacyConsent) {
         return ReviewReport.builder()
                 .reporter(reporter)
                 .review(review)
                 .reportTypes(reportTypes)
                 .reporterType(reporterType)
                 .otherReason(otherReason)
+                .privacyConsent(privacyConsent)
                 .status(ReportStatus.PENDING)
                 .build();
     }
