@@ -121,6 +121,36 @@ aws:
     access-key: ${AWS_ACCESS_KEY_ID}
     secret-key: ${AWS_SECRET_ACCESS_KEY}
 
+# TourAPI 설정
+tour-api:
+  # 기본 API 설정
+  base-url: https://apis.data.go.kr/B551011/KorService2
+  service-key: ${TOUR_API_SERVICE_KEY}
+
+  # HTTP 클라이언트 설정
+  timeout:
+    connection: 5000  # 연결 타임아웃 (5초)
+    read: 10000       # 읽기 타임아웃 (10초)
+
+  # API 호출 제한 관리
+  rate-limit:
+    daily-limit: 1000        # 일일 호출 제한
+    warning-threshold: 900   # 경고 임계값 (90%)
+    danger-threshold: 950    # 위험 임계값 (95%)
+
+  # 배치 처리 설정
+  batch:
+    chunk-size: 100         # 청크 단위 처리 크기
+    max-retry-count: 3      # 최대 재시도 횟수
+    retry-delay-ms: 1000    # 재시도 지연시간 (1초)
+
+  # 스케줄러 설정
+  scheduler:
+    # 주 1회 데이터 동기화 (일요일 새벽 2시)
+    data-sync: "0 0 2 * * SUN"
+    # 월 1회 데이터 정리 (매월 1일 새벽 1시)
+    cleanup: "0 0 1 1 * ?"
+
 # 모니터링 설정
 management:
   endpoints:
