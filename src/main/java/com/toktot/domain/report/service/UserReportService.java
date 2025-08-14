@@ -36,7 +36,8 @@ public class UserReportService {
                 reporter,
                 reportedUser,
                 request.getReportTypesAsJson(),
-                request.otherReason()
+                request.otherReason(),
+                request.privacyConsent()
         );
         reportedUser.increaseReportCount();
         userReportRepository.save(userReport);

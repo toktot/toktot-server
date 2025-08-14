@@ -39,7 +39,8 @@ public class ReviewReportService {
                 targetReview,
                 request.getReportTypesAsJson(),
                 request.reporterType(),
-                request.otherReason()
+                request.otherReason(),
+                request.privacyConsent()
         );
         targetReview.increaseReportCount();
         targetReview.getUser().increaseReportCount();
