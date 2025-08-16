@@ -74,7 +74,7 @@ public enum ErrorCode {
     INVALID_TIME_FORMAT("시간 형식이 올바르지 않습니다."),
     INVALID_URL_FORMAT("URL 형식이 올바르지 않습니다."),
     INVALID_FILE_FORMAT("파일 형식이 올바르지 않습니다."),
-    FILE_SIZE_EXCEEDED("파일 크기가 너무 큽니다."),
+    FILE_SIZE_EXCEEDED("파일 크기는 5MB 이하여야 합니다."),
 
     // 비즈니스 로직 에러 (BUSINESS)
     OPERATION_NOT_ALLOWED("허용되지 않은 작업입니다."),
