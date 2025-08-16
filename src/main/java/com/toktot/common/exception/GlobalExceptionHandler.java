@@ -162,7 +162,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
         ApiResponse<Void> response = ApiResponse.error(ErrorCode.FILE_SIZE_EXCEEDED);
 
-        return ResponseEntity.ok(ApiResponse<Void>)
+        return ResponseEntity.ok(response);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
