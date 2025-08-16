@@ -56,6 +56,13 @@ spring:
             client-secret: ${KAKAO_CLIENT_SECRET}
             redirect-uri: http://localhost:3000/kakao/callback
 
+  # 파일 업로드 설정
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 25MB
+      enabled: true
+
 # 서버 설정
 server:
   port: 8080
