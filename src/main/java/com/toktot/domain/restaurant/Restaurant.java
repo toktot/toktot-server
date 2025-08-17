@@ -71,4 +71,40 @@ public class Restaurant {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    public void updateFromTourApi(Restaurant newData) {
+        if (newData == null) {
+            return;
+        }
+
+        if (newData.getName() != null) {
+            this.name = newData.getName();
+        }
+
+        if (newData.getAddress() != null) {
+            this.address = newData.getAddress();
+        }
+
+        if (newData.getPhone() != null) {
+            this.phone = newData.getPhone();
+        }
+
+        if (newData.getCategory() != null) {
+            this.category = newData.getCategory();
+        }
+
+        if (newData.getLatitude() != null) {
+            this.latitude = newData.getLatitude();
+        }
+
+        if (newData.getLongitude() != null) {
+            this.longitude = newData.getLongitude();
+        }
+
+        this.lastSyncedAt = LocalDateTime.now();
+
+        if (this.dataSource != DataSource.USER_CREATED) {
+            this.dataSource = DataSource.TOUR_API;
+        }
+    }
 }
