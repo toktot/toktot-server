@@ -3,16 +3,13 @@ package com.toktot.external.tourapi;
 public final class TourApiConstants {
 
     private TourApiConstants() {
-        // 유틸리티 클래스 - 인스턴스 생성 방지
     }
 
-    // ===== API 엔드포인트 =====
     public static final String ENDPOINT_AREA_BASED_LIST = "/areaBasedList1";
     public static final String ENDPOINT_DETAIL_COMMON = "/detailCommon1";
     public static final String ENDPOINT_DETAIL_INTRO = "/detailIntro1";
     public static final String ENDPOINT_DETAIL_IMAGE = "/detailImage1";
 
-    // ===== 요청 파라미터명 =====
     public static final String PARAM_SERVICE_KEY = "serviceKey";
     public static final String PARAM_NUM_OF_ROWS = "numOfRows";
     public static final String PARAM_PAGE_NO = "pageNo";
@@ -34,72 +31,59 @@ public final class TourApiConstants {
     public static final String PARAM_MAP_INFO_YN = "mapinfoYN";
     public static final String PARAM_OVERVIEW_YN = "overviewYN";
 
-    // ===== 고정 파라미터 값 =====
-    public static final String MOBILE_OS = "ETC";
-    public static final String MOBILE_APP = "TokTot";
-    public static final String TYPE_JSON = "json";
-    public static final String LIST_YN_Y = "Y";
-    public static final String DEFAULT_YN_Y = "Y";
-    public static final String FIRST_IMAGE_YN_Y = "Y";
-    public static final String ADDR_INFO_YN_Y = "Y";
-    public static final String MAP_INFO_YN_Y = "Y";
-    public static final String OVERVIEW_YN_Y = "Y";
+    public static final String VALUE_MOBILE_OS = "ETC";
+    public static final String VALUE_MOBILE_APP = "TOKTOT";
+    public static final String VALUE_TYPE_JSON = "json";
+    public static final String VALUE_LIST_YN = "Y";
+    public static final String VALUE_DEFAULT_YN = "Y";
+    public static final String VALUE_FIRST_IMAGE_YN = "Y";
+    public static final String VALUE_ADDR_INFO_YN = "Y";
+    public static final String VALUE_MAP_INFO_YN = "Y";
+    public static final String VALUE_OVERVIEW_YN = "Y";
 
-    // ===== 제주도 지역코드 =====
-    public static final String JEJU_AREA_CODE = "39";
-    public static final String JEJU_CITY_SIGUNGU_CODE = "1"; // 제주시
-    public static final String SEOGWIPO_CITY_SIGUNGU_CODE = "2"; // 서귀포시
+    public static final String AREA_CODE_JEJU = "39";
+    public static final String SIGUNGU_CODE_JEJU_CITY = "1";
+    public static final String SIGUNGU_CODE_SEOGWIPO = "2";
+    public static final String CONTENT_TYPE_RESTAURANT = "39";
+    public static final String CONTENT_TYPE_CAFE = "39";
 
-    // ===== 컨텐츠 타입 (관광타입) =====
-    public static final String CONTENT_TYPE_RESTAURANT = "39"; // 음식점
-    public static final String CONTENT_TYPE_TOURIST_SPOT = "12"; // 관광지
-    public static final String CONTENT_TYPE_ACCOMMODATION = "32"; // 숙박
-    public static final String CONTENT_TYPE_SHOPPING = "38"; // 쇼핑
+    public static final String CAT1_FOOD = "A05";
+    public static final String CAT2_RESTAURANT = "A0502";
+    public static final String CAT2_CAFE = "A0503";
 
-    // ===== 카테고리 코드 =====
-    public static final String CAT1_FOOD = "A05"; // 음식
-    public static final String CAT2_KOREAN = "A0502"; // 한식
-    public static final String CAT2_WESTERN = "A0503"; // 서양식
-    public static final String CAT2_JAPANESE = "A0504"; // 일식
-    public static final String CAT2_CHINESE = "A0505"; // 중식
-    public static final String CAT2_CAFE = "A0507"; // 카페/전통차
+    public static final String ARRANGE_TITLE = "A";
+    public static final String ARRANGE_VIEW = "B";
+    public static final String ARRANGE_MODIFIED = "C";
+    public static final String ARRANGE_CREATED = "D";
 
-    // ===== 정렬 기준 =====
-    public static final String ARRANGE_CREATED_DATE = "C"; // 등록일순
-    public static final String ARRANGE_MODIFIED_DATE = "D"; // 수정일순
-    public static final String ARRANGE_TITLE = "B"; // 제목순
-    public static final String ARRANGE_READCOUNT = "R"; // 조회수순
+    public static final String RESPONSE_CODE_SUCCESS = "0000";
+    public static final String RESPONSE_CODE_AUTH_ERROR = "1001";
+    public static final String RESPONSE_CODE_SERVICE_SUSPENDED = "3001";
+    public static final String RESPONSE_CODE_TRAFFIC_EXCEEDED = "3002";
+    public static final String RESPONSE_CODE_SERVICE_NOT_REGISTERED = "3003";
 
-    // ===== API 응답 결과 코드 =====
-    public static final String RESULT_CODE_SUCCESS = "0000";
-    public static final String RESULT_CODE_APPLICATION_ERROR = "0001";
-    public static final String RESULT_CODE_DB_ERROR = "0002";
-    public static final String RESULT_CODE_NODATA_ERROR = "0003";
-    public static final String RESULT_CODE_HTTP_ERROR = "0004";
-    public static final String RESULT_CODE_SERVICETIME_OUT = "0005";
-    public static final String RESULT_CODE_INVALID_REQUEST_PARAMETER_ERROR = "0010";
-    public static final String RESULT_CODE_NO_MANDATORY_REQUEST_PARAMETERS_ERROR = "0011";
-    public static final String RESULT_CODE_NO_OPENAPI_SERVICE_ERROR = "0012";
-    public static final String RESULT_CODE_SERVICE_ACCESS_DENIED_ERROR = "0013";
-    public static final String RESULT_CODE_TEMPORARILY_DISABLE_THE_SERVICEKEY_ERROR = "0014";
-    public static final String RESULT_CODE_REQUEST_TRAFFIC_LIMIT_EXCEEDED_ERROR = "0015";
+    public static final String ERROR_MSG_INVALID_SERVICE_KEY = "잘못된 서비스키입니다.";
+    public static final String ERROR_MSG_TRAFFIC_EXCEEDED = "일일 트래픽이 초과되었습니다.";
+    public static final String ERROR_MSG_SERVICE_SUSPENDED = "서비스가 일시 중단되었습니다.";
+    public static final String ERROR_MSG_NETWORK_ERROR = "네트워크 오류가 발생했습니다.";
+    public static final String ERROR_MSG_PARSING_ERROR = "응답 데이터 파싱 중 오류가 발생했습니다.";
+    public static final String ERROR_MSG_TIMEOUT = "API 호출 시간이 초과되었습니다.";
+    public static final String ERROR_MSG_RATE_LIMIT = "API 호출 제한에 도달했습니다.";
 
-    // ===== 기본 설정값 =====
-    public static final int DEFAULT_NUM_OF_ROWS = 100; // 페이지당 결과 수
-    public static final int MAX_NUM_OF_ROWS = 1000; // 최대 페이지당 결과 수
-    public static final int DEFAULT_PAGE_NO = 1; // 기본 페이지 번호
+    public static final int DEFAULT_PAGE_SIZE = 100;
+    public static final int MAX_PAGE_SIZE = 1000;
+    public static final int DEFAULT_PAGE_NO = 1;
+    public static final int MAX_RETRY_COUNT = 3;
+    public static final int DEFAULT_TIMEOUT_MS = 10000;
 
-    // ===== 배치 처리 설정 =====
-    public static final int BATCH_CHUNK_SIZE = 100; // 배치 처리 청크 크기
-    public static final int MAX_RETRY_COUNT = 3; // 최대 재시도 횟수
-    public static final long RETRY_DELAY_MS = 1000; // 재시도 지연시간 (밀리초)
+    public static final String LOG_API_CALL_START = "TourAPI 호출 시작: endpoint={}, pageNo={}";
+    public static final String LOG_API_CALL_SUCCESS = "TourAPI 호출 성공: endpoint={}, responseTime={}ms, resultCount={}";
+    public static final String LOG_API_CALL_FAILURE = "TourAPI 호출 실패: endpoint={}, errorCode={}, errorMessage={}";
+    public static final String LOG_RATE_LIMIT_WARNING = "TourAPI 호출 제한 경고: 현재 호출 수={}, 제한={}, 잔여={}";
+    public static final String LOG_RETRY_ATTEMPT = "TourAPI 재시도 시도: attempt={}/{}, endpoint={}";
 
-    // ===== API 호출 제한 =====
-    public static final int DAILY_API_CALL_LIMIT = 1000; // 일일 호출 제한
-    public static final int WARNING_THRESHOLD = 900; // 경고 임계값 (90%)
-    public static final int DANGER_THRESHOLD = 950; // 위험 임계값 (95%)
-
-    // ===== 타임아웃 설정 =====
-    public static final int CONNECTION_TIMEOUT_MS = 5000; // 연결 타임아웃 5초
-    public static final int READ_TIMEOUT_MS = 10000; // 읽기 타임아웃 10초
+    public static final String METRIC_API_CALL_COUNT = "tourapi.call.count";
+    public static final String METRIC_API_CALL_DURATION = "tourapi.call.duration";
+    public static final String METRIC_API_CALL_ERROR = "tourapi.call.error";
+    public static final String METRIC_API_RATE_LIMIT = "tourapi.rate.limit";
 }
