@@ -72,39 +72,29 @@ public class Restaurant {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public void updateFromTourApi(Restaurant newData) {
+    public Restaurant updateFromTourApi(Restaurant newData) {
         if (newData == null) {
-            return;
+            return this;
         }
 
-        if (newData.getName() != null) {
-            this.name = newData.getName();
-        }
-
-        if (newData.getAddress() != null) {
-            this.address = newData.getAddress();
-        }
-
-        if (newData.getPhone() != null) {
-            this.phone = newData.getPhone();
-        }
-
-        if (newData.getCategory() != null) {
-            this.category = newData.getCategory();
-        }
-
-        if (newData.getLatitude() != null) {
-            this.latitude = newData.getLatitude();
-        }
-
-        if (newData.getLongitude() != null) {
-            this.longitude = newData.getLongitude();
-        }
-
-        this.lastSyncedAt = LocalDateTime.now();
-
-        if (this.dataSource != DataSource.USER_CREATED) {
-            this.dataSource = DataSource.TOUR_API;
-        }
+        return Restaurant.builder()
+                .id(this.id)
+                .externalTourApiId(newData.getExternalTourApiId() != null ? newData.getExternalTourApiId() : this.externalTourApiId)
+                .externalKakaoId(this.externalKakaoId)
+                .name(newData.getName() != null ? newData.getName() : this.name)
+                .category(newData.getCategory() != null ? newData.getCategory() : this.category)
+                .address(newData.getAddress() != null ? newData.getAddress() : this.address)
+                .roadAddress(this.roadAddress)
+                .latitude(newData.getLatitude() != null ? newData.getLatitude() : this.latitude)
+                .longitude(newData.getLongitude() != null ? newData.getLongitude() : this.longitude)
+                .phone(newData.getPhone() != null ? newData.getPhone() : this.phone)
+                .isGoodPriceStore(this.isGoodPriceStore)
+                .dataSource(this.dataSource != DataSource.USER_CREATED ? DataSource.TOUR_API : this.dataSource)
+                .isActive(this.isActive)
+                .searchCount(this.searchCount)
+                .lastSyncedAt(LocalDateTime.now())
+                .createdAt(this.createdAt)
+                .build();
     }
+
 }
