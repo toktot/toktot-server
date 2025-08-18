@@ -8,6 +8,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Builder
 @Entity
@@ -72,29 +73,35 @@ public class Restaurant {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public Restaurant updateFromTourApi(Restaurant newData) {
+    public void updateFromTourApiData(Restaurant newData) {
         if (newData == null) {
-            return this;
+            return;
         }
 
-        return Restaurant.builder()
-                .id(this.id)
-                .externalTourApiId(newData.getExternalTourApiId() != null ? newData.getExternalTourApiId() : this.externalTourApiId)
-                .externalKakaoId(this.externalKakaoId)
-                .name(newData.getName() != null ? newData.getName() : this.name)
-                .category(newData.getCategory() != null ? newData.getCategory() : this.category)
-                .address(newData.getAddress() != null ? newData.getAddress() : this.address)
-                .roadAddress(this.roadAddress)
-                .latitude(newData.getLatitude() != null ? newData.getLatitude() : this.latitude)
-                .longitude(newData.getLongitude() != null ? newData.getLongitude() : this.longitude)
-                .phone(newData.getPhone() != null ? newData.getPhone() : this.phone)
-                .isGoodPriceStore(this.isGoodPriceStore)
-                .dataSource(this.dataSource != DataSource.USER_CREATED ? DataSource.TOUR_API : this.dataSource)
-                .isActive(this.isActive)
-                .searchCount(this.searchCount)
-                .lastSyncedAt(LocalDateTime.now())
-                .createdAt(this.createdAt)
-                .build();
+        this.name = newData.getName();
+        this.address = newData.getAddress();
+        this.phone = newData.getPhone();
+        this.latitude = newData.getLatitude();
+        this.longitude = newData.getLongitude();
+        this.category = newData.getCategory();
+        this.lastSyncedAt = LocalDateTime.now();
+    }
+
+    public boolean hasDataChangedFrom(Restaurant newData) {
+        if (newData == null) {
+            return false;
+        }
+
+        return !Objects.equals(this.name, newData.getName()) ||
+                !Objects.equals(this.address, newData.getAddress()) ||
+                !Objects.equals(this.phone, newData.getPhone()) ||
+                !Objects.equals(this.latitude, newData.getLatitude()) ||
+                !Objects.equals(this.longitude, newData.getLongitude()) ||
+                !Objects.equals(this.category, newData.getCategory());
+    }
+
+    public void updateSyncTime() {
+        this.lastSyncedAt = LocalDateTime.now();
     }
 
 }
