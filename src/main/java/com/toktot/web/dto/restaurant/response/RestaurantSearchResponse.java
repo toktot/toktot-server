@@ -1,4 +1,4 @@
-package com.toktot.web.dto.restaurant;
+package com.toktot.web.dto.restaurant.response;
 
 import com.toktot.domain.restaurant.Restaurant;
 

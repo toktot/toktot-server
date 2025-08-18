@@ -2,7 +2,7 @@ package com.toktot.web.controller.restaurant;
 
 import com.toktot.domain.restaurant.service.RestaurantSearchService;
 import com.toktot.web.dto.ApiResponse;
-import com.toktot.web.dto.restaurant.RestaurantSearchResponse;
+import com.toktot.web.dto.restaurant.response.RestaurantSearchResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
