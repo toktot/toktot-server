@@ -64,6 +64,7 @@ public class User {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserAgreement userAgreement;
 
+    @Builder.Default
     @Column(name = "report_count", nullable = false)
     private Integer reportCount = 0;
 
