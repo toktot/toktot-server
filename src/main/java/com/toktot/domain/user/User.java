@@ -67,6 +67,7 @@ public class User {
     @Column(name = "report_count", nullable = false)
     private Integer reportCount = 0;
 
+    @Builder.Default
     @Column(name = "is_suspended", nullable = false)
     private Boolean isSuspended = false;
 
