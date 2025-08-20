@@ -28,9 +28,11 @@ public class PasswordResetService {
 
     private static final String RESET_TOKEN_PREFIX = "password_reset:";
     private static final String RESET_COOLDOWN_PREFIX = "reset_cooldown:";
+    private static final String RESET_VERIFIED_PREFIX = "password_reset_verified:";
 
     private static final Duration RESET_TOKEN_EXPIRY = Duration.ofHours(1);
     private static final Duration RESET_COOLDOWN = Duration.ofMinutes(1);
+    private static final Duration RESET_VERIFIED_EXPIRY = Duration.ofMinutes(10);
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -48,13 +50,21 @@ public class PasswordResetService {
         log.info("비밀번호 재설정 코드 발송 완료 - email: {}", email);
     }
 
-    public void resetPassword(String email, String resetToken, String newPassword) {
+    public void verifyResetToken(String email, String resetToken) {
         validateResetToken(email, resetToken);
+
+        markAsVerified(email);
+
+        log.info("비밀번호 재설정 토큰 검증 완료 - email: {}", email);
+    }
+
+    public void updatePassword(String email, String newPassword) {
+        validateVerifiedStatus(email);
 
         User user = findEmailUser(email);
         updateUserPassword(user, newPassword);
 
-        clearResetToken(email);
+        clearResetTokens(email);
 
         log.info("비밀번호 재설정 완료 - userId: {}, email: {}", user.getId(), email);
     }
@@ -83,7 +93,7 @@ public class PasswordResetService {
     }
 
     private String generateResetToken() {
-        return String.format("%06d", SECURE_RANDOM.nextInt(500000));
+        return String.format("%06d", SECURE_RANDOM.nextInt(1000000));
     }
 
     private void storeResetToken(String email, String token) {
@@ -115,6 +125,25 @@ public class PasswordResetService {
         }
     }
 
+    private void markAsVerified(String email) {
+        String verifiedKey = RESET_VERIFIED_PREFIX + email;
+        redisTemplate.opsForValue().set(verifiedKey, "verified", RESET_VERIFIED_EXPIRY);
+
+        log.debug("비밀번호 재설정 인증 완료 상태 저장 - email: {}, expiry: {}분",
+                email, RESET_VERIFIED_EXPIRY.toMinutes());
+    }
+
+    private void validateVerifiedStatus(String email) {
+        String verifiedKey = RESET_VERIFIED_PREFIX + email;
+        String verifiedStatus = redisTemplate.opsForValue().get(verifiedKey);
+
+        if (verifiedStatus == null) {
+            log.warn("비밀번호 재설정 인증 미완료 또는 만료 - email: {}", email);
+            throw new ToktotException(ErrorCode.PASSWORD_RESET_TOKEN_EXPIRED,
+                    "인증이 완료되지 않았거나 만료되었습니다. 다시 인증해주세요.");
+        }
+    }
+
     private User findEmailUser(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> {
@@ -137,10 +166,13 @@ public class PasswordResetService {
         log.debug("사용자 비밀번호 업데이트 완료 - userId: {}", user.getId());
     }
 
-    private void clearResetToken(String email) {
-        String key = RESET_TOKEN_PREFIX + email;
-        redisTemplate.delete(key);
+    private void clearResetTokens(String email) {
+        String tokenKey = RESET_TOKEN_PREFIX + email;
+        String verifiedKey = RESET_VERIFIED_PREFIX + email;
 
-        log.debug("사용된 재설정 토큰 삭제 - email: {}", email);
+        redisTemplate.delete(tokenKey);
+        redisTemplate.delete(verifiedKey);
+
+        log.debug("비밀번호 재설정 관련 토큰 정리 완료 - email: {}", email);
     }
 }
