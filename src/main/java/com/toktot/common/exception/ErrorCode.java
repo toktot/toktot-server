@@ -33,14 +33,16 @@ public enum ErrorCode {
     USERNAME_TOO_SHORT("아이디가 너무 짧습니다."),
     USERNAME_TOO_LONG("아이디가 너무 깁니다."),
 
+    // 비밀번호 재설정 관련
+    PASSWORD_RESET_TOKEN_INVALID("비밀번호 재설정 토큰이 유효하지 않습니다."),
+    PASSWORD_RESET_TOKEN_EXPIRED("비밀번호 재설정 토큰이 만료되었습니다."),
+    PASSWORD_RESET_VERIFICATION_REQUIRED("비밀번호 재설정을 위해 먼저 인증을 완료해주세요."),
+    PASSWORD_CONFIRMATION_MISMATCH("새 비밀번호와 확인 비밀번호가 일치하지 않습니다."),
+
     // 계정 상태 관련
     ACCOUNT_LOCKED("계정이 잠금 상태입니다."),
     ACCOUNT_DISABLED("비활성화된 계정입니다."),
     LOGIN_ATTEMPTS_EXCEEDED("로그인 시도 횟수를 초과했습니다."),
-
-    // 비밀번호 재설정 관련
-    PASSWORD_RESET_TOKEN_INVALID("비밀번호 재설정 토큰이 유효하지 않습니다."),
-    PASSWORD_RESET_TOKEN_EXPIRED("비밀번호 재설정 토큰이 만료되었습니다."),
 
     // 권한 관련 에러 (PERMISSION)
     PERMISSION_DENIED("권한이 없습니다."),

@@ -1,10 +1,9 @@
 package com.toktot.web.mapper;
 
 import com.toktot.domain.user.User;
-import com.toktot.web.dto.auth.response.EmailCheckResponse;
-import com.toktot.web.dto.auth.response.EmailSendResponse;
-import com.toktot.web.dto.auth.response.NicknameCheckResponse;
-import com.toktot.web.dto.auth.response.TokenResponse;
+import com.toktot.web.dto.auth.response.*;
+import com.toktot.web.dto.auth.response.password.PasswordResetVerifyResponse;
+import com.toktot.web.dto.auth.response.password.PasswordUpdateResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -80,5 +79,15 @@ public class AuthResponseMapper {
     public EmailCheckResponse toEmailUnavailableResponse(String email) {
         log.debug("이메일 사용 불가 응답 생성 - email: {}", email);
         return EmailCheckResponse.unavailable(email);
+    }
+
+    public PasswordResetVerifyResponse toPasswordResetVerifyResponse(String email) {
+        log.debug("비밀번호 재설정 인증 응답 생성 - email: {}", email);
+        return PasswordResetVerifyResponse.success(email);
+    }
+
+    public PasswordUpdateResponse toPasswordUpdateResponse(String email) {
+        log.debug("비밀번호 업데이트 응답 생성 - email: {}", email);
+        return PasswordUpdateResponse.success(email);
     }
 }
