@@ -6,10 +6,11 @@ import com.toktot.domain.user.User;
 import com.toktot.domain.user.service.*;
 import com.toktot.web.dto.ApiResponse;
 import com.toktot.web.dto.auth.request.login.EmailLoginRequest;
-import com.toktot.web.dto.auth.request.password.PasswordResetCompleteRequest;
-import com.toktot.web.dto.auth.request.password.PasswordResetSendRequest;
+import com.toktot.web.dto.auth.request.password.*;
 import com.toktot.web.dto.auth.request.register.*;
 import com.toktot.web.dto.auth.response.*;
+import com.toktot.web.dto.auth.response.password.PasswordResetVerifyResponse;
+import com.toktot.web.dto.auth.response.password.PasswordUpdateResponse;
 import com.toktot.web.mapper.AuthResponseMapper;
 import com.toktot.web.util.ClientInfoExtractor;
 import jakarta.servlet.http.HttpServletRequest;
@@ -349,11 +350,11 @@ public class EmailAuthController {
                     .log();
 
             EmailSendResponse response = authResponseMapper.toEmailSendResponse(
-                    request.email(), "비밀번호 재설정 링크가 발송되었습니다."
+                    request.email(), "비밀번호 재설정 인증번호가 발송되었습니다."
             );
 
             return ResponseEntity.ok(
-                    ApiResponse.success("비밀번호 재설정 링크가 발송되었습니다.", response)
+                    ApiResponse.success("비밀번호 재설정 인증번호가 발송되었습니다.", response)
             );
 
         } catch (ToktotException e) {
@@ -378,39 +379,37 @@ public class EmailAuthController {
         }
     }
 
-    @PostMapping("/password/reset/complete")
-    public ResponseEntity<ApiResponse<String>> resetPassword(
-            @Valid @RequestBody PasswordResetCompleteRequest request,
+    @PostMapping("/password/reset/verify")
+    public ResponseEntity<ApiResponse<PasswordResetVerifyResponse>> verifyPasswordResetToken(
+            @Valid @RequestBody PasswordResetVerifyRequest request,
             HttpServletRequest httpRequest
     ) {
         String clientIp = ClientInfoExtractor.getClientIp(httpRequest);
 
         log.atInfo()
-                .setMessage("Password reset request received")
+                .setMessage("Password reset token verification request received")
                 .addKeyValue("email", request.email())
                 .addKeyValue("clientIp", clientIp)
                 .log();
 
         try {
-            passwordResetService.resetPassword(
-                    request.email(),
-                    request.verificationCode(),
-                    request.newPassword()
-            );
+            passwordResetService.verifyResetToken(request.email(), request.verificationCode());
 
             log.atInfo()
-                    .setMessage("Password reset successful")
+                    .setMessage("Password reset token verification successful")
                     .addKeyValue("email", request.email())
                     .addKeyValue("clientIp", clientIp)
                     .log();
 
+            PasswordResetVerifyResponse response = authResponseMapper.toPasswordResetVerifyResponse(request.email());
+
             return ResponseEntity.ok(
-                    ApiResponse.success("비밀번호가 재설정되었습니다.", "completed")
+                    ApiResponse.success("인증이 완료되었습니다.", response)
             );
 
         } catch (ToktotException e) {
             log.atWarn()
-                    .setMessage("Password reset failed")
+                    .setMessage("Password reset token verification failed")
                     .addKeyValue("email", request.email())
                     .addKeyValue("errorCode", e.getErrorCodeName())
                     .addKeyValue("errorMessage", e.getMessage())
@@ -420,7 +419,60 @@ public class EmailAuthController {
 
         } catch (Exception e) {
             log.atError()
-                    .setMessage("Password reset system error")
+                    .setMessage("Password reset token verification system error")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("clientIp", clientIp)
+                    .addKeyValue("error", e.getMessage())
+                    .setCause(e)
+                    .log();
+            return ResponseEntity.ok(ApiResponse.error(ErrorCode.SERVER_ERROR));
+        }
+    }
+
+    @PostMapping("/password/reset/update")
+    public ResponseEntity<ApiResponse<PasswordUpdateResponse>> updatePassword(
+            @Valid @RequestBody PasswordUpdateRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        String clientIp = ClientInfoExtractor.getClientIp(httpRequest);
+
+        log.atInfo()
+                .setMessage("Password update request received")
+                .addKeyValue("email", request.email())
+                .addKeyValue("clientIp", clientIp)
+                .log();
+
+        try {
+            passwordResetService.updatePassword(
+                    request.email(),
+                    request.newPassword()
+            );
+
+            log.atInfo()
+                    .setMessage("Password update successful")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
+
+            PasswordUpdateResponse response = authResponseMapper.toPasswordUpdateResponse(request.email());
+
+            return ResponseEntity.ok(
+                    ApiResponse.success("비밀번호가 성공적으로 변경되었습니다.", response)
+            );
+
+        } catch (ToktotException e) {
+            log.atWarn()
+                    .setMessage("Password update failed")
+                    .addKeyValue("email", request.email())
+                    .addKeyValue("errorCode", e.getErrorCodeName())
+                    .addKeyValue("errorMessage", e.getMessage())
+                    .addKeyValue("clientIp", clientIp)
+                    .log();
+            return ResponseEntity.ok(ApiResponse.error(e.getErrorCode(), e.getMessage()));
+
+        } catch (Exception e) {
+            log.atError()
+                    .setMessage("Password update system error")
                     .addKeyValue("email", request.email())
                     .addKeyValue("clientIp", clientIp)
                     .addKeyValue("error", e.getMessage())
