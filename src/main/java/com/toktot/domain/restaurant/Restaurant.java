@@ -52,13 +52,16 @@ public class Restaurant {
     @Column(name = "is_good_price_store", nullable = false)
     private Boolean isGoodPriceStore = false;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "data_source", nullable = false, length = 20)
     private DataSource dataSource = DataSource.USER_CREATED;
 
+    @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
+    @Builder.Default
     @Column(name = "search_count", nullable = false)
     private Integer searchCount = 0;
 
@@ -69,9 +72,18 @@ public class Restaurant {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    @Column(name = "image", length = 500)
+    private String image;
+
+    @Builder.Default
+    @Column(name = "is_local_store", nullable = false)
+    private Boolean isLocalStore = false;
+
+    @Column(length = 500)
+    private String website;
+
+    @Column(name = "business_hours", columnDefinition = "TEXT")
+    private String businessHours;
 
     public void updateFromTourApiData(Restaurant newData) {
         if (newData == null) {
