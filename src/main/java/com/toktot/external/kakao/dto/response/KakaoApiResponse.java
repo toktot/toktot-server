@@ -1,37 +1,35 @@
 package com.toktot.external.kakao.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.util.List;
 
-@Getter
-@Setter
-@NoArgsConstructor
-public class KakaoApiResponse<T> {
+public record KakaoApiResponse<T>(
+        @JsonProperty("documents")
+        List<T> documents,
 
-    @JsonProperty("documents")
-    private List<T> documents;
-
-    @JsonProperty("meta")
-    private KakaoMeta meta;
+        @JsonProperty("meta")
+        KakaoMeta meta
+) {
 
     public boolean hasResults() {
-        return documents != null && !documents.isEmpty();
+        if (documents == null) {
+            return false;
+        }
+        return !documents.isEmpty();
     }
 
     public int getResultCount() {
-        return documents != null ? documents.size() : 0;
+        if (documents == null) {
+            return 0;
+        }
+        return documents.size();
     }
 
     public boolean hasMorePages() {
-        return meta != null && !meta.getIsEnd();
+        if (meta == null) {
+            return false;
+        }
+        return !meta.isEnd();
     }
-
-    public int getTotalCount() {
-        return meta != null ? meta.getTotalCount() : 0;
-    }
-
 }
