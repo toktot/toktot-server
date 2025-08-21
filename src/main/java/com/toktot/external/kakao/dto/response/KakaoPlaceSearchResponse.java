@@ -23,7 +23,7 @@ public record KakaoPlaceSearchResponse(
         Boolean isEnd
 ) {
 
-    public KakaoPlaceSearchResponse addPlaceInfo(KakaoPlaceSearchResponse beforeResponse) {
+    public KakaoPlaceSearchResponse mergeWithPreviousResults(KakaoPlaceSearchResponse beforeResponse) {
         if (beforeResponse == null || beforeResponse.placeInfos == null) {
             return this;
         }
@@ -77,4 +77,3 @@ public record KakaoPlaceSearchResponse(
         return Collections.emptyList();
     }
 }
-
