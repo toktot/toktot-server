@@ -1,8 +1,8 @@
 package com.toktot.common.exception;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.toktot.web.dto.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
@@ -13,8 +13,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.io.IOException;
 
 @Slf4j
 @RestControllerAdvice
@@ -28,10 +30,6 @@ public class GlobalExceptionHandler {
                 .addKeyValue("errorMessage", e.getMessage())
                 .addKeyValue("requestUri", request.getRequestURI())
                 .addKeyValue("requestMethod", request.getMethod())
-                .addKeyValue("isAuthError", e.isAuthError())
-                .addKeyValue("isValidationError", e.isValidationError())
-                .addKeyValue("isPermissionError", e.isPermissionError())
-                .addKeyValue("isSystemError", e.isSystemError())
                 .log();
 
         return ResponseEntity.ok(
@@ -39,20 +37,35 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(S3Exception.class)
+    public ResponseEntity<ApiResponse<Void>> handleS3Exception(S3Exception e) {
+        log.error("S3 service error occurred - errorCode: {}, statusCode: {}",
+                e.awsErrorDetails().errorCode(), e.statusCode(), e);
+
+        return ResponseEntity.ok(
+                ApiResponse.error(ErrorCode.EXTERNAL_SERVICE_ERROR, "이미지 저장에 실패했습니다.")
+        );
+    }
+
+    @ExceptionHandler(IOException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIOException(IOException e) {
+        log.error("File IO error occurred", e);
+
+        return ResponseEntity.ok(
+                ApiResponse.error(ErrorCode.FILE_UPLOAD_FAILED, "파일 처리에 실패했습니다.")
+        );
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException e, HttpServletRequest request) {
         FieldError fieldError = e.getBindingResult().getFieldErrors().get(0);
         String errorMessage = fieldError.getDefaultMessage();
-        String fieldName = fieldError.getField();
-        Object rejectedValue = fieldError.getRejectedValue();
 
         log.atWarn()
                 .setMessage("Validation error occurred")
-                .addKeyValue("fieldName", fieldName)
+                .addKeyValue("fieldName", fieldError.getField())
                 .addKeyValue("errorMessage", errorMessage)
-                .addKeyValue("rejectedValue", rejectedValue != null ? rejectedValue.toString() : "null")
                 .addKeyValue("requestUri", request.getRequestURI())
-                .addKeyValue("requestMethod", request.getMethod())
                 .log();
 
         return ResponseEntity.ok(
@@ -67,9 +80,7 @@ public class GlobalExceptionHandler {
         log.atWarn()
                 .setMessage("Missing parameter error")
                 .addKeyValue("parameterName", e.getParameterName())
-                .addKeyValue("parameterType", e.getParameterType())
                 .addKeyValue("requestUri", request.getRequestURI())
-                .addKeyValue("requestMethod", request.getMethod())
                 .log();
 
         return ResponseEntity.ok(
@@ -85,9 +96,7 @@ public class GlobalExceptionHandler {
                 .setMessage("Parameter type mismatch error")
                 .addKeyValue("parameterName", e.getName())
                 .addKeyValue("expectedType", e.getRequiredType() != null ? e.getRequiredType().getSimpleName() : "unknown")
-                .addKeyValue("actualValue", e.getValue())
                 .addKeyValue("requestUri", request.getRequestURI())
-                .addKeyValue("requestMethod", request.getMethod())
                 .log();
 
         return ResponseEntity.ok(
@@ -98,57 +107,23 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleMessageNotReadable(HttpMessageNotReadableException e, HttpServletRequest request) {
         String message = e.getMessage();
-        String errorType = "JSON_PARSING_ERROR";
 
         if (message != null) {
             if (message.contains("Required request body is missing")) {
-                errorType = "MISSING_REQUEST_BODY";
-                log.atWarn()
-                        .setMessage("Request body missing error")
-                        .addKeyValue("errorType", errorType)
-                        .addKeyValue("requestUri", request.getRequestURI())
-                        .addKeyValue("requestMethod", request.getMethod())
-                        .log();
                 return ResponseEntity.ok(
                         ApiResponse.error(ErrorCode.MISSING_REQUIRED_FIELD, "요청 본문이 필요합니다.")
                 );
             }
-
-            if (message.contains("Cannot deserialize value") &&
-                    (message.contains("not one of the values accepted for Enum") ||
-                            message.contains("value not one of declared Enum"))) {
-                errorType = "INVALID_ENUM_VALUE";
-                log.atWarn()
-                        .setMessage("Invalid enum value error")
-                        .addKeyValue("errorType", errorType)
-                        .addKeyValue("requestUri", request.getRequestURI())
-                        .addKeyValue("requestMethod", request.getMethod())
-                        .log();
+            if (message.contains("not one of the values accepted for Enum")) {
                 return ResponseEntity.ok(
                         ApiResponse.error(ErrorCode.INVALID_INPUT, "유효하지 않은 선택값입니다.")
-                );
-            }
-
-            if (message.contains("missing") && !message.contains("Cannot deserialize")) {
-                errorType = "FIELD_MISSING_ERROR";
-                log.atWarn()
-                        .setMessage("Field missing error")
-                        .addKeyValue("errorType", errorType)
-                        .addKeyValue("requestUri", request.getRequestURI())
-                        .addKeyValue("requestMethod", request.getMethod())
-                        .log();
-                return ResponseEntity.ok(
-                        ApiResponse.error(ErrorCode.MISSING_REQUIRED_FIELD, "필수 필드가 누락되었습니다.")
                 );
             }
         }
 
         log.atWarn()
                 .setMessage("JSON parsing error")
-                .addKeyValue("errorType", errorType)
-                .addKeyValue("errorMessage", e.getMessage())
                 .addKeyValue("requestUri", request.getRequestURI())
-                .addKeyValue("requestMethod", request.getMethod())
                 .log();
 
         return ResponseEntity.ok(
@@ -157,12 +132,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceeded(
-            MaxUploadSizeExceededException ex,
-            HttpServletRequest request) {
-        ApiResponse<Void> response = ApiResponse.error(ErrorCode.FILE_SIZE_EXCEEDED);
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceeded() {
+        return ResponseEntity.ok(ApiResponse.error(ErrorCode.FILE_SIZE_EXCEEDED));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -171,7 +142,6 @@ public class GlobalExceptionHandler {
                 .setMessage("Illegal argument error")
                 .addKeyValue("errorMessage", e.getMessage())
                 .addKeyValue("requestUri", request.getRequestURI())
-                .addKeyValue("requestMethod", request.getMethod())
                 .log();
 
         return ResponseEntity.ok(
@@ -185,7 +155,6 @@ public class GlobalExceptionHandler {
                 .setMessage("Illegal state error")
                 .addKeyValue("errorMessage", e.getMessage())
                 .addKeyValue("requestUri", request.getRequestURI())
-                .addKeyValue("requestMethod", request.getMethod())
                 .log();
 
         return ResponseEntity.ok(
@@ -194,16 +163,39 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(NoHandlerFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleNotFound(NoHandlerFoundException e, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleNotFound(NoHandlerFoundException e) {
         log.atWarn()
                 .setMessage("404 Not Found error")
                 .addKeyValue("requestUri", e.getRequestURL())
                 .addKeyValue("httpMethod", e.getHttpMethod())
-                .addKeyValue("headers", e.getHeaders().toString())
                 .log();
 
         return ResponseEntity.status(404).body(
                 ApiResponse.error(ErrorCode.RESOURCE_NOT_FOUND)
+        );
+    }
+
+    @ExceptionHandler(JsonProcessingException.class)
+    public ResponseEntity<ApiResponse<Void>> handleJsonProcessingException(JsonProcessingException e) {
+        log.error("JSON processing error occurred", e);
+
+        return ResponseEntity.ok(
+                ApiResponse.error(ErrorCode.SERVER_ERROR, "데이터 처리에 실패했습니다.")
+        );
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRuntimeException(RuntimeException e) {
+        if (e.getCause() instanceof IOException) {
+            log.error("File IO error occurred (wrapped in RuntimeException)", e.getCause());
+            return ResponseEntity.ok(
+                    ApiResponse.error(ErrorCode.FILE_UPLOAD_FAILED, "파일 처리에 실패했습니다.")
+            );
+        }
+
+        log.error("Runtime error occurred", e);
+        return ResponseEntity.ok(
+                ApiResponse.error(ErrorCode.SERVER_ERROR, "서버 오류가 발생했습니다.")
         );
     }
 
@@ -215,8 +207,6 @@ public class GlobalExceptionHandler {
                 .addKeyValue("errorMessage", e.getMessage())
                 .addKeyValue("requestUri", request.getRequestURI())
                 .addKeyValue("requestMethod", request.getMethod())
-                .addKeyValue("userAgent", request.getHeader("User-Agent"))
-                .addKeyValue("remoteAddr", request.getRemoteAddr())
                 .setCause(e)
                 .log();
 
