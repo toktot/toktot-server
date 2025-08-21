@@ -87,6 +87,7 @@ public enum ErrorCode {
 
     // 외부 서비스 연동 에러 (EXTERNAL)
     EXTERNAL_SERVICE_ERROR("외부 서비스 오류입니다."),
+    KAKAO_LOCAL_SERVICE_ERROR("카카오 로컬 API에서 오류가 발생하였습니다."),
     EMAIL_NOT_VERIFIED("이메일 인증을 완료해주세요."),
     EMAIL_SEND_FAILED("이메일 전송에 실패했습니다."),
     FILE_UPLOAD_FAILED("파일 업로드에 실패했습니다."),
