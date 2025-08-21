@@ -1,18 +1,13 @@
 package com.toktot.external.kakao;
 
-import com.toktot.domain.restaurant.Restaurant;
-import com.toktot.domain.restaurant.type.DataSource;
-import com.toktot.external.kakao.dto.response.KakaoPlace;
-import org.springframework.stereotype.Component;
+import lombok.Getter;
 
-import java.time.LocalDateTime;
-import java.util.regex.Pattern;
-
+@Getter
 public final class KakaoApiConstants {
 
     private KakaoApiConstants() {}
 
-    public static final String SEARCH_ENDPOINT = "/v2/local/search/keyword.json";
+    public static final String KEYWORD_ENDPOINT = "/v2/local/search/keyword.json";
     public static final String CATEGORY_ENDPOINT = "/v2/local/search/category.json";
 
     public static final String HEADER_AUTHORIZATION = "Authorization";
@@ -28,6 +23,8 @@ public final class KakaoApiConstants {
     public static final String PARAM_PAGE = "page";
     public static final String PARAM_SIZE = "size";
     public static final String PARAM_SORT = "sort";
+    public static final String PARAM_RECT = "rect";
+    public static final Integer DEFAULT_SIZE = 10;
 
     public static final String CATEGORY_FOOD = "FD6";
     public static final String CATEGORY_CAFE = "CE7";
