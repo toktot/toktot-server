@@ -39,7 +39,7 @@ public class KakaoMapService {
                     .queryParam(KakaoApiConstants.PARAM_QUERY, request.query())
                     .queryParam(KakaoApiConstants.PARAM_PAGE, request.page())
                     .queryParam(KakaoApiConstants.PARAM_SIZE, KakaoApiConstants.DEFAULT_SIZE)
-                    .queryParam(KakaoApiConstants.PARAM_RECT, request.rect())
+                    .queryParam(KakaoApiConstants.PARAM_RECT, KakaoApiConstants.JEJU_RECT)
                     .build()
                     .toString();
 

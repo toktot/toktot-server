@@ -25,6 +25,7 @@ public final class KakaoApiConstants {
     public static final String PARAM_SORT = "sort";
     public static final String PARAM_RECT = "rect";
     public static final Integer DEFAULT_SIZE = 10;
+    public static final String JEJU_RECT = "126.1591,33.1041,126.9459,33.5659";
 
     public static final String CATEGORY_FOOD = "FD6";
     public static final String CATEGORY_CAFE = "CE7";
