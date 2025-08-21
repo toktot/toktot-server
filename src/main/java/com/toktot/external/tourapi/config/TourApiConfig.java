@@ -1,9 +1,15 @@
 package com.toktot.external.tourapi.config;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.cfg.CoercionAction;
+import com.fasterxml.jackson.databind.cfg.CoercionInputShape;
+import com.fasterxml.jackson.databind.type.LogicalType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -21,8 +27,22 @@ public class TourApiConfig {
                 .filter(logRequest())
                 .filter(logResponse())
                 .filter(handleErrors())
-                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(10 * 1024 * 1024))
+                .codecs(configurer -> {
+                    configurer.defaultCodecs().maxInMemorySize(10 * 1024 * 1024);
+                    configurer.defaultCodecs().jackson2JsonDecoder(new Jackson2JsonDecoder(createObjectMapper()));
+                })
                 .build();
+    }
+
+    private ObjectMapper createObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, true);
+
+        mapper.coercionConfigFor(LogicalType.POJO)
+                .setCoercion(CoercionInputShape.EmptyString, CoercionAction.AsNull);
+
+        return mapper;
     }
 
     private ExchangeFilterFunction logRequest() {

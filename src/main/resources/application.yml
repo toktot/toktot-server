@@ -158,6 +158,21 @@ tour-api:
     # 월 1회 데이터 정리 (매월 1일 새벽 1시)
     cleanup: "0 0 1 1 * ?"
 
+# 카카오 로컬 설정
+kakao:
+  map:
+    api-key: ${KAKAO_REST_API_KEY}
+    base-url: https://dapi.kakao.com
+    connection-timeout: 5000
+    read-timeout: 10000
+    max-retry-count: 3
+    retry-delay-ms: 1000
+    default-page-size: 15
+    max-page-size: 45
+    default-radius: 1000
+    max-radius: 20000
+    enable-logging: true
+
 # 모니터링 설정
 management:
   endpoints:

@@ -1,18 +1,20 @@
 package com.toktot.external.tourapi;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toktot.external.tourapi.config.TourApiProperties;
 import com.toktot.external.tourapi.dto.TourApiResponse;
-import com.toktot.external.tourapi.dto.TourApiDetailCommon;
 import com.toktot.external.tourapi.dto.TourApiItemsWrapper;
-import com.toktot.external.tourapi.exception.TourApiException;
 import com.toktot.external.tourapi.exception.TourApiRateLimitException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -20,134 +22,169 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 public class TourApiClient {
 
-    private final WebClient webClient;
     private final TourApiProperties properties;
     private final AtomicInteger dailyCallCount = new AtomicInteger(0);
+    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public TourApiClient(@Qualifier("tourApiWebClient") WebClient webClient, TourApiProperties properties) {
-        this.webClient = webClient;
+    public TourApiClient(TourApiProperties properties) {
         this.properties = properties;
+        this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
     public TourApiResponse<TourApiItemsWrapper> getAllJejuRestaurants(int pageNo) {
         checkRateLimit();
-
-        log.info(TourApiConstants.LOG_API_CALL_START,
-                TourApiConstants.ENDPOINT_AREA_BASED_LIST, pageNo);
+        log.info(TourApiConstants.LOG_API_CALL_START, TourApiConstants.ENDPOINT_AREA_BASED_LIST, pageNo);
 
         long startTime = System.currentTimeMillis();
 
         try {
-            TourApiResponse<TourApiItemsWrapper> response = webClient
-                    .get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path(TourApiConstants.ENDPOINT_AREA_BASED_LIST)
-                            .queryParam(TourApiConstants.PARAM_SERVICE_KEY, properties.getServiceKey())
-                            .queryParam(TourApiConstants.PARAM_NUM_OF_ROWS, properties.getMaxPageSize())
-                            .queryParam(TourApiConstants.PARAM_PAGE_NO, pageNo)
-                            .queryParam(TourApiConstants.PARAM_MOBILE_OS, properties.getMobileOs())
-                            .queryParam(TourApiConstants.PARAM_MOBILE_APP, properties.getMobileApp())
-                            .queryParam(TourApiConstants.PARAM_TYPE, properties.getResponseType())
-                            .queryParam(TourApiConstants.PARAM_LIST_YN, properties.getListYn())
-                            .queryParam(TourApiConstants.PARAM_ARRANGE, properties.getArrange())
-                            .queryParam(TourApiConstants.PARAM_CONTENT_TYPE_ID, properties.getRestaurantContentTypeId())
-                            .queryParam(TourApiConstants.PARAM_AREA_CODE, properties.getJejuAreaCode())
-                            .queryParam(TourApiConstants.PARAM_CAT1, TourApiConstants.CAT1_FOOD)
-                            .build())
-                    .retrieve()
-                    .bodyToMono(TourApiResponse.class)
+            String encodedKey = URLEncoder.encode(properties.getServiceKey(), StandardCharsets.UTF_8);
+            String url = buildRestaurantListUrl(encodedKey, pageNo);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
                     .timeout(Duration.ofMillis(properties.getReadTimeout()))
-                    .block();
+                    .GET()
+                    .build();
 
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             long responseTime = System.currentTimeMillis() - startTime;
-            dailyCallCount.incrementAndGet();
 
-            if (response != null && isSuccessResponse(response)) {
-                log.info(TourApiConstants.LOG_API_CALL_SUCCESS,
-                        TourApiConstants.ENDPOINT_AREA_BASED_LIST, responseTime,
-                        response.response().body().totalCount());
-
-                return response;
+            if (response.statusCode() == 200) {
+                return processSuccessResponse(response.body(), responseTime, pageNo);
             } else {
-                String errorMsg = response != null ?
-                        response.response().header().resultMsg() : "null response";
-                log.error(TourApiConstants.LOG_API_CALL_FAILURE,
-                        TourApiConstants.ENDPOINT_AREA_BASED_LIST, "UNKNOWN", errorMsg);
-
-                throw new TourApiException("API 응답 오류: " + errorMsg, "UNKNOWN", 500);
+                log.error("TourAPI HTTP 오류: status={}, body={}", response.statusCode(), response.body());
+                throw new RuntimeException("API 호출 실패: HTTP " + response.statusCode());
             }
 
-        } catch (WebClientResponseException e) {
-            long responseTime = System.currentTimeMillis() - startTime;
-            log.error(TourApiConstants.LOG_API_CALL_FAILURE,
-                    TourApiConstants.ENDPOINT_AREA_BASED_LIST, "HTTP_ERROR", e.getMessage());
-
-            throw new TourApiException("HTTP 오류: " + e.getMessage(), "HTTP_ERROR", e.getStatusCode().value());
-
         } catch (Exception e) {
-            long responseTime = System.currentTimeMillis() - startTime;
             log.error(TourApiConstants.LOG_API_CALL_FAILURE,
                     TourApiConstants.ENDPOINT_AREA_BASED_LIST, "EXCEPTION", e.getMessage());
-
-            throw new TourApiException("API 호출 중 예외 발생: " + e.getMessage(), "EXCEPTION", 500);
+            throw new RuntimeException("API 호출 중 예외 발생: " + e.getMessage(), e);
         }
     }
 
-    public TourApiDetailCommon getRestaurantDetail(String contentId) {
-        checkRateLimit();
-
-        log.info(TourApiConstants.LOG_API_CALL_START,
-                TourApiConstants.ENDPOINT_DETAIL_COMMON, contentId);
-
-        long startTime = System.currentTimeMillis();
-
+    private TourApiResponse<TourApiItemsWrapper> processSuccessResponse(String responseBody, long responseTime, int pageNo) {
         try {
-            TourApiDetailCommon response = webClient
-                    .get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path(TourApiConstants.ENDPOINT_DETAIL_COMMON)
-                            .queryParam(TourApiConstants.PARAM_SERVICE_KEY, properties.getServiceKey())
-                            .queryParam(TourApiConstants.PARAM_CONTENT_ID, contentId)
-                            .queryParam(TourApiConstants.PARAM_MOBILE_OS, properties.getMobileOs())
-                            .queryParam(TourApiConstants.PARAM_MOBILE_APP, properties.getMobileApp())
-                            .queryParam(TourApiConstants.PARAM_TYPE, properties.getResponseType())
-                            .queryParam(TourApiConstants.PARAM_DEFAULT_YN, TourApiConstants.VALUE_DEFAULT_YN)
-                            .queryParam(TourApiConstants.PARAM_FIRST_IMAGE_YN, TourApiConstants.VALUE_FIRST_IMAGE_YN)
-                            .queryParam(TourApiConstants.PARAM_ADDR_INFO_YN, TourApiConstants.VALUE_ADDR_INFO_YN)
-                            .queryParam(TourApiConstants.PARAM_MAP_INFO_YN, TourApiConstants.VALUE_MAP_INFO_YN)
-                            .queryParam(TourApiConstants.PARAM_OVERVIEW_YN, TourApiConstants.VALUE_OVERVIEW_YN)
-                            .build())
-                    .retrieve()
-                    .bodyToMono(TourApiDetailCommon.class)
-                    .timeout(Duration.ofMillis(properties.getReadTimeout()))
-                    .block();
+            log.debug("TourAPI Raw Response: {}", responseBody);
 
-            long responseTime = System.currentTimeMillis() - startTime;
-            dailyCallCount.incrementAndGet();
+            if (responseBody == null || responseBody.trim().isEmpty()) {
+                log.warn("TourAPI 빈 응답 본문");
+                return null;
+            }
 
-            log.info(TourApiConstants.LOG_API_CALL_SUCCESS,
-                    TourApiConstants.ENDPOINT_DETAIL_COMMON, responseTime, 1);
+            if (responseBody.contains("\"resultCode\"") &&
+                    responseBody.contains("\"resultMsg\"") &&
+                    !responseBody.contains("\"response\"")) {
 
-            return response;
+                log.error("TourAPI 오류 응답: {}", responseBody);
+                handleErrorResponse(responseBody);
+                return null;
+            }
 
-        } catch (WebClientResponseException e) {
-            long responseTime = System.currentTimeMillis() - startTime;
-            log.error(TourApiConstants.LOG_API_CALL_FAILURE,
-                    TourApiConstants.ENDPOINT_DETAIL_COMMON, "HTTP_ERROR", e.getMessage());
+            TourApiResponse<TourApiItemsWrapper> apiResponse = objectMapper.readValue(
+                    responseBody,
+                    objectMapper.getTypeFactory().constructParametricType(
+                            TourApiResponse.class,
+                            TourApiItemsWrapper.class
+                    )
+            );
 
-            throw new TourApiException("상세정보 HTTP 오류: " + e.getMessage(), "HTTP_ERROR", e.getStatusCode().value());
+            return validateAndProcessResponse(apiResponse, responseTime);
 
-        } catch (Exception e) {
-            long responseTime = System.currentTimeMillis() - startTime;
-            log.error(TourApiConstants.LOG_API_CALL_FAILURE,
-                    TourApiConstants.ENDPOINT_DETAIL_COMMON, "EXCEPTION", e.getMessage());
-
-            throw new TourApiException("상세정보 조회 실패: " + e.getMessage(), "EXCEPTION", 500);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            if (e.getMessage().contains("Cannot coerce empty String")) {
+                log.info("TourAPI 마지막 페이지 도달 (빈 items): pageNo={}", pageNo);
+                return createEmptyResponse();
+            } else {
+                log.error("TourAPI JSON 파싱 오류: {}. 원본 응답: {}", e.getMessage(),
+                        responseBody.length() > 200 ? responseBody.substring(0, 200) + "..." : responseBody);
+                throw new RuntimeException("API 응답 파싱 실패: " + e.getMessage(), e);
+            }
         }
     }
 
-    public TourApiResponse<TourApiItemsWrapper> getRestaurantsByLocation(double lat, double lng) {
-        return getAllJejuRestaurants(1);
+    private void handleErrorResponse(String responseBody) {
+        try {
+            com.fasterxml.jackson.databind.JsonNode errorNode = objectMapper.readTree(responseBody);
+            String errorCode = errorNode.get("resultCode").asText();
+            String errorMsg = errorNode.get("resultMsg").asText();
+
+            log.error("TourAPI 오류 - Code: {}, Message: {}", errorCode, errorMsg);
+            throw new RuntimeException("TourAPI 오류: " + errorCode + " - " + errorMsg);
+
+        } catch (Exception parseEx) {
+            log.error("오류 응답 파싱 실패: {}", parseEx.getMessage());
+            throw new RuntimeException("TourAPI 오류 응답: " + responseBody);
+        }
+    }
+
+    private TourApiResponse<TourApiItemsWrapper> validateAndProcessResponse(
+            TourApiResponse<TourApiItemsWrapper> apiResponse, long responseTime) {
+
+        log.debug("파싱된 응답 - apiResponse: {}", apiResponse != null ? "존재" : "null");
+        if (apiResponse != null) {
+            log.debug("response 필드: {}", apiResponse.response() != null ? "존재" : "null");
+            if (apiResponse.response() != null) {
+                log.debug("header 필드: {}", apiResponse.response().header() != null ? "존재" : "null");
+                log.debug("body 필드: {}", apiResponse.response().body() != null ? "존재" : "null");
+            }
+        }
+
+        if (apiResponse != null && apiResponse.response() != null && apiResponse.response().header() != null) {
+            String resultCode = apiResponse.response().header().resultCode();
+            String resultMsg = apiResponse.response().header().resultMsg();
+
+            log.info("TourAPI 응답 헤더 - resultCode: {}, resultMsg: {}", resultCode, resultMsg);
+
+            if (TourApiConstants.RESPONSE_CODE_SUCCESS.equals(resultCode)) {
+                int resultCount = 0;
+                if (apiResponse.response().body() != null &&
+                        apiResponse.response().body().items() != null &&
+                        apiResponse.response().body().items().item() != null) {
+                    resultCount = apiResponse.response().body().items().item().size();
+                }
+
+                log.info(TourApiConstants.LOG_API_CALL_SUCCESS,
+                        TourApiConstants.ENDPOINT_AREA_BASED_LIST, responseTime, resultCount);
+
+                return apiResponse;
+            } else {
+                log.warn("TourAPI 오류 응답: resultCode={}, resultMsg={}", resultCode, resultMsg);
+                throw new RuntimeException("TourAPI 오류: " + resultCode + " - " + resultMsg);
+            }
+        } else {
+            log.warn("TourAPI 응답 구조 오류: 필수 필드 누락");
+            return null;
+        }
+    }
+
+    private TourApiResponse<TourApiItemsWrapper> createEmptyResponse() {
+        return new TourApiResponse<>(
+                new TourApiResponse.TourApiResponseBody<>(
+                        new TourApiResponse.TourApiHeader("0000", "OK"),
+                        new TourApiResponse.TourApiBody<>(null, 0, 0, 0)
+                )
+        );
+    }
+
+    private String buildRestaurantListUrl(String encodedKey, int pageNo) {
+        StringBuilder url = new StringBuilder(properties.getBaseUrl())
+                .append(TourApiConstants.ENDPOINT_AREA_BASED_LIST)
+                .append("?serviceKey=").append(encodedKey)
+                .append("&numOfRows=100")
+                .append("&pageNo=").append(pageNo)
+                .append("&MobileOS=ETC")
+                .append("&MobileApp=TOKTOT")
+                .append("&_type=json")
+                .append("&areaCode=39")
+                .append("&cat1=").append(TourApiConstants.CAT1_FOOD);
+
+        String finalUrl = url.toString();
+        log.debug("TourAPI 요청 URL: {}", finalUrl.replaceAll("serviceKey=[^&]*", "serviceKey=***"));
+
+        return finalUrl;
     }
 
     private void checkRateLimit() {
@@ -155,9 +192,7 @@ public class TourApiClient {
         if (currentCount >= properties.getDailyCallLimit()) {
             log.warn(TourApiConstants.LOG_RATE_LIMIT_WARNING,
                     currentCount, properties.getDailyCallLimit(), 0);
-
-            throw new TourApiRateLimitException(
-                    "일일 API 호출 제한 도달", 0, null);
+            throw new TourApiRateLimitException("일일 API 호출 제한 도달", 0, null);
         }
 
         if (currentCount >= properties.getDailyCallLimit() * 0.9) {
@@ -167,18 +202,4 @@ public class TourApiClient {
         }
     }
 
-    private boolean isSuccessResponse(TourApiResponse<TourApiItemsWrapper> response) {
-        return response.response() != null &&
-                response.response().header() != null &&
-                TourApiConstants.RESPONSE_CODE_SUCCESS.equals(
-                        response.response().header().resultCode());
-    }
-
-    public int getCurrentCallCount() {
-        return dailyCallCount.get();
-    }
-
-    public void resetCallCount() {
-        dailyCallCount.set(0);
-    }
 }

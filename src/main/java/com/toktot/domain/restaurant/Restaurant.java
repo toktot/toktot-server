@@ -8,6 +8,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Builder
 @Entity
@@ -51,13 +52,16 @@ public class Restaurant {
     @Column(name = "is_good_price_store", nullable = false)
     private Boolean isGoodPriceStore = false;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "data_source", nullable = false, length = 20)
     private DataSource dataSource = DataSource.USER_CREATED;
 
+    @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
+    @Builder.Default
     @Column(name = "search_count", nullable = false)
     private Integer searchCount = 0;
 
@@ -68,43 +72,48 @@ public class Restaurant {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    @Column(name = "image", length = 500)
+    private String image;
 
-    public void updateFromTourApi(Restaurant newData) {
+    @Builder.Default
+    @Column(name = "is_local_store", nullable = false)
+    private Boolean isLocalStore = false;
+
+    @Column(length = 500)
+    private String website;
+
+    @Column(name = "business_hours", columnDefinition = "TEXT")
+    private String businessHours;
+
+    public void updateFromTourApiData(Restaurant newData) {
         if (newData == null) {
             return;
         }
 
-        if (newData.getName() != null) {
-            this.name = newData.getName();
-        }
-
-        if (newData.getAddress() != null) {
-            this.address = newData.getAddress();
-        }
-
-        if (newData.getPhone() != null) {
-            this.phone = newData.getPhone();
-        }
-
-        if (newData.getCategory() != null) {
-            this.category = newData.getCategory();
-        }
-
-        if (newData.getLatitude() != null) {
-            this.latitude = newData.getLatitude();
-        }
-
-        if (newData.getLongitude() != null) {
-            this.longitude = newData.getLongitude();
-        }
-
+        this.name = newData.getName();
+        this.address = newData.getAddress();
+        this.phone = newData.getPhone();
+        this.latitude = newData.getLatitude();
+        this.longitude = newData.getLongitude();
+        this.category = newData.getCategory();
         this.lastSyncedAt = LocalDateTime.now();
-
-        if (this.dataSource != DataSource.USER_CREATED) {
-            this.dataSource = DataSource.TOUR_API;
-        }
     }
+
+    public boolean hasDataChangedFrom(Restaurant newData) {
+        if (newData == null) {
+            return false;
+        }
+
+        return !Objects.equals(this.name, newData.getName()) ||
+                !Objects.equals(this.address, newData.getAddress()) ||
+                !Objects.equals(this.phone, newData.getPhone()) ||
+                !Objects.equals(this.latitude, newData.getLatitude()) ||
+                !Objects.equals(this.longitude, newData.getLongitude()) ||
+                !Objects.equals(this.category, newData.getCategory());
+    }
+
+    public void updateSyncTime() {
+        this.lastSyncedAt = LocalDateTime.now();
+    }
+
 }

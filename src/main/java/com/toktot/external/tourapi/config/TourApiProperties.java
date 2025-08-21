@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 @Getter
 @Setter
 @Configuration
-@ConfigurationProperties(prefix = "tourapi")
+@ConfigurationProperties(prefix = "tour-api")
 public class TourApiProperties {
 
     private String serviceKey;
@@ -25,29 +25,8 @@ public class TourApiProperties {
     private String mobileOs = "ETC";
     private String mobileApp = "TOKTOT";
     private String listYn = "Y";
-    private String arrange = "A";
+    private String arrange = "C";
     private boolean enableMetrics = true;
     private boolean enableErrorNotification = true;
 
-    public void validate() {
-        if (serviceKey == null || serviceKey.trim().isEmpty()) {
-            throw new IllegalArgumentException("TourAPI service key is required. Please set tourapi.service-key in application.yml or TOUR_API_SERVICE_KEY environment variable.");
-        }
-
-        if (connectionTimeout <= 0) {
-            throw new IllegalArgumentException("Connection timeout must be positive: " + connectionTimeout);
-        }
-
-        if (readTimeout <= 0) {
-            throw new IllegalArgumentException("Read timeout must be positive: " + readTimeout);
-        }
-
-        if (maxRetries < 0) {
-            throw new IllegalArgumentException("Max retries must be non-negative: " + maxRetries);
-        }
-
-        if (dailyCallLimit <= 0) {
-            throw new IllegalArgumentException("Daily call limit must be positive: " + dailyCallLimit);
-        }
-    }
 }
