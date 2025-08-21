@@ -1,65 +1,71 @@
 package com.toktot.external.kakao.dto.request;
 
 import com.toktot.external.kakao.KakaoApiConstants;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
 
 import java.math.BigDecimal;
 
-@Getter
-@Setter
-@Builder
-public class KakaoPlaceSearchRequest {
+public record KakaoPlaceSearchRequest(
+        String query,
+        BigDecimal longitude,
+        BigDecimal latitude,
+        String rect,
+        Integer radius,
+        Integer page,
+        String sort
+) {
 
-    private String query;
-    private String categoryGroupCode;
-    private BigDecimal longitude;
-    private BigDecimal latitude;
-    private Integer radius;
-    private Integer page;
-    private Integer size;
-    private String sort;
+    public KakaoPlaceSearchRequest plusPage() {
+        return new KakaoPlaceSearchRequest(query, longitude, latitude, rect, radius, page + 1, sort);
+    }
 
     public static KakaoPlaceSearchRequest keyword(String query) {
-        return KakaoPlaceSearchRequest.builder()
-                .query(query)
-                .page(KakaoApiConstants.DEFAULT_PAGE)
-                .size(15)
-                .sort(KakaoApiConstants.SORT_ACCURACY)
-                .build();
+        return new KakaoPlaceSearchRequest(
+                query,
+                null,
+                null,
+                null,
+                null,
+                KakaoApiConstants.DEFAULT_PAGE,
+                KakaoApiConstants.SORT_ACCURACY
+        );
     }
 
     public static KakaoPlaceSearchRequest keywordWithLocation(String query, BigDecimal longitude,
                                                               BigDecimal latitude, Integer radius) {
-        return KakaoPlaceSearchRequest.builder()
-                .query(query)
-                .longitude(longitude)
-                .latitude(latitude)
-                .radius(radius)
-                .page(KakaoApiConstants.DEFAULT_PAGE)
-                .size(15)
-                .sort(KakaoApiConstants.SORT_DISTANCE)
-                .build();
+        return new KakaoPlaceSearchRequest(
+                query,
+                longitude,
+                latitude,
+                null,
+                radius,
+                KakaoApiConstants.DEFAULT_PAGE,
+                KakaoApiConstants.SORT_DISTANCE
+        );
     }
 
     public static KakaoPlaceSearchRequest category(String categoryGroupCode, BigDecimal longitude,
                                                    BigDecimal latitude, Integer radius) {
-        return KakaoPlaceSearchRequest.builder()
-                .categoryGroupCode(categoryGroupCode)
-                .longitude(longitude)
-                .latitude(latitude)
-                .radius(radius)
-                .page(KakaoApiConstants.DEFAULT_PAGE)
-                .size(15)
-                .sort(KakaoApiConstants.SORT_DISTANCE)
-                .build();
+        return new KakaoPlaceSearchRequest(
+                null,
+                longitude,
+                latitude,
+                null,
+                radius,
+                KakaoApiConstants.DEFAULT_PAGE,
+                KakaoApiConstants.SORT_DISTANCE
+        );
     }
 
     public KakaoPlaceSearchRequest withPaging(Integer page, Integer size) {
-        this.page = page;
-        this.size = size;
-        return this;
+        return new KakaoPlaceSearchRequest(
+                this.query,
+                this.longitude,
+                this.latitude,
+                this.rect,
+                this.radius,
+                page,
+                this.sort
+        );
     }
 
     public boolean hasLocation() {
@@ -69,5 +75,4 @@ public class KakaoPlaceSearchRequest {
     public boolean hasRadius() {
         return radius != null && radius > 0;
     }
-
 }

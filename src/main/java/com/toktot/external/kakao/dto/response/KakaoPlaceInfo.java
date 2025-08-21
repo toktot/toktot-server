@@ -1,6 +1,7 @@
 package com.toktot.external.kakao.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.toktot.external.kakao.KakaoApiConstants;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,7 +11,7 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 @NoArgsConstructor
-public class KakaoPlace {
+public class KakaoPlaceInfo {
 
     @JsonProperty("id")
     private String id;
@@ -70,7 +71,7 @@ public class KakaoPlace {
 
     public boolean isFoodCategory() {
         return categoryGroupCode != null &&
-                (categoryGroupCode.equals("FD6") || categoryGroupCode.equals("CE7"));
+                (categoryGroupCode.equals(KakaoApiConstants.CATEGORY_FOOD) || categoryGroupCode.equals(KakaoApiConstants.CATEGORY_CAFE));
     }
 
     public String getMainCategory() {
