@@ -4,7 +4,7 @@ import com.toktot.common.exception.ErrorCode;
 import com.toktot.common.exception.ToktotException;
 import com.toktot.external.kakao.KakaoApiConstants;
 import com.toktot.external.kakao.KakaoApiProperties;
-import com.toktot.external.kakao.dto.request.KakaoPlaceSearchRequest;
+import com.toktot.external.kakao.dto.request.RestaurantSearchRequest;
 import com.toktot.external.kakao.dto.response.KakaoPlaceSearchResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +29,7 @@ public class KakaoMapService {
 
     private final KakaoApiProperties kakaoApiProperties;
 
-    public KakaoPlaceSearchResponse searchJejuAllFoodAndCafePlace(KakaoPlaceSearchRequest request) {
+    public KakaoPlaceSearchResponse searchJejuAllFoodAndCafePlace(RestaurantSearchRequest request) {
         String endpoint = kakaoApiProperties.getBaseUrl() + KakaoApiConstants.KEYWORD_ENDPOINT;
 
         try {
