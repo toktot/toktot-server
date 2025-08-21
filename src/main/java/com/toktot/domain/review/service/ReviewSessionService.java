@@ -64,49 +64,19 @@ public class ReviewSessionService {
 
     public Optional<ReviewSessionDTO> getSession(Long userId, Long restaurantId) {
         String sessionKey = buildSessionKey(userId, restaurantId);
-
-        log.atDebug()
-                .setMessage("Retrieving session")
-                .addKeyValue("userId", userId)
-                .addKeyValue("restaurantId", restaurantId)
-                .addKeyValue("sessionKey", sessionKey)
-                .log();
-
         String sessionJson = redisTemplate.opsForValue().get(sessionKey);
 
         if (sessionJson == null) {
-            log.atDebug()
-                    .setMessage("Session not found")
-                    .addKeyValue("userId", userId)
-                    .addKeyValue("restaurantId", restaurantId)
-                    .log();
             return Optional.empty();
         }
 
         ReviewSessionDTO session = deserializeSession(sessionJson);
-
         if (session == null) {
-            log.atInfo()
-                    .setMessage("Removing incompatible session data")
-                    .addKeyValue("userId", userId)
-                    .addKeyValue("restaurantId", restaurantId)
-                    .addKeyValue("sessionKey", sessionKey)
-                    .log();
-
             redisTemplate.delete(sessionKey);
             return Optional.empty();
         }
 
         extendSessionTtl(sessionKey);
-
-        log.atDebug()
-                .setMessage("Session found and TTL extended")
-                .addKeyValue("userId", userId)
-                .addKeyValue("restaurantId", restaurantId)
-                .addKeyValue("imageCount", session.getImageCount())
-                .addKeyValue("lastModified", session.getLastModified())
-                .log();
-
         return Optional.of(session);
     }
 
@@ -115,274 +85,96 @@ public class ReviewSessionService {
         String sessionJson = serializeSession(session);
         Duration ttl = Duration.ofHours(sessionTtlHours);
 
-        log.atDebug()
-                .setMessage("Saving session")
-                .addKeyValue("userId", session.getUserId())
-                .addKeyValue("restaurantId", session.getRestaurantId())
-                .addKeyValue("sessionKey", sessionKey)
-                .addKeyValue("imageCount", session.getImageCount())
-                .addKeyValue("ttlSeconds", ttl.toSeconds())
-                .log();
-
         redisTemplate.opsForValue().set(sessionKey, sessionJson, ttl);
-
-        log.atDebug()
-                .setMessage("Session saved successfully")
-                .addKeyValue("userId", session.getUserId())
-                .addKeyValue("restaurantId", session.getRestaurantId())
-                .log();
     }
 
     public boolean tryAddImageToSession(Long userId, Long restaurantId, ReviewImageDTO imageDTO) {
         String sessionKey = buildSessionKey(userId, restaurantId);
+        String imageJson = serializeImageDTO(imageDTO);
+        String timestamp = DateTimeUtil.nowWithoutNanos().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 
-        log.atInfo()
-                .setMessage("Attempting to add image to session atomically")
-                .addKeyValue("userId", userId)
-                .addKeyValue("restaurantId", restaurantId)
-                .addKeyValue("imageId", imageDTO.getImageId())
-                .addKeyValue("sessionKey", sessionKey)
-                .log();
+        Long result = redisTemplate.execute(
+                RedisScript.of(LUA_SCRIPT_ADD_IMAGE, Long.class),
+                List.of(sessionKey),
+                imageJson,
+                userId.toString(),
+                restaurantId.toString(),
+                timestamp,
+                String.valueOf(MAX_IMAGES),
+                String.valueOf(sessionTtlHours * 3600)
+        );
 
-        try {
-            String imageJson = serializeImageDTO(imageDTO);
-            String timestamp = DateTimeUtil.nowWithoutNanos().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        boolean success = result != null && result == 1;
 
-            Long result = redisTemplate.execute(
-                    RedisScript.of(LUA_SCRIPT_ADD_IMAGE, Long.class),
-                    List.of(sessionKey),
-                    imageJson,
-                    userId.toString(),
-                    restaurantId.toString(),
-                    timestamp,
-                    String.valueOf(MAX_IMAGES),
-                    String.valueOf(sessionTtlHours * 3600)
-            );
-
-            boolean success = result != null && result == 1;
-
-            if (success) {
-                log.atInfo()
-                        .setMessage("Image added to session successfully")
-                        .addKeyValue("userId", userId)
-                        .addKeyValue("restaurantId", restaurantId)
-                        .addKeyValue("imageId", imageDTO.getImageId())
-                        .addKeyValue("s3Key", imageDTO.getS3Key())
-                        .addKeyValue("order", imageDTO.getOrder())
-                        .log();
-            } else {
-                log.atWarn()
-                        .setMessage("Failed to add image to session - maximum images reached")
-                        .addKeyValue("userId", userId)
-                        .addKeyValue("restaurantId", restaurantId)
-                        .addKeyValue("imageId", imageDTO.getImageId())
-                        .addKeyValue("maxImages", MAX_IMAGES)
-                        .addKeyValue("luaResult", result)
-                        .log();
-            }
-
-            return success;
-
-        } catch (Exception e) {
-            log.atError()
-                    .setMessage("Error occurred while adding image to session")
-                    .addKeyValue("userId", userId)
-                    .addKeyValue("restaurantId", restaurantId)
-                    .addKeyValue("imageId", imageDTO.getImageId())
-                    .addKeyValue("error", e.getMessage())
-                    .setCause(e)
-                    .log();
-
-            return false;
+        if (!success) {
+            log.warn("Failed to add image to session - max images reached: userId={}, restaurantId={}, imageId={}",
+                    userId, restaurantId, imageDTO.getImageId());
         }
+
+        return success;
     }
 
     public void removeImageFromSession(Long userId, Long restaurantId, String imageId) {
-        log.atInfo()
-                .setMessage("Removing image from session")
-                .addKeyValue("userId", userId)
-                .addKeyValue("restaurantId", restaurantId)
-                .addKeyValue("imageId", imageId)
-                .log();
-
         Optional<ReviewSessionDTO> sessionOpt = getSession(userId, restaurantId);
 
         if (sessionOpt.isEmpty()) {
-            log.atWarn()
-                    .setMessage("Cannot remove image - session not found")
-                    .addKeyValue("userId", userId)
-                    .addKeyValue("restaurantId", restaurantId)
-                    .addKeyValue("imageId", imageId)
-                    .log();
             throw new ToktotException(ErrorCode.RESOURCE_NOT_FOUND, "세션을 찾을 수 없습니다.");
         }
 
         ReviewSessionDTO session = sessionOpt.get();
 
         if (!session.hasImage(imageId)) {
-            log.atWarn()
-                    .setMessage("Cannot remove image - image not found in session")
-                    .addKeyValue("userId", userId)
-                    .addKeyValue("restaurantId", restaurantId)
-                    .addKeyValue("imageId", imageId)
-                    .addKeyValue("sessionImageCount", session.getImageCount())
-                    .log();
             throw new ToktotException(ErrorCode.RESOURCE_NOT_FOUND, "이미지를 찾을 수 없습니다.");
         }
 
-        int beforeCount = session.getImageCount();
         session.removeImage(imageId);
         reorderImages(session);
         saveSession(session);
-
-        log.atInfo()
-                .setMessage("Image removed from session successfully")
-                .addKeyValue("userId", userId)
-                .addKeyValue("restaurantId", restaurantId)
-                .addKeyValue("removedImageId", imageId)
-                .addKeyValue("beforeCount", beforeCount)
-                .addKeyValue("afterCount", session.getImageCount())
-                .log();
     }
 
     public void deleteSession(Long userId, Long restaurantId) {
         String sessionKey = buildSessionKey(userId, restaurantId);
-
-        log.atInfo()
-                .setMessage("Deleting session")
-                .addKeyValue("userId", userId)
-                .addKeyValue("restaurantId", restaurantId)
-                .addKeyValue("sessionKey", sessionKey)
-                .log();
-
-        Boolean deleted = redisTemplate.delete(sessionKey);
-
-        log.atInfo()
-                .setMessage("Session deletion completed")
-                .addKeyValue("userId", userId)
-                .addKeyValue("restaurantId", restaurantId)
-                .addKeyValue("wasDeleted", Boolean.TRUE.equals(deleted))
-                .log();
+        redisTemplate.delete(sessionKey);
     }
 
     private void reorderImages(ReviewSessionDTO session) {
         if (session.getImages() != null) {
-            log.atDebug()
-                    .setMessage("Reordering images")
-                    .addKeyValue("userId", session.getUserId())
-                    .addKeyValue("restaurantId", session.getRestaurantId())
-                    .addKeyValue("imageCount", session.getImages().size())
-                    .log();
-
             for (int i = 0; i < session.getImages().size(); i++) {
                 session.getImages().get(i).setOrder(i + 1);
             }
-
-            log.atDebug()
-                    .setMessage("Image reordering completed")
-                    .addKeyValue("userId", session.getUserId())
-                    .addKeyValue("restaurantId", session.getRestaurantId())
-                    .log();
         }
     }
 
     private void extendSessionTtl(String sessionKey) {
         Duration ttl = Duration.ofHours(sessionTtlHours);
-        Boolean extended = redisTemplate.expire(sessionKey, ttl);
-
-        log.atDebug()
-                .setMessage("Session TTL extended")
-                .addKeyValue("sessionKey", sessionKey)
-                .addKeyValue("ttlHours", sessionTtlHours)
-                .addKeyValue("extended", Boolean.TRUE.equals(extended))
-                .log();
+        redisTemplate.expire(sessionKey, ttl);
     }
 
     private String buildSessionKey(Long userId, Long restaurantId) {
-        String sessionKey = String.format("%s:%d:%d", SESSION_KEY_PREFIX, userId, restaurantId);
-
-        log.atTrace()
-                .setMessage("Built session key")
-                .addKeyValue("userId", userId)
-                .addKeyValue("restaurantId", restaurantId)
-                .addKeyValue("sessionKey", sessionKey)
-                .log();
-
-        return sessionKey;
+        return String.format("%s:%d:%d", SESSION_KEY_PREFIX, userId, restaurantId);
     }
 
     private String serializeSession(ReviewSessionDTO session) {
         try {
-            String json = objectMapper.writeValueAsString(session);
-
-            log.atTrace()
-                    .setMessage("Session serialized")
-                    .addKeyValue("userId", session.getUserId())
-                    .addKeyValue("restaurantId", session.getRestaurantId())
-                    .addKeyValue("jsonLength", json.length())
-                    .log();
-
-            return json;
-
+            return objectMapper.writeValueAsString(session);
         } catch (JsonProcessingException e) {
-            log.atError()
-                    .setMessage("Session serialization failed")
-                    .addKeyValue("userId", session.getUserId())
-                    .addKeyValue("restaurantId", session.getRestaurantId())
-                    .addKeyValue("error", e.getMessage())
-                    .setCause(e)
-                    .log();
-            throw new ToktotException(ErrorCode.SERVER_ERROR, "세션 데이터 처리 오류");
+            throw new ToktotException(ErrorCode.EXTERNAL_SERVICE_ERROR);
         }
     }
 
     private ReviewSessionDTO deserializeSession(String sessionJson) {
         try {
-            ReviewSessionDTO session = objectMapper.readValue(sessionJson, ReviewSessionDTO.class);
-
-            log.atTrace()
-                    .setMessage("Session deserialized")
-                    .addKeyValue("userId", session.getUserId())
-                    .addKeyValue("restaurantId", session.getRestaurantId())
-                    .addKeyValue("imageCount", session.getImageCount())
-                    .addKeyValue("jsonLength", sessionJson.length())
-                    .log();
-
-            return session;
-
+            return objectMapper.readValue(sessionJson, ReviewSessionDTO.class);
         } catch (JsonProcessingException e) {
-            log.atWarn()
-                    .setMessage("Session deserialization failed - possibly old format, will recreate")
-                    .addKeyValue("jsonLength", sessionJson.length())
-                    .addKeyValue("jsonPreview", sessionJson.substring(0, Math.min(100, sessionJson.length())))
-                    .addKeyValue("error", e.getMessage())
-                    .log();
-
-            return null;
+            throw new ToktotException(ErrorCode.EXTERNAL_SERVICE_ERROR);
         }
     }
 
     private String serializeImageDTO(ReviewImageDTO imageDTO) {
         try {
-            String json = objectMapper.writeValueAsString(imageDTO);
-
-            log.atTrace()
-                    .setMessage("Image DTO serialized")
-                    .addKeyValue("imageId", imageDTO.getImageId())
-                    .addKeyValue("jsonLength", json.length())
-                    .log();
-
-            return json;
-
+            return objectMapper.writeValueAsString(imageDTO);
         } catch (JsonProcessingException e) {
-            log.atError()
-                    .setMessage("Image DTO serialization failed")
-                    .addKeyValue("imageId", imageDTO.getImageId())
-                    .addKeyValue("s3Key", imageDTO.getS3Key())
-                    .addKeyValue("error", e.getMessage())
-                    .setCause(e)
-                    .log();
-            throw new ToktotException(ErrorCode.SERVER_ERROR, "이미지 데이터 처리 오류");
+            throw new ToktotException(ErrorCode.EXTERNAL_SERVICE_ERROR);
         }
     }
 }
