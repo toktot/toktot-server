@@ -4,14 +4,11 @@ import com.toktot.domain.restaurant.service.RestaurantSearchService;
 import com.toktot.external.kakao.dto.request.RestaurantSearchRequest;
 import com.toktot.web.dto.ApiResponse;
 import com.toktot.web.dto.restaurant.response.RestaurantSearchResponse;
-import com.toktot.web.dto.restaurant.response.RestaurantSearchResponseTemp;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Slf4j
 @RestController
@@ -21,13 +18,7 @@ public class RestaurantSearchController {
 
     private final RestaurantSearchService restaurantSearchService;
 
-    @GetMapping("/search")
-    public ResponseEntity<ApiResponse<List<RestaurantSearchResponseTemp>>> searchRestaurants() {
-        List<RestaurantSearchResponseTemp> response = restaurantSearchService.getRestaurantResponse();
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
-
-    @PostMapping("/kakao/search")
+    @PostMapping("/search")
     public ResponseEntity<ApiResponse<RestaurantSearchResponse>> searchRestaurantsFromKakao(
             @Valid @RequestBody RestaurantSearchRequest request) {
         log.info("Kakao restaurant search request: {}", request);
