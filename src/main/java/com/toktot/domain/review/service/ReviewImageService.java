@@ -22,7 +22,7 @@ public class ReviewImageService {
 
     private static final int MAX_IMAGES = 5;
 
-    public List<ReviewImageDTO> uploadImages(List<MultipartFile> files, Long userId, Long restaurantId) {
+    public List<ReviewImageDTO> uploadImages(List<MultipartFile> files, Long userId, Long externalKakaoId) {
         validateUploadRequest(files);
 
         List<ReviewImageDTO> uploadedImages = new ArrayList<>();
@@ -30,7 +30,7 @@ public class ReviewImageService {
 
         for (MultipartFile file : files) {
             ReviewS3StorageService.S3UploadResult uploadResult =
-                    reviewS3StorageService.uploadTempImage(file, userId, restaurantId);
+                    reviewS3StorageService.uploadTempImage(file, userId, externalKakaoId);
 
             ReviewImageDTO imageDTO = ReviewImageDTO.create(
                     uploadResult.getImageId(),
@@ -40,7 +40,7 @@ public class ReviewImageService {
                     0
             );
 
-            boolean added = reviewSessionService.tryAddImageToSession(userId, restaurantId, imageDTO);
+            boolean added = reviewSessionService.tryAddImageToSession(userId, externalKakaoId, imageDTO);
             if (!added) {
                 reviewS3StorageService.deleteTempImage(uploadResult.getS3Key());
                 throw new ToktotException(ErrorCode.OPERATION_NOT_ALLOWED, "이미지는 최대 " + MAX_IMAGES + "개까지만 업로드 가능합니다.");
@@ -50,13 +50,13 @@ public class ReviewImageService {
             uploadedS3Keys.add(uploadResult.getS3Key());
         }
 
-        log.info("Image upload completed - userId: {}, restaurantId: {}, count: {}",
-                userId, restaurantId, uploadedImages.size());
+        log.info("Image upload completed - userId: {}, externalKakaoId: {}, count: {}",
+                userId, externalKakaoId, uploadedImages.size());
         return uploadedImages;
     }
 
-    public void deleteImage(String imageId, Long userId, Long restaurantId) {
-        ReviewSessionDTO session = reviewSessionService.getSession(userId, restaurantId)
+    public void deleteImage(String imageId, Long userId, Long externalKakaoId) {
+        ReviewSessionDTO session = reviewSessionService.getSession(userId, externalKakaoId)
                 .orElseThrow(() -> new ToktotException(ErrorCode.RESOURCE_NOT_FOUND, "세션을 찾을 수 없습니다."));
 
         ReviewImageDTO imageToDelete = session.getImages().stream()
@@ -65,17 +65,17 @@ public class ReviewImageService {
                 .orElseThrow(() -> new ToktotException(ErrorCode.RESOURCE_NOT_FOUND, "삭제할 이미지를 찾을 수 없습니다."));
 
         reviewS3StorageService.deleteTempImage(imageToDelete.getS3Key());
-        reviewSessionService.removeImageFromSession(userId, restaurantId, imageId);
+        reviewSessionService.removeImageFromSession(userId, externalKakaoId, imageId);
 
     }
 
-    public ReviewSessionDTO getCurrentSession(Long userId, Long restaurantId) {
-        return reviewSessionService.getSession(userId, restaurantId)
-                .orElse(ReviewSessionDTO.create(userId, restaurantId));
+    public ReviewSessionDTO getCurrentSession(Long userId, Long externalKakaoId) {
+        return reviewSessionService.getSession(userId, externalKakaoId)
+                .orElse(ReviewSessionDTO.create(userId, externalKakaoId));
     }
 
-    public void clearSession(Long userId, Long restaurantId) {
-        ReviewSessionDTO session = reviewSessionService.getSession(userId, restaurantId)
+    public void clearSession(Long userId, Long externalKakaoId) {
+        ReviewSessionDTO session = reviewSessionService.getSession(userId, externalKakaoId)
                 .orElse(null);
 
         if (session != null && session.getImages() != null) {
@@ -88,8 +88,8 @@ public class ReviewImageService {
             }
         }
 
-        reviewSessionService.deleteSession(userId, restaurantId);
-        log.info("Session cleared - userId: {}, restaurantId: {}", userId, restaurantId);
+        reviewSessionService.deleteSession(userId, externalKakaoId);
+        log.info("Session cleared - userId: {}, externalKakaoId: {}", userId, externalKakaoId);
     }
 
     private void validateUploadRequest(List<MultipartFile> files) {

@@ -8,10 +8,10 @@ import jakarta.validation.constraints.*;
 import java.util.List;
 
 public record ReviewCreateRequest(
-        @JsonProperty(value = "restaurant_id", required = true)
+        @JsonProperty(value = "external_kakao_id", required = true)
         @NotNull(message = "존재하지 않은 가게입니다.")
         @Positive(message = "올바른 음식점 ID를 입력해주세요.")
-        Long restaurantId,
+        Long externalKakaoId,
 
         @JsonProperty(value = "keywords", required = true)
         @NotEmpty(message = "키워드를 선택해주세요.")

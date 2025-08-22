@@ -33,7 +33,7 @@ public class ReviewS3MigrationService {
         log.atInfo()
                 .setMessage("Starting S3 image migration from temp to reviews")
                 .addKeyValue("userId", session.getUserId())
-                .addKeyValue("restaurantId", session.getRestaurantId())
+                .addKeyValue("externalKakaoId", session.getExternalKakaoId())
                 .addKeyValue("reviewId", reviewId)
                 .addKeyValue("imageCount", session.getImages().size())
                 .log();
@@ -44,7 +44,7 @@ public class ReviewS3MigrationService {
         try {
             for (ReviewImageDTO imageDTO : session.getImages()) {
                 String originalKey = imageDTO.getS3Key();
-                String newKey = buildReviewImageKey(session.getRestaurantId(), reviewId,
+                String newKey = buildReviewImageKey(session.getExternalKakaoId(), reviewId,
                         imageDTO.getOrder(), imageDTO.getImageId());
 
                 log.atDebug()
@@ -76,7 +76,7 @@ public class ReviewS3MigrationService {
             log.atInfo()
                     .setMessage("S3 image migration completed successfully")
                     .addKeyValue("userId", session.getUserId())
-                    .addKeyValue("restaurantId", session.getRestaurantId())
+                    .addKeyValue("externalKakaoId", session.getExternalKakaoId())
                     .addKeyValue("reviewId", reviewId)
                     .addKeyValue("migratedImages", migratedKeys.size())
                     .addKeyValue("deletedTempFiles", originalKeys.size())
@@ -86,7 +86,7 @@ public class ReviewS3MigrationService {
             log.atError()
                     .setMessage("S3 image migration failed - starting rollback")
                     .addKeyValue("userId", session.getUserId())
-                    .addKeyValue("restaurantId", session.getRestaurantId())
+                    .addKeyValue("externalKakaoId", session.getExternalKakaoId())
                     .addKeyValue("reviewId", reviewId)
                     .addKeyValue("migratedCount", migratedKeys.size())
                     .addKeyValue("totalImages", session.getImages().size())
@@ -219,14 +219,14 @@ public class ReviewS3MigrationService {
                 .log();
     }
 
-    private String buildReviewImageKey(Long restaurantId, Long reviewId, int order, String imageId) {
+    private String buildReviewImageKey(Long externalKakaoId, Long reviewId, int order, String imageId) {
         String extension = extractExtension(imageId);
         String filename = String.format("%d_%s.%s", order, imageId, extension);
-        String key = String.format("%s/%d/%d/%s", REVIEWS_PREFIX, restaurantId, reviewId, filename);
+        String key = String.format("%s/%d/%d/%s", REVIEWS_PREFIX, externalKakaoId, reviewId, filename);
 
         log.atTrace()
                 .setMessage("Built review image key")
-                .addKeyValue("restaurantId", restaurantId)
+                .addKeyValue("externalKakaoId", externalKakaoId)
                 .addKeyValue("reviewId", reviewId)
                 .addKeyValue("order", order)
                 .addKeyValue("imageId", imageId)
