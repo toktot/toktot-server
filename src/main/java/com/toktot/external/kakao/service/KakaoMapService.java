@@ -2,6 +2,7 @@ package com.toktot.external.kakao.service;
 
 import com.toktot.common.exception.ErrorCode;
 import com.toktot.common.exception.ToktotException;
+import com.toktot.domain.restaurant.Restaurant;
 import com.toktot.external.kakao.KakaoApiConstants;
 import com.toktot.external.kakao.KakaoApiProperties;
 import com.toktot.external.kakao.dto.request.RestaurantSearchRequest;
@@ -17,6 +18,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+
+import java.math.BigDecimal;
 
 @Slf4j
 @Service
@@ -60,6 +63,37 @@ public class KakaoMapService {
             return response.filterFoodAndCafe();
         } catch (Exception e) {
             throw new ToktotException(ErrorCode.KAKAO_LOCAL_SERVICE_ERROR, e.getMessage() + endpoint);
+        }
+    }
+
+    public KakaoPlaceSearchResponse searchRestaurantByNameAndCoordinates(String placeName, BigDecimal longitude, BigDecimal latitude) {
+        try {
+            String url = UriComponentsBuilder
+                    .fromUriString(kakaoApiProperties.getBaseUrl())
+                    .path(KakaoApiConstants.KEYWORD_ENDPOINT)
+                    .queryParam(KakaoApiConstants.PARAM_QUERY, placeName)
+                    .queryParam(KakaoApiConstants.PARAM_LONGITUDE, longitude.toString())
+                    .queryParam(KakaoApiConstants.PARAM_LATITUDE, latitude.toString())
+                    .build()
+                    .toString();
+
+            HttpEntity<Void> entity = new HttpEntity<>(createHeaders());
+
+            ResponseEntity<KakaoPlaceSearchResponse> responseEntity = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    new ParameterizedTypeReference<>() {
+                    });
+
+            KakaoPlaceSearchResponse response = responseEntity.getBody();
+
+            log.info(
+                    KakaoApiConstants.LOG_API_CALL_SUCCESS,
+                    response != null ? response.getResultCount() : 0);
+            return response.filterFoodAndCafe();
+        } catch (Exception e) {
+            throw new ToktotException(ErrorCode.RESTAURANT_NOT_FOUND);
         }
     }
 
