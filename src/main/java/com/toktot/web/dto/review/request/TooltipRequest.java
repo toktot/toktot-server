@@ -45,25 +45,4 @@ public record TooltipRequest(
         @Size(max = 100, message = "상세 리뷰는 100자 이하로 입력해주세요.")
         String detailedReview
 ) {
-
-        public boolean isValidFoodTooltip() {
-                if (this.type != TooltipType.FOOD) {
-                        return true;
-                }
-
-                return this.menuName != null && !this.menuName.trim().isEmpty()
-                        && this.totalPrice != null && this.totalPrice > 0
-                        && this.servingSize != null && this.servingSize > 0;
-        }
-
-        public boolean isValidServiceTooltip() {
-                if (this.type == TooltipType.FOOD) {
-                        return true;
-                }
-
-                return this.menuName == null
-                        && this.totalPrice == null
-                        && this.servingSize == null
-                        && this.detailedReview == null;
-        }
 }

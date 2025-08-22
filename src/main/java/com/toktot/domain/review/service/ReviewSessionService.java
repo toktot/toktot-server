@@ -62,7 +62,7 @@ public class ReviewSessionService {
         return 1
         """;
 
-    public Optional<ReviewSessionDTO> getSession(Long userId, Long externalKakaoId) {
+    public Optional<ReviewSessionDTO> getSession(Long userId, String externalKakaoId) {
         String sessionKey = buildSessionKey(userId, externalKakaoId);
         String sessionJson = redisTemplate.opsForValue().get(sessionKey);
 
@@ -88,7 +88,7 @@ public class ReviewSessionService {
         redisTemplate.opsForValue().set(sessionKey, sessionJson, ttl);
     }
 
-    public boolean tryAddImageToSession(Long userId, Long externalKakaoId, ReviewImageDTO imageDTO) {
+    public boolean tryAddImageToSession(Long userId, String externalKakaoId, ReviewImageDTO imageDTO) {
         String sessionKey = buildSessionKey(userId, externalKakaoId);
         String imageJson = serializeImageDTO(imageDTO);
         String timestamp = DateTimeUtil.nowWithoutNanos().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME);
@@ -114,7 +114,7 @@ public class ReviewSessionService {
         return success;
     }
 
-    public void removeImageFromSession(Long userId, Long externalKakaoId, String imageId) {
+    public void removeImageFromSession(Long userId, String externalKakaoId, String imageId) {
         Optional<ReviewSessionDTO> sessionOpt = getSession(userId, externalKakaoId);
 
         if (sessionOpt.isEmpty()) {
@@ -132,7 +132,7 @@ public class ReviewSessionService {
         saveSession(session);
     }
 
-    public void deleteSession(Long userId, Long externalKakaoId) {
+    public void deleteSession(Long userId, String externalKakaoId) {
         String sessionKey = buildSessionKey(userId, externalKakaoId);
         redisTemplate.delete(sessionKey);
     }
@@ -150,8 +150,8 @@ public class ReviewSessionService {
         redisTemplate.expire(sessionKey, ttl);
     }
 
-    private String buildSessionKey(Long userId, Long externalKakaoId) {
-        return String.format("%s:%d:%d", SESSION_KEY_PREFIX, userId, externalKakaoId);
+    private String buildSessionKey(Long userId, String externalKakaoId) {
+        return String.format("%s:%d:%s", SESSION_KEY_PREFIX, userId, externalKakaoId);
     }
 
     private String serializeSession(ReviewSessionDTO session) {

@@ -9,7 +9,7 @@ import java.util.List;
 @Builder
 public record SessionInfoResponse(
         @JsonProperty("external_kakao_id")
-        Long externalKakaoId,
+        String externalKakaoId,
 
         @JsonProperty("images")
         List<ImageInfoResponse> images,

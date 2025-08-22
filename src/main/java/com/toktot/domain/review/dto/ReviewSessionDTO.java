@@ -18,7 +18,7 @@ import java.util.List;
 public class ReviewSessionDTO {
 
     private Long userId;
-    private Long externalKakaoId;
+    private String externalKakaoId;
 
     @Builder.Default
     private List<ReviewImageDTO> images = new ArrayList<>();
@@ -45,7 +45,7 @@ public class ReviewSessionDTO {
                 .anyMatch(img -> img.getImageId().equals(imageId));
     }
 
-    public static ReviewSessionDTO create(Long userId, Long externalKakaoId) {
+    public static ReviewSessionDTO create(Long userId, String externalKakaoId) {
         LocalDateTime now = DateTimeUtil.nowWithoutNanos();
         return ReviewSessionDTO.builder()
                 .userId(userId)
