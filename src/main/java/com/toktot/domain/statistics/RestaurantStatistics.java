@@ -25,6 +25,7 @@ public class RestaurantStatistics {
     @JoinColumn(name = "restaurant_id")
     private Restaurant restaurant;
 
+    @Builder.Default
     @Column(name = "review_count", nullable = false)
     private Integer reviewCount = 0;
 
@@ -34,15 +35,19 @@ public class RestaurantStatistics {
     @Column(name = "average_satisfaction")
     private Integer averageSatisfaction;
 
+    @Builder.Default
     @Column(name = "click_count", nullable = false)
     private Integer clickCount = 0;
 
+    @Builder.Default
     @Column(name = "bookmark_count", nullable = false)
     private Integer bookmarkCount = 0;
 
+    @Builder.Default
     @Column(name = "has_local_food", nullable = false)
     private Boolean hasLocalFood = false;
 
+    @Builder.Default
     @Column(name = "local_food_review_count")
     private Integer localFoodReviewCount = 0;
 

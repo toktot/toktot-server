@@ -8,7 +8,9 @@ import java.util.Optional;
 
 public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 
-    Optional<Restaurant> findByExternalTourApiId(String externalTourApiId);
+    Optional<Restaurant> findByExternalTourApiId(Long externalTourApiId);
+
+    Optional<Restaurant> findByExternalKakaoId(String externalKakaoId);
 
     long countByDataSource(DataSource dataSource);
 }

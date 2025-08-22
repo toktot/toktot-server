@@ -55,9 +55,9 @@ public class Tooltip {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    public static Tooltip createFoodTooltip(BigDecimal xPosition, BigDecimal yPosition,
-                                            String menuName, Integer totalPrice, Integer servingSize,
-                                            BigDecimal rating, String detailedReview) {
+    public static Tooltip create(BigDecimal xPosition, BigDecimal yPosition,
+                                 String menuName, Integer totalPrice, Integer servingSize,
+                                 BigDecimal rating, String detailedReview) {
         return Tooltip.builder()
                 .tooltipType(TooltipType.FOOD)
                 .xPosition(xPosition)
@@ -67,16 +67,6 @@ public class Tooltip {
                 .totalPrice(totalPrice)
                 .servingSize(servingSize)
                 .detailedReview(detailedReview)
-                .build();
-    }
-
-    public static Tooltip createServiceTooltip(TooltipType type, BigDecimal xPosition,
-                                               BigDecimal yPosition, BigDecimal rating) {
-        return Tooltip.builder()
-                .tooltipType(type)
-                .xPosition(xPosition)
-                .yPosition(yPosition)
-                .rating(rating)
                 .build();
     }
 

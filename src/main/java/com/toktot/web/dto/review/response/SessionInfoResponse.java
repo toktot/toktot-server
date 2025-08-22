@@ -8,8 +8,8 @@ import java.util.List;
 
 @Builder
 public record SessionInfoResponse(
-        @JsonProperty("restaurant_id")
-        Long restaurantId,
+        @JsonProperty("external_kakao_id")
+        String externalKakaoId,
 
         @JsonProperty("images")
         List<ImageInfoResponse> images,
@@ -38,7 +38,7 @@ public record SessionInfoResponse(
                 .toList();
 
         return SessionInfoResponse.builder()
-                .restaurantId(session.getRestaurantId())
+                .externalKakaoId(session.getExternalKakaoId())
                 .images(imageInfos)
                 .totalImageCount(session.getImageCount())
                 .remainingSlots(5 - session.getImageCount())

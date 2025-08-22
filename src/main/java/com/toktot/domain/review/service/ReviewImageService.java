@@ -2,15 +2,24 @@ package com.toktot.domain.review.service;
 
 import com.toktot.common.exception.ErrorCode;
 import com.toktot.common.exception.ToktotException;
+import com.toktot.domain.review.Review;
+import com.toktot.domain.review.ReviewImage;
+import com.toktot.domain.review.Tooltip;
 import com.toktot.domain.review.dto.ReviewImageDTO;
 import com.toktot.domain.review.dto.ReviewSessionDTO;
+import com.toktot.web.dto.review.request.ReviewImageRequest;
+import com.toktot.web.dto.review.request.TooltipRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -22,390 +31,129 @@ public class ReviewImageService {
 
     private static final int MAX_IMAGES = 5;
 
-    public List<ReviewImageDTO> uploadImages(List<MultipartFile> files, Long userId, Long restaurantId) {
-        log.atInfo()
-                .setMessage("Starting image upload process")
-                .addKeyValue("userId", userId)
-                .addKeyValue("restaurantId", restaurantId)
-                .addKeyValue("requestedFileCount", files.size())
-                .log();
-
-        validateUploadRequest(files, userId, restaurantId);
+    public List<ReviewImageDTO> uploadImages(List<MultipartFile> files, Long userId, String externalKakaoId) {
+        validateUploadRequest(files);
 
         List<ReviewImageDTO> uploadedImages = new ArrayList<>();
         List<String> uploadedS3Keys = new ArrayList<>();
-        int successCount = 0;
 
-        try {
-            for (int i = 0; i < files.size(); i++) {
-                MultipartFile file = files.get(i);
+        for (MultipartFile file : files) {
+            ReviewS3StorageService.S3UploadResult uploadResult =
+                    reviewS3StorageService.uploadTempImage(file, userId, externalKakaoId);
 
-                log.atDebug()
-                        .setMessage("Processing individual file upload")
-                        .addKeyValue("userId", userId)
-                        .addKeyValue("restaurantId", restaurantId)
-                        .addKeyValue("fileIndex", i)
-                        .addKeyValue("fileName", file.getOriginalFilename())
-                        .addKeyValue("fileSize", file.getSize())
-                        .log();
+            ReviewImageDTO imageDTO = ReviewImageDTO.create(
+                    uploadResult.getImageId(),
+                    uploadResult.getS3Key(),
+                    uploadResult.getImageUrl(),
+                    uploadResult.getFileSize(),
+                    0
+            );
 
-                ReviewS3StorageService.S3UploadResult uploadResult =
-                        reviewS3StorageService.uploadTempImage(file, userId, restaurantId);
-
-                log.atDebug()
-                        .setMessage("S3 upload completed")
-                        .addKeyValue("userId", userId)
-                        .addKeyValue("restaurantId", restaurantId)
-                        .addKeyValue("imageId", uploadResult.getImageId())
-                        .addKeyValue("s3Key", uploadResult.getS3Key())
-                        .addKeyValue("fileSize", uploadResult.getFileSize())
-                        .log();
-
-                ReviewImageDTO imageDTO = ReviewImageDTO.create(
-                        uploadResult.getImageId(),
-                        uploadResult.getS3Key(),
-                        uploadResult.getImageUrl(),
-                        uploadResult.getFileSize(),
-                        0
-                );
-
-                boolean added = reviewSessionService.tryAddImageToSession(userId, restaurantId, imageDTO);
-
-                if (!added) {
-                    log.atWarn()
-                            .setMessage("Session addition failed - maximum images reached")
-                            .addKeyValue("userId", userId)
-                            .addKeyValue("restaurantId", restaurantId)
-                            .addKeyValue("imageId", uploadResult.getImageId())
-                            .addKeyValue("maxImages", MAX_IMAGES)
-                            .log();
-
-                    reviewS3StorageService.deleteTempImage(uploadResult.getS3Key());
-
-                    log.atInfo()
-                            .setMessage("Cleaned up S3 file after session addition failure")
-                            .addKeyValue("userId", userId)
-                            .addKeyValue("restaurantId", restaurantId)
-                            .addKeyValue("s3Key", uploadResult.getS3Key())
-                            .log();
-
-                    throw new ToktotException(ErrorCode.OPERATION_NOT_ALLOWED,
-                            "이미지는 최대 " + MAX_IMAGES + "개까지만 업로드 가능합니다.");
-                }
-
-                uploadedImages.add(imageDTO);
-                uploadedS3Keys.add(uploadResult.getS3Key());
-                successCount++;
-
-                log.atDebug()
-                        .setMessage("File upload and session addition completed")
-                        .addKeyValue("userId", userId)
-                        .addKeyValue("restaurantId", restaurantId)
-                        .addKeyValue("imageId", uploadResult.getImageId())
-                        .addKeyValue("successCount", successCount)
-                        .log();
+            boolean added = reviewSessionService.tryAddImageToSession(userId, externalKakaoId, imageDTO);
+            if (!added) {
+                reviewS3StorageService.deleteTempImage(uploadResult.getS3Key());
+                throw new ToktotException(ErrorCode.OPERATION_NOT_ALLOWED, "이미지는 최대 " + MAX_IMAGES + "개까지만 업로드 가능합니다.");
             }
 
-            log.atInfo()
-                    .setMessage("Image upload process completed successfully")
-                    .addKeyValue("userId", userId)
-                    .addKeyValue("restaurantId", restaurantId)
-                    .addKeyValue("totalUploaded", successCount)
-                    .addKeyValue("uploadedImageIds", uploadedImages.stream()
-                            .map(ReviewImageDTO::getImageId)
-                            .toArray())
-                    .log();
-
-            return uploadedImages;
-
-        } catch (ToktotException e) {
-            log.atWarn()
-                    .setMessage("Image upload process failed - business error")
-                    .addKeyValue("userId", userId)
-                    .addKeyValue("restaurantId", restaurantId)
-                    .addKeyValue("successCount", successCount)
-                    .addKeyValue("errorCode", e.getErrorCodeName())
-                    .addKeyValue("errorMessage", e.getMessage())
-                    .log();
-            throw e;
-
-        } catch (Exception e) {
-            log.atError()
-                    .setMessage("Image upload process failed - system error")
-                    .addKeyValue("userId", userId)
-                    .addKeyValue("restaurantId", restaurantId)
-                    .addKeyValue("successCount", successCount)
-                    .addKeyValue("error", e.getMessage())
-                    .setCause(e)
-                    .log();
-
-            cleanupPartialUploads(uploadedS3Keys, userId, restaurantId);
-            throw e;
+            uploadedImages.add(imageDTO);
+            uploadedS3Keys.add(uploadResult.getS3Key());
         }
+
+        log.info("Image upload completed - userId: {}, externalKakaoId: {}, count: {}",
+                userId, externalKakaoId, uploadedImages.size());
+        return uploadedImages;
     }
 
-    public void deleteImage(String imageId, Long userId, Long restaurantId) {
-        log.atInfo()
-                .setMessage("Starting image deletion process")
-                .addKeyValue("userId", userId)
-                .addKeyValue("restaurantId", restaurantId)
-                .addKeyValue("imageId", imageId)
-                .log();
-
-        ReviewSessionDTO session = reviewSessionService.getSession(userId, restaurantId)
-                .orElseThrow(() -> {
-                    log.atWarn()
-                            .setMessage("Image deletion failed - session not found")
-                            .addKeyValue("userId", userId)
-                            .addKeyValue("restaurantId", restaurantId)
-                            .addKeyValue("imageId", imageId)
-                            .log();
-                    return new ToktotException(ErrorCode.RESOURCE_NOT_FOUND, "세션을 찾을 수 없습니다.");
-                });
+    public void deleteImage(String imageId, Long userId, String externalKakaoId) {
+        ReviewSessionDTO session = reviewSessionService.getSession(userId, externalKakaoId)
+                .orElseThrow(() -> new ToktotException(ErrorCode.RESOURCE_NOT_FOUND, "세션을 찾을 수 없습니다."));
 
         ReviewImageDTO imageToDelete = session.getImages().stream()
                 .filter(img -> img.getImageId().equals(imageId))
                 .findFirst()
-                .orElseThrow(() -> {
-                    log.atWarn()
-                            .setMessage("Image deletion failed - image not found in session")
-                            .addKeyValue("userId", userId)
-                            .addKeyValue("restaurantId", restaurantId)
-                            .addKeyValue("imageId", imageId)
-                            .addKeyValue("sessionImageCount", session.getImageCount())
-                            .log();
-                    return new ToktotException(ErrorCode.RESOURCE_NOT_FOUND, "삭제할 이미지를 찾을 수 없습니다.");
-                });
+                .orElseThrow(() -> new ToktotException(ErrorCode.RESOURCE_NOT_FOUND, "삭제할 이미지를 찾을 수 없습니다."));
 
-        log.atDebug()
-                .setMessage("Found image to delete")
-                .addKeyValue("userId", userId)
-                .addKeyValue("restaurantId", restaurantId)
-                .addKeyValue("imageId", imageId)
-                .addKeyValue("s3Key", imageToDelete.getS3Key())
-                .addKeyValue("fileSize", imageToDelete.getFileSize())
-                .log();
+        reviewS3StorageService.deleteTempImage(imageToDelete.getS3Key());
+        reviewSessionService.removeImageFromSession(userId, externalKakaoId, imageId);
 
-        try {
-            reviewS3StorageService.deleteTempImage(imageToDelete.getS3Key());
-
-            log.atDebug()
-                    .setMessage("S3 file deletion completed")
-                    .addKeyValue("userId", userId)
-                    .addKeyValue("restaurantId", restaurantId)
-                    .addKeyValue("imageId", imageId)
-                    .addKeyValue("s3Key", imageToDelete.getS3Key())
-                    .log();
-
-            reviewSessionService.removeImageFromSession(userId, restaurantId, imageId);
-
-            log.atInfo()
-                    .setMessage("Image deletion process completed successfully")
-                    .addKeyValue("userId", userId)
-                    .addKeyValue("restaurantId", restaurantId)
-                    .addKeyValue("deletedImageId", imageId)
-                    .addKeyValue("remainingImages", session.getImageCount() - 1)
-                    .log();
-
-        } catch (Exception e) {
-            log.atError()
-                    .setMessage("Image deletion process failed")
-                    .addKeyValue("userId", userId)
-                    .addKeyValue("restaurantId", restaurantId)
-                    .addKeyValue("imageId", imageId)
-                    .addKeyValue("s3Key", imageToDelete.getS3Key())
-                    .addKeyValue("error", e.getMessage())
-                    .setCause(e)
-                    .log();
-
-            throw new ToktotException(ErrorCode.SERVER_ERROR, "이미지 삭제에 실패했습니다.");
-        }
     }
 
-    public ReviewSessionDTO getCurrentSession(Long userId, Long restaurantId) {
-        log.atDebug()
-                .setMessage("Retrieving current session")
-                .addKeyValue("userId", userId)
-                .addKeyValue("restaurantId", restaurantId)
-                .log();
-
-        ReviewSessionDTO session = reviewSessionService.getSession(userId, restaurantId)
-                .orElse(ReviewSessionDTO.create(userId, restaurantId));
-
-        log.atDebug()
-                .setMessage("Current session retrieved")
-                .addKeyValue("userId", userId)
-                .addKeyValue("restaurantId", restaurantId)
-                .addKeyValue("hasExistingSession", session.getImages() != null && !session.getImages().isEmpty())
-                .addKeyValue("imageCount", session.getImageCount())
-                .log();
-
-        return session;
+    public ReviewSessionDTO getCurrentSession(Long userId, String externalKakaoId) {
+        return reviewSessionService.getSession(userId, externalKakaoId)
+                .orElse(ReviewSessionDTO.create(userId, externalKakaoId));
     }
 
-    public void clearSession(Long userId, Long restaurantId) {
-        log.atInfo()
-                .setMessage("Starting session clearing process")
-                .addKeyValue("userId", userId)
-                .addKeyValue("restaurantId", restaurantId)
-                .log();
-
-        ReviewSessionDTO session = reviewSessionService.getSession(userId, restaurantId)
+    public void clearSession(Long userId, String externalKakaoId) {
+        ReviewSessionDTO session = reviewSessionService.getSession(userId, externalKakaoId)
                 .orElse(null);
 
         if (session != null && session.getImages() != null) {
-            int imageCount = session.getImages().size();
-
-            log.atInfo()
-                    .setMessage("Clearing S3 temporary files")
-                    .addKeyValue("userId", userId)
-                    .addKeyValue("restaurantId", restaurantId)
-                    .addKeyValue("filesToDelete", imageCount)
-                    .log();
-
             for (ReviewImageDTO image : session.getImages()) {
                 try {
                     reviewS3StorageService.deleteTempImage(image.getS3Key());
-
-                    log.atDebug()
-                            .setMessage("S3 file deleted during session clear")
-                            .addKeyValue("userId", userId)
-                            .addKeyValue("restaurantId", restaurantId)
-                            .addKeyValue("imageId", image.getImageId())
-                            .addKeyValue("s3Key", image.getS3Key())
-                            .log();
-
                 } catch (Exception e) {
-                    log.atWarn()
-                            .setMessage("Failed to delete S3 file during session clear")
-                            .addKeyValue("userId", userId)
-                            .addKeyValue("restaurantId", restaurantId)
-                            .addKeyValue("imageId", image.getImageId())
-                            .addKeyValue("s3Key", image.getS3Key())
-                            .addKeyValue("error", e.getMessage())
-                            .log();
+                    log.warn("Failed to delete S3 file during session clear - key: {}", image.getS3Key());
                 }
             }
         }
 
-        reviewSessionService.deleteSession(userId, restaurantId);
-
-        log.atInfo()
-                .setMessage("Session clearing process completed")
-                .addKeyValue("userId", userId)
-                .addKeyValue("restaurantId", restaurantId)
-                .addKeyValue("clearedImageCount", session != null ? session.getImageCount() : 0)
-                .log();
+        reviewSessionService.deleteSession(userId, externalKakaoId);
+        log.info("Session cleared - userId: {}, externalKakaoId: {}", userId, externalKakaoId);
     }
 
-    private void validateUploadRequest(List<MultipartFile> files, Long userId, Long restaurantId) {
+    private void validateUploadRequest(List<MultipartFile> files) {
         if (files == null || files.isEmpty()) {
-            log.atWarn()
-                    .setMessage("Upload validation failed - no files provided")
-                    .addKeyValue("userId", userId)
-                    .addKeyValue("restaurantId", restaurantId)
-                    .log();
             throw new ToktotException(ErrorCode.MISSING_REQUIRED_FIELD, "업로드할 파일이 없습니다.");
         }
 
-        for (int i = 0; i < files.size(); i++) {
-            MultipartFile file = files.get(i);
+        for (MultipartFile file : files) {
             if (file.isEmpty()) {
-                log.atWarn()
-                        .setMessage("Upload validation failed - empty file detected")
-                        .addKeyValue("userId", userId)
-                        .addKeyValue("restaurantId", restaurantId)
-                        .addKeyValue("fileIndex", i)
-                        .addKeyValue("fileName", file.getOriginalFilename())
-                        .log();
                 throw new ToktotException(ErrorCode.INVALID_INPUT, "빈 파일은 업로드할 수 없습니다.");
             }
         }
-
-        log.atDebug()
-                .setMessage("Upload validation passed")
-                .addKeyValue("userId", userId)
-                .addKeyValue("restaurantId", restaurantId)
-                .addKeyValue("fileCount", files.size())
-                .log();
     }
 
-    private void cleanupPartialUploads(List<String> s3Keys, Long userId, Long restaurantId) {
-        log.atWarn()
-                .setMessage("Starting partial upload cleanup")
-                .addKeyValue("userId", userId)
-                .addKeyValue("restaurantId", restaurantId)
-                .addKeyValue("s3KeysToCleanup", s3Keys.size())
-                .log();
+    @Transactional
+    public void saveImagesInReview(Review review, List<ReviewImageRequest> imageRequests, ReviewSessionDTO session) {
+        Map<String, ReviewImageDTO> sessionImageMap = session.getImages().stream()
+                .collect(Collectors.toMap(ReviewImageDTO::getImageId, Function.identity()));
 
-        for (String s3Key : s3Keys) {
-            try {
-                reviewS3StorageService.deleteTempImage(s3Key);
+        for (ReviewImageRequest imageRequest : imageRequests) {
+            ReviewImageDTO reviewImageDTO = sessionImageMap.get(imageRequest.imageId());
+            ReviewImage reviewImage = createReviewImageFromRequest(reviewImageDTO, imageRequest);
 
-                String imageId = extractImageIdFromS3Key(s3Key);
-                if (imageId != null) {
-                    try {
-                        reviewSessionService.removeImageFromSession(userId, restaurantId, imageId);
-
-                        log.atDebug()
-                                .setMessage("Cleaned up partial upload")
-                                .addKeyValue("userId", userId)
-                                .addKeyValue("restaurantId", restaurantId)
-                                .addKeyValue("imageId", imageId)
-                                .addKeyValue("s3Key", s3Key)
-                                .log();
-
-                    } catch (Exception e) {
-                        log.atWarn()
-                                .setMessage("Failed to remove from session during cleanup")
-                                .addKeyValue("userId", userId)
-                                .addKeyValue("restaurantId", restaurantId)
-                                .addKeyValue("imageId", imageId)
-                                .addKeyValue("error", e.getMessage())
-                                .log();
-                    }
+            if (imageRequest.tooltips() != null) {
+                for (TooltipRequest tooltipRequest : imageRequest.tooltips()) {
+                    Tooltip tooltip = createTooltipFromRequest(tooltipRequest);
+                    reviewImage.addTooltip(tooltip);
                 }
-            } catch (Exception e) {
-                log.atWarn()
-                        .setMessage("Failed to cleanup partial upload")
-                        .addKeyValue("userId", userId)
-                        .addKeyValue("restaurantId", restaurantId)
-                        .addKeyValue("s3Key", s3Key)
-                        .addKeyValue("error", e.getMessage())
-                        .log();
             }
-        }
 
-        log.atInfo()
-                .setMessage("Partial upload cleanup completed")
-                .addKeyValue("userId", userId)
-                .addKeyValue("restaurantId", restaurantId)
-                .addKeyValue("processedKeys", s3Keys.size())
-                .log();
+            review.addImage(reviewImage);
+        }
     }
 
-    private String extractImageIdFromS3Key(String s3Key) {
-        try {
-            String[] parts = s3Key.split("/");
-            if (parts.length >= 4) {
-                String filename = parts[parts.length - 1];
-                String imageId = filename.contains(".") ? filename.substring(0, filename.lastIndexOf(".")) : filename;
-
-                log.atDebug()
-                        .setMessage("Extracted image ID from S3 key")
-                        .addKeyValue("s3Key", s3Key)
-                        .addKeyValue("extractedImageId", imageId)
-                        .log();
-
-                return imageId;
-            }
-        } catch (Exception e) {
-            log.atWarn()
-                    .setMessage("Failed to extract image ID from S3 key")
-                    .addKeyValue("s3Key", s3Key)
-                    .addKeyValue("error", e.getMessage())
-                    .log();
-        }
-        return null;
+    private ReviewImage createReviewImageFromRequest(ReviewImageDTO sessionImage, ReviewImageRequest reviewImageRequest) {
+        return ReviewImage.create(
+                sessionImage.getImageId(),
+                sessionImage.getS3Key(),
+                sessionImage.getImageUrl(),
+                sessionImage.getFileSize(),
+                reviewImageRequest.order(),
+                reviewImageRequest.isMain()
+        );
     }
+
+    private Tooltip createTooltipFromRequest(TooltipRequest request) {
+        return Tooltip.create(
+                request.xPosition(),
+                request.yPosition(),
+                request.menuName(),
+                request.totalPrice(),
+                request.servingSize(),
+                request.rating(),
+                request.detailedReview()
+        );
+    }
+
 }

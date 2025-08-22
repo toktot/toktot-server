@@ -2,6 +2,7 @@ package com.toktot.domain.review;
 
 import com.toktot.domain.report.ReviewReport;
 import com.toktot.domain.restaurant.Restaurant;
+import com.toktot.domain.review.type.MealTime;
 import com.toktot.domain.user.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -34,7 +35,7 @@ public class Review {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "restaurant_id", nullable = false)
     private Restaurant restaurant;
 
@@ -42,9 +43,12 @@ public class Review {
     @Builder.Default
     private List<ReviewImage> images = new ArrayList<>();
 
-    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<ReviewKeyword> keywords = new ArrayList<>();
+    @Column(name = "meal_time", length = 20, nullable = false)
+    @Enumerated(EnumType.STRING)
+    private MealTime mealTime;
+
+    @Column(name = "value_for_money_score", nullable = false)
+    private Integer valueForMoneyScore;
 
     @CreatedDate
     @Column(nullable = false, updatable = false)
@@ -54,16 +58,23 @@ public class Review {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @Builder.Default
     @Column(name = "report_count", nullable = false)
     private Integer reportCount = 0;
 
+    @Builder.Default
     @Column(name = "is_hidden", nullable = false)
     private Boolean isHidden = false;
 
+    @Builder.Default
     @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReviewReport> reports = new ArrayList<>();
 
-    public static Review create(User user, Restaurant restaurant) {
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ReviewKeyword> keywords = new ArrayList<>();
+
+    public static Review create(User user, Restaurant restaurant, Integer valueForMoneyScore, MealTime mealTime) {
         return Review.builder()
                 .user(user)
                 .restaurant(restaurant)
@@ -71,6 +82,8 @@ public class Review {
                 .keywords(new ArrayList<>())
                 .isHidden(false)
                 .reportCount(0)
+                .valueForMoneyScore(valueForMoneyScore)
+                .mealTime(mealTime)
                 .build();
     }
 

@@ -34,6 +34,7 @@ public class UserMenuSubmission {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private SubmissionStatus status = SubmissionStatus.PENDING;
@@ -47,6 +48,7 @@ public class UserMenuSubmission {
     @Column(name = "reject_reason", columnDefinition = "TEXT")
     private String rejectReason;
 
+    @Builder.Default
     @Column(name = "reward_given", nullable = false)
     private Boolean rewardGiven = false;
 
