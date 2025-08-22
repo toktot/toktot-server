@@ -1,5 +1,7 @@
 package com.toktot.domain.review.service;
 
+import com.toktot.common.exception.ErrorCode;
+import com.toktot.common.exception.ToktotException;
 import com.toktot.domain.review.Review;
 import com.toktot.domain.review.ReviewKeyword;
 import com.toktot.domain.review.type.KeywordType;
@@ -16,48 +18,18 @@ import java.util.List;
 @Transactional
 public class ReviewKeywordService {
 
-    public void attachKeywords(Review review, List<KeywordType> keywordTypes) {
-        log.atInfo()
-                .setMessage("Starting keyword attachment process")
-                .addKeyValue("reviewId", review.getId())
-                .addKeyValue("keywordCount", keywordTypes.size())
-                .addKeyValue("keywordTypes", keywordTypes.toArray())
-                .log();
+    public void saveKeywordsInReview(Review review, List<KeywordType> keywordTypes) {
+        List<KeywordType> uniqueKeywordTypes = keywordTypes.stream()
+                .distinct()
+                .toList();
 
-        try {
-            // 키워드 타입 중복 제거
-            List<KeywordType> uniqueKeywordTypes = keywordTypes.stream()
-                    .distinct()
-                    .toList();
+        if (uniqueKeywordTypes.size() != keywordTypes.size()) {
+            throw new ToktotException(ErrorCode.INVALID_INPUT, "중복된 키워드가 존재합니다.");
+        }
 
-            if (uniqueKeywordTypes.size() != keywordTypes.size()) {
-                log.atDebug()
-                        .setMessage("Duplicate keywords removed")
-                        .addKeyValue("originalCount", keywordTypes.size())
-                        .addKeyValue("uniqueCount", uniqueKeywordTypes.size())
-                        .log();
-            }
-
-            for (KeywordType keywordType : uniqueKeywordTypes) {
-                ReviewKeyword reviewKeyword = ReviewKeyword.create(keywordType);
-                review.addKeyword(reviewKeyword);
-            }
-
-            log.atInfo()
-                    .setMessage("Keyword attachment completed successfully")
-                    .addKeyValue("reviewId", review.getId())
-                    .addKeyValue("attachedKeywords", uniqueKeywordTypes.size())
-                    .log();
-
-        } catch (Exception e) {
-            log.atError()
-                    .setMessage("Keyword attachment failed")
-                    .addKeyValue("reviewId", review.getId())
-                    .addKeyValue("keywordTypes", keywordTypes.toArray())
-                    .addKeyValue("error", e.getMessage())
-                    .setCause(e)
-                    .log();
-            throw new RuntimeException("키워드 연결에 실패했습니다.", e);
+        for (KeywordType keywordType : uniqueKeywordTypes) {
+            ReviewKeyword reviewKeyword = ReviewKeyword.create(keywordType);
+            review.addKeyword(reviewKeyword);
         }
     }
 
