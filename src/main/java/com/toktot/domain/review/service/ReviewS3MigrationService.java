@@ -30,13 +30,8 @@ public class ReviewS3MigrationService {
     private static final String REVIEWS_PREFIX = "reviews";
 
     public void migrateSessionImages(ReviewSessionDTO session, Long reviewId) {
-        log.atInfo()
-                .setMessage("Starting S3 image migration from temp to reviews")
-                .addKeyValue("userId", session.getUserId())
-                .addKeyValue("externalKakaoId", session.getExternalKakaoId())
-                .addKeyValue("reviewId", reviewId)
-                .addKeyValue("imageCount", session.getImages().size())
-                .log();
+        log.debug("S3 migration started - userId: {}, externalKakaoId: {}, reviewId: {}, imageCount: {}",
+                session.getUserId(), session.getExternalKakaoId(), reviewId, session.getImages().size());
 
         List<String> migratedKeys = new ArrayList<>();
         List<String> originalKeys = new ArrayList<>();
@@ -47,13 +42,8 @@ public class ReviewS3MigrationService {
                 String newKey = buildReviewImageKey(session.getExternalKakaoId(), reviewId,
                         imageDTO.getOrder(), imageDTO.getImageId());
 
-                log.atDebug()
-                        .setMessage("Migrating individual image")
-                        .addKeyValue("imageId", imageDTO.getImageId())
-                        .addKeyValue("originalKey", originalKey)
-                        .addKeyValue("newKey", newKey)
-                        .addKeyValue("order", imageDTO.getOrder())
-                        .log();
+                log.debug("Migrating image - imageId: {}, originalKey: {}, newKey: {}",
+                        imageDTO.getImageId(), originalKey, newKey);
 
                 copyS3Object(originalKey, newKey);
                 migratedKeys.add(newKey);
@@ -62,37 +52,16 @@ public class ReviewS3MigrationService {
                 String newUrl = buildImageUrl(newKey);
                 imageDTO.setS3Key(newKey);
                 imageDTO.setImageUrl(newUrl);
-
-                log.atDebug()
-                        .setMessage("Image migration completed")
-                        .addKeyValue("imageId", imageDTO.getImageId())
-                        .addKeyValue("newKey", newKey)
-                        .addKeyValue("newUrl", newUrl)
-                        .log();
             }
 
             deleteOriginalTempFiles(originalKeys);
 
-            log.atInfo()
-                    .setMessage("S3 image migration completed successfully")
-                    .addKeyValue("userId", session.getUserId())
-                    .addKeyValue("externalKakaoId", session.getExternalKakaoId())
-                    .addKeyValue("reviewId", reviewId)
-                    .addKeyValue("migratedImages", migratedKeys.size())
-                    .addKeyValue("deletedTempFiles", originalKeys.size())
-                    .log();
+            log.info("S3 migration completed - userId: {}, externalKakaoId: {}, reviewId: {}, migratedImages: {}",
+                    session.getUserId(), session.getExternalKakaoId(), reviewId, migratedKeys.size());
 
         } catch (Exception e) {
-            log.atError()
-                    .setMessage("S3 image migration failed - starting rollback")
-                    .addKeyValue("userId", session.getUserId())
-                    .addKeyValue("externalKakaoId", session.getExternalKakaoId())
-                    .addKeyValue("reviewId", reviewId)
-                    .addKeyValue("migratedCount", migratedKeys.size())
-                    .addKeyValue("totalImages", session.getImages().size())
-                    .addKeyValue("error", e.getMessage())
-                    .setCause(e)
-                    .log();
+            log.error("S3 migration failed - userId: {}, externalKakaoId: {}, reviewId: {}, error: {}",
+                    session.getUserId(), session.getExternalKakaoId(), reviewId, e.getMessage(), e);
 
             rollbackMigratedFiles(migratedKeys);
 
@@ -112,44 +81,22 @@ public class ReviewS3MigrationService {
 
             s3Client.copyObject(copyRequest);
 
-            log.atDebug()
-                    .setMessage("S3 object copied successfully")
-                    .addKeyValue("sourceKey", sourceKey)
-                    .addKeyValue("destinationKey", destinationKey)
-                    .addKeyValue("bucket", bucketName)
-                    .log();
+            log.debug("S3 object copied - source: {}, destination: {}", sourceKey, destinationKey);
 
         } catch (S3Exception e) {
-            log.atError()
-                    .setMessage("S3 object copy failed")
-                    .addKeyValue("sourceKey", sourceKey)
-                    .addKeyValue("destinationKey", destinationKey)
-                    .addKeyValue("bucket", bucketName)
-                    .addKeyValue("awsErrorCode", e.awsErrorDetails().errorCode())
-                    .addKeyValue("awsErrorMessage", e.awsErrorDetails().errorMessage())
-                    .addKeyValue("statusCode", e.statusCode())
-                    .setCause(e)
-                    .log();
+            log.error("S3 copy failed - source: {}, destination: {}, errorCode: {}, statusCode: {}",
+                    sourceKey, destinationKey, e.awsErrorDetails().errorCode(), e.statusCode(), e);
             throw e;
 
         } catch (Exception e) {
-            log.atError()
-                    .setMessage("S3 object copy failed - unexpected error")
-                    .addKeyValue("sourceKey", sourceKey)
-                    .addKeyValue("destinationKey", destinationKey)
-                    .addKeyValue("bucket", bucketName)
-                    .addKeyValue("error", e.getMessage())
-                    .setCause(e)
-                    .log();
+            log.error("S3 copy failed - source: {}, destination: {}, error: {}",
+                    sourceKey, destinationKey, e.getMessage(), e);
             throw e;
         }
     }
 
     private void deleteOriginalTempFiles(List<String> tempKeys) {
-        log.atInfo()
-                .setMessage("Deleting original temp files")
-                .addKeyValue("tempFileCount", tempKeys.size())
-                .log();
+        log.debug("Deleting temp files - count: {}", tempKeys.size());
 
         for (String tempKey : tempKeys) {
             try {
@@ -160,33 +107,18 @@ public class ReviewS3MigrationService {
 
                 s3Client.deleteObject(deleteRequest);
 
-                log.atDebug()
-                        .setMessage("Temp file deleted successfully")
-                        .addKeyValue("tempKey", tempKey)
-                        .addKeyValue("bucket", bucketName)
-                        .log();
+                log.debug("Temp file deleted - key: {}", tempKey);
 
             } catch (Exception e) {
-                log.atWarn()
-                        .setMessage("Failed to delete temp file - will be cleaned up by batch job")
-                        .addKeyValue("tempKey", tempKey)
-                        .addKeyValue("bucket", bucketName)
-                        .addKeyValue("error", e.getMessage())
-                        .log();
+                log.warn("Failed to delete temp file - key: {}, error: {}", tempKey, e.getMessage());
             }
         }
 
-        log.atInfo()
-                .setMessage("Original temp files deletion completed")
-                .addKeyValue("processedFiles", tempKeys.size())
-                .log();
+        log.debug("Temp files deletion completed - processed: {}", tempKeys.size());
     }
 
     private void rollbackMigratedFiles(List<String> migratedKeys) {
-        log.atWarn()
-                .setMessage("Starting rollback - deleting migrated files")
-                .addKeyValue("migratedFileCount", migratedKeys.size())
-                .log();
+        log.warn("Starting rollback - migratedFileCount: {}", migratedKeys.size());
 
         for (String migratedKey : migratedKeys) {
             try {
@@ -197,26 +129,14 @@ public class ReviewS3MigrationService {
 
                 s3Client.deleteObject(deleteRequest);
 
-                log.atDebug()
-                        .setMessage("Migrated file rolled back successfully")
-                        .addKeyValue("migratedKey", migratedKey)
-                        .addKeyValue("bucket", bucketName)
-                        .log();
+                log.debug("Migrated file rolled back - key: {}", migratedKey);
 
             } catch (Exception e) {
-                log.atError()
-                        .setMessage("Failed to rollback migrated file")
-                        .addKeyValue("migratedKey", migratedKey)
-                        .addKeyValue("bucket", bucketName)
-                        .addKeyValue("error", e.getMessage())
-                        .log();
+                log.error("Failed to rollback file - key: {}, error: {}", migratedKey, e.getMessage());
             }
         }
 
-        log.atWarn()
-                .setMessage("Rollback completed")
-                .addKeyValue("processedFiles", migratedKeys.size())
-                .log();
+        log.warn("Rollback completed - processed: {}", migratedKeys.size());
     }
 
     private String buildReviewImageKey(Long externalKakaoId, Long reviewId, int order, String imageId) {
@@ -224,14 +144,8 @@ public class ReviewS3MigrationService {
         String filename = String.format("%d_%s.%s", order, imageId, extension);
         String key = String.format("%s/%d/%d/%s", REVIEWS_PREFIX, externalKakaoId, reviewId, filename);
 
-        log.atTrace()
-                .setMessage("Built review image key")
-                .addKeyValue("externalKakaoId", externalKakaoId)
-                .addKeyValue("reviewId", reviewId)
-                .addKeyValue("order", order)
-                .addKeyValue("imageId", imageId)
-                .addKeyValue("key", key)
-                .log();
+        log.trace("Built review image key - externalKakaoId: {}, reviewId: {}, order: {}, key: {}",
+                externalKakaoId, reviewId, order, key);
 
         return key;
     }
@@ -246,13 +160,7 @@ public class ReviewS3MigrationService {
     private String buildImageUrl(String s3Key) {
         String imageUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, s3Key);
 
-        log.atTrace()
-                .setMessage("Built image URL")
-                .addKeyValue("s3Key", s3Key)
-                .addKeyValue("bucket", bucketName)
-                .addKeyValue("region", region)
-                .addKeyValue("imageUrl", imageUrl)
-                .log();
+        log.trace("Built image URL - s3Key: {}, url: {}", s3Key, imageUrl);
 
         return imageUrl;
     }
