@@ -17,8 +17,8 @@ public final class KakaoApiConstants {
 
     public static final String PARAM_QUERY = "query";
     public static final String PARAM_CATEGORY_GROUP_CODE = "category_group_code";
-    public static final String PARAM_X = "x";
-    public static final String PARAM_Y = "y";
+    public static final String PARAM_LONGITUDE = "x";
+    public static final String PARAM_LATITUDE = "y";
     public static final String PARAM_RADIUS = "radius";
     public static final String PARAM_PAGE = "page";
     public static final String PARAM_SIZE = "size";
