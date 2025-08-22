@@ -37,9 +37,11 @@ public class SearchLog {
     @Column(precision = 11, scale = 8)
     private BigDecimal longitude;
 
+    @Builder.Default
     @Column(nullable = false)
     private Integer radius = 1000;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "search_tab", nullable = false, length = 20)
     private SearchTab searchTab = SearchTab.RESTAURANTS;
@@ -48,6 +50,7 @@ public class SearchLog {
     @Column(name = "filter_keywords", columnDefinition = "json")
     private String filterKeywords;
 
+    @Builder.Default
     @Column(name = "filter_good_price", nullable = false)
     private Boolean filterGoodPrice = false;
 
@@ -68,13 +71,16 @@ public class SearchLog {
     @Column(name = "filter_meal_time", length = 20)
     private MealTime filterMealTime;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "sort_type", length = 20)
     private SortType sortType = SortType.DISTANCE;
 
+    @Builder.Default
     @Column(name = "result_count", nullable = false)
     private Integer resultCount = 0;
 
+    @Builder.Default
     @Column(name = "response_time_ms", nullable = false)
     private Integer responseTimeMs = 0;
 

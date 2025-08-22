@@ -33,6 +33,7 @@ public class RestaurantMenu {
     @Column
     private Integer price;
 
+    @Builder.Default
     @Column(name = "serving_size")
     private Integer servingSize = 1;
 
@@ -42,6 +43,7 @@ public class RestaurantMenu {
     @Column(length = 50)
     private String category;
 
+    @Builder.Default
     @Column(name = "is_local_food", nullable = false)
     private Boolean isLocalFood = false;
 
@@ -49,12 +51,15 @@ public class RestaurantMenu {
     @Column(name = "local_food_type", length = 50)
     private LocalFoodType localFoodType;
 
+    @Builder.Default
     @Column(name = "is_representative", nullable = false)
     private Boolean isRepresentative = false;
 
+    @Builder.Default
     @Column(name = "seasonal_available", nullable = false)
     private Boolean seasonalAvailable = true;
 
+    @Builder.Default
     @Column(name = "input_type", nullable = false, length = 20)
     private String inputType = "ADMIN";
 
@@ -64,9 +69,11 @@ public class RestaurantMenu {
     @Column(name = "menu_image_url", length = 500)
     private String menuImageUrl;
 
+    @Builder.Default
     @Column(name = "is_active", nullable = false)
-    private Boolean isActive = true;
+    private Boolean isActive = false;
 
+    @Builder.Default
     @Column(name = "is_verified", nullable = false)
     private Boolean isVerified = false;
 

@@ -54,12 +54,15 @@ public class Review {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @Builder.Default
     @Column(name = "report_count", nullable = false)
     private Integer reportCount = 0;
 
+    @Builder.Default
     @Column(name = "is_hidden", nullable = false)
     private Boolean isHidden = false;
 
+    @Builder.Default
     @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReviewReport> reports = new ArrayList<>();
 

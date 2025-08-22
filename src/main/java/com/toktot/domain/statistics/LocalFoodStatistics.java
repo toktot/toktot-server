@@ -23,9 +23,11 @@ public class LocalFoodStatistics {
     @Column(name = "food_type", length = 50)
     private LocalFoodType foodType;
 
+    @Builder.Default
     @Column(name = "review_count", nullable = false)
     private Integer reviewCount = 0;
 
+    @Builder.Default
     @Column(name = "restaurant_count", nullable = false)
     private Integer restaurantCount = 0;
 
@@ -38,12 +40,15 @@ public class LocalFoodStatistics {
     @Column(name = "max_price")
     private Integer maxPrice;
 
+    @Builder.Default
     @Column(name = "cheap_count", nullable = false)
     private Integer cheapCount = 0;
 
+    @Builder.Default
     @Column(name = "fair_count", nullable = false)
     private Integer fairCount = 0;
 
+    @Builder.Default
     @Column(name = "expensive_count", nullable = false)
     private Integer expensiveCount = 0;
 
