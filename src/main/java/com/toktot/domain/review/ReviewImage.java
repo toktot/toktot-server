@@ -42,6 +42,10 @@ public class ReviewImage {
     @Column(name = "image_order", nullable = false)
     private Integer imageOrder;
 
+    @Builder.Default
+    @Column(name = "is_main", nullable = false)
+    private Boolean isMain = false;
+
     @OneToMany(mappedBy = "reviewImage", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     @BatchSize(size = 20)
@@ -52,7 +56,7 @@ public class ReviewImage {
     private LocalDateTime createdAt;
 
     public static ReviewImage create(String imageId, String s3Key, String imageUrl,
-                                     Long fileSize, Integer imageOrder) {
+                                     Long fileSize, Integer imageOrder, Boolean isMain) {
         return ReviewImage.builder()
                 .imageId(imageId)
                 .s3Key(s3Key)
@@ -60,6 +64,7 @@ public class ReviewImage {
                 .fileSize(fileSize)
                 .imageOrder(imageOrder)
                 .tooltips(new ArrayList<>())
+                .isMain(isMain)
                 .build();
     }
 
