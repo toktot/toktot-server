@@ -23,6 +23,13 @@ public record RestaurantInfoResponse(
         @JsonProperty("average_rating")
         BigDecimal averageRating,
 
+        @JsonProperty("review_count")
+        Long reviewCount,
+
+        BigDecimal longitude,
+
+        BigDecimal latitude,
+
         @JsonProperty("is_good_price_store")
         Boolean isGoodPriceStore,
 
@@ -39,6 +46,8 @@ public record RestaurantInfoResponse(
                 .name(kakaoPlaceInfo.getPlaceName())
                 .address(extractCityAndDistrict(kakaoPlaceInfo.getAddressName()))
                 .distance(getDistance(kakaoPlaceInfo.getDistance()))
+                .longitude(kakaoPlaceInfo.getLongitude())
+                .latitude(kakaoPlaceInfo.getLatitude())
                 .build();
     }
 
