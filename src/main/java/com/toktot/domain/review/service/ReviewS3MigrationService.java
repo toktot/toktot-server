@@ -139,10 +139,10 @@ public class ReviewS3MigrationService {
         log.warn("Rollback completed - processed: {}", migratedKeys.size());
     }
 
-    private String buildReviewImageKey(Long externalKakaoId, Long reviewId, int order, String imageId) {
+    private String buildReviewImageKey(String externalKakaoId, Long reviewId, int order, String imageId) {
         String extension = extractExtension(imageId);
         String filename = String.format("%d_%s.%s", order, imageId, extension);
-        String key = String.format("%s/%d/%d/%s", REVIEWS_PREFIX, externalKakaoId, reviewId, filename);
+        String key = String.format("%s/%s/%d/%s", REVIEWS_PREFIX, externalKakaoId, reviewId, filename);
 
         log.trace("Built review image key - externalKakaoId: {}, reviewId: {}, order: {}, key: {}",
                 externalKakaoId, reviewId, order, key);

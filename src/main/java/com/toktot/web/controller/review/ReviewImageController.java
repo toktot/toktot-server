@@ -30,7 +30,7 @@ public class ReviewImageController {
     @PostMapping
     public ResponseEntity<ApiResponse<ImageUploadResponse>> uploadImages(
             @RequestParam("files") MultipartFile[] files,
-            @RequestParam("external_kakao_id") Long externalKakaoId,
+            @RequestParam("external_kakao_id") String externalKakaoId,
             @AuthenticationPrincipal User user
     ) {
         log.debug("Image upload request - userId: {}, externalKakaoId: {}, fileCount: {}",
@@ -54,7 +54,7 @@ public class ReviewImageController {
     @DeleteMapping("/{imageId}")
     public ResponseEntity<ApiResponse<SessionInfoResponse>> deleteImage(
             @PathVariable String imageId,
-            @RequestParam("external_kakao_id") Long externalKakaoId,
+            @RequestParam("external_kakao_id") String externalKakaoId,
             @AuthenticationPrincipal User user
     ) {
         log.debug("Image delete request - userId: {}, externalKakaoId: {}, imageId: {}",
@@ -75,7 +75,7 @@ public class ReviewImageController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<SessionInfoResponse>> getCurrentSession(
-            @RequestParam("external_kakao_id") Long externalKakaoId,
+            @RequestParam("external_kakao_id") String externalKakaoId,
             @AuthenticationPrincipal User user
     ) {
         log.debug("Session info request - userId: {}, externalKakaoId: {}",
@@ -91,7 +91,7 @@ public class ReviewImageController {
 
     @DeleteMapping
     public ResponseEntity<ApiResponse<String>> clearSession(
-            @RequestParam("external_kakao_id") Long externalKakaoId,
+            @RequestParam("external_kakao_id") String externalKakaoId,
             @AuthenticationPrincipal User user
     ) {
         log.debug("Session clear request - userId: {}, externalKakaoId: {}",
@@ -110,7 +110,7 @@ public class ReviewImageController {
         return ResponseEntity.ok(ApiResponse.success("세션이 초기화되었습니다.", "cleared"));
     }
 
-    private void validateUploadRequest(MultipartFile[] files, Long externalKakaoId) {
+    private void validateUploadRequest(MultipartFile[] files, String externalKakaoId) {
         if (files == null || files.length == 0) {
             log.debug("Upload validation failed - no files, externalKakaoId: {}", externalKakaoId);
             throw new ToktotException(ErrorCode.MISSING_REQUIRED_FIELD, "업로드할 파일을 선택해주세요.");
@@ -133,7 +133,7 @@ public class ReviewImageController {
         }
     }
 
-    private void validateDeleteRequest(String imageId, Long externalKakaoId) {
+    private void validateDeleteRequest(String imageId, String externalKakaoId) {
         if (imageId == null || imageId.trim().isEmpty()) {
             log.debug("Delete validation failed - missing imageId, externalKakaoId: {}", externalKakaoId);
             throw new ToktotException(ErrorCode.MISSING_REQUIRED_FIELD, "삭제할 이미지 ID가 필요합니다.");
@@ -141,9 +141,9 @@ public class ReviewImageController {
         validateExternalKakaoId(externalKakaoId);
     }
 
-    private void validateExternalKakaoId(Long externalKakaoId) {
-        if (externalKakaoId == null || externalKakaoId <= 0) {
-            log.debug("ExternalKakaoId validation failed: {}", externalKakaoId);
+    private void validateExternalKakaoId(String externalKakaoId) {
+        if (externalKakaoId == null) {
+            log.debug("ExternalKakaoId is null");
             throw new ToktotException(ErrorCode.INVALID_INPUT, "올바른 음식점 ID가 필요합니다.");
         }
     }

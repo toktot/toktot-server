@@ -36,7 +36,6 @@ public class TourApiMapper {
         }
 
         return Restaurant.builder()
-                .externalTourApiId(dto.contentId())
                 .name(cleanString(dto.title()))
                 .category(mapCategory(dto.category2(), dto.category3()))
                 .address(normalizeAddress(dto.address1(), dto.address2()))

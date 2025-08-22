@@ -23,7 +23,7 @@ public class Restaurant {
     private Long id;
 
     @Column(name = "external_tour_api_id", length = 50)
-    private String externalTourApiId;
+    private Long externalTourApiId;
 
     @Column(name = "external_kakao_id", length = 100)
     private String externalKakaoId;
@@ -49,6 +49,7 @@ public class Restaurant {
     @Column(length = 20)
     private String phone;
 
+    @Builder.Default
     @Column(name = "is_good_price_store", nullable = false)
     private Boolean isGoodPriceStore = false;
 
@@ -65,6 +66,7 @@ public class Restaurant {
     @Column(name = "search_count", nullable = false)
     private Integer searchCount = 0;
 
+    @UpdateTimestamp
     @Column(name = "last_synced_at")
     private LocalDateTime lastSyncedAt;
 

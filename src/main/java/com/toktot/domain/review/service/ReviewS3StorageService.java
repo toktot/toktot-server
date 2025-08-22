@@ -28,11 +28,11 @@ public class ReviewS3StorageService {
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     private static final String[] ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png"};
 
-    public S3UploadResult uploadTempImage(MultipartFile file, Long userId, Long externalKakaoId) {
+    public S3UploadResult uploadTempImage(MultipartFile file, Long userId, String externalKakaoId) {
         validateFile(file);
 
         String imageId = UUID.randomUUID().toString();
-        String s3Key = String.format("temp/%d/%d/%s.%s",
+        String s3Key = String.format("temp/%d/%s/%s.%s",
                 userId, externalKakaoId, imageId, getFileExtension(file.getOriginalFilename()));
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
