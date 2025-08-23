@@ -34,9 +34,7 @@ public class KakaoMapService {
 
     public KakaoPlaceSearchResponse searchJejuAllFoodAndCafePlace(RestaurantSearchRequest request) {
         String endpoint = kakaoApiProperties.getBaseUrl() + KakaoApiConstants.KEYWORD_ENDPOINT;
-        String apiKey = kakaoApiProperties.getApiKey();
-        log.info("kakaoApiProperties.getApiKey()={}",
-                apiKey != null ? apiKey.substring(0, Math.min(4, apiKey.length())) + "****" : "null");
+
         try {
             String url = UriComponentsBuilder
                     .fromUriString(kakaoApiProperties.getBaseUrl())
@@ -101,8 +99,12 @@ public class KakaoMapService {
 
     private HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
-        headers.set(KakaoApiConstants.HEADER_AUTHORIZATION,
-                KakaoApiConstants.HEADER_AUTH_PREFIX + kakaoApiProperties.getApiKey());
+        String apiKey = kakaoApiProperties.getApiKey();
+        String authHeader = KakaoApiConstants.HEADER_AUTH_PREFIX + apiKey;
+
+        log.info("Authorization header={}", authHeader);
+
+        headers.set(KakaoApiConstants.HEADER_AUTHORIZATION, authHeader);
         headers.set(KakaoApiConstants.HEADER_CONTENT_TYPE, KakaoApiConstants.CONTENT_TYPE_JSON);
         return headers;
     }
