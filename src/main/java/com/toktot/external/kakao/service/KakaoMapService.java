@@ -34,7 +34,9 @@ public class KakaoMapService {
 
     public KakaoPlaceSearchResponse searchJejuAllFoodAndCafePlace(RestaurantSearchRequest request) {
         String endpoint = kakaoApiProperties.getBaseUrl() + KakaoApiConstants.KEYWORD_ENDPOINT;
-
+        String apiKey = kakaoApiProperties.getApiKey();
+        log.info("kakaoApiProperties.getApiKey()={}",
+                apiKey != null ? apiKey.substring(0, Math.min(4, apiKey.length())) + "****" : "null");
         try {
             String url = UriComponentsBuilder
                     .fromUriString(kakaoApiProperties.getBaseUrl())
