@@ -85,6 +85,8 @@ jobs:
             AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
             AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
             S3_BUCKET_NAME="${{ secrets.S3_BUCKET_NAME }}" \
+            KAKAO_REST_API_KEY="${{ secrets.KAKAO_REST_API_KEY }}" \
+            TOUR_API_SERVICE_KEY="${{ secrets.TOUR_API_SERVICE_KEY }}" \
             docker-compose up -d
 
             echo "⏳ 서버 시작 대기 중..."
