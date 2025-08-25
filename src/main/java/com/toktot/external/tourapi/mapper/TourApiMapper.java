@@ -43,6 +43,7 @@ public class TourApiMapper {
                 .longitude(longitude)
                 .phone(cleanPhoneNumber(dto.phoneNumber()))
                 .dataSource(DataSource.TOUR_API)
+                .externalTourApiId(dto.contentId())
                 .isActive(true)
                 .isGoodPriceStore(false)
                 .searchCount(0)
@@ -66,14 +67,14 @@ public class TourApiMapper {
             BigDecimal value = new BigDecimal(coordinate);
 
             if ("latitude".equals(type)) {
-                if (value.compareTo(new BigDecimal("33.0")) < 0 ||
-                        value.compareTo(new BigDecimal("33.8")) > 0) {
+                if (value.compareTo(new BigDecimal("32.5")) < 0 ||
+                        value.compareTo(new BigDecimal("34.0")) > 0) {
                     log.debug("제주도 범위를 벗어난 위도: {}", value);
                     return null;
                 }
             } else if ("longitude".equals(type)) {
-                if (value.compareTo(new BigDecimal("126.0")) < 0 ||
-                        value.compareTo(new BigDecimal("127.0")) > 0) {
+                if (value.compareTo(new BigDecimal("125.5")) < 0 ||
+                        value.compareTo(new BigDecimal("127.5")) > 0) {
                     log.debug("제주도 범위를 벗어난 경도: {}", value);
                     return null;
                 }

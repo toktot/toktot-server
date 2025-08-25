@@ -1,16 +1,12 @@
 package com.toktot.external.tourapi;
 
 import com.toktot.domain.restaurant.Restaurant;
-import com.toktot.external.tourapi.dto.BatchResult;
-import com.toktot.external.tourapi.dto.TourApiItemsWrapper;
-import com.toktot.external.tourapi.dto.TourApiResponse;
-import com.toktot.external.tourapi.dto.TourApiRestaurant;
+import com.toktot.external.tourapi.dto.*;
 import com.toktot.external.tourapi.mapper.TourApiMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,142 +19,144 @@ public class TourApiService {
     private final TourApiMapper tourApiMapper;
     private final TourApiSyncService tourApiSyncService;
 
-    public BatchResult collectAllJejuRestaurants() {
-        log.info("제주 음식점 데이터 수집 시작");
+    private static final int PROGRESS_LOG_INTERVAL = 100;
+    private static final int API_CALL_DELAY_MS = 100;
 
-        LocalDateTime startTime = LocalDateTime.now();
-        int totalProcessed = 0;
-        int successCount = 0;
-        int failureCount = 0;
-        int skipCount = 0;
-        List<String> failedContentIds = new ArrayList<>();
-        String errorMessage = null;
+    public BatchResult collectAllJejuRestaurants() {
+        BatchResultBuilder resultBuilder = new BatchResultBuilder();
 
         try {
-            int pageNo = 1;
-            boolean hasMoreData = true;
+            processAllPages(resultBuilder);
+            return resultBuilder.build();
+        } catch (Exception e) {
+            log.error("데이터 수집 중 치명적 오류", e);
+            return resultBuilder.buildWithError("전체 수집 실패: " + e.getMessage());
+        }
+    }
 
-            while (hasMoreData) {
-                log.info("=== 페이지 {} 처리 시작 ===", pageNo);
+    private void processAllPages(BatchResultBuilder resultBuilder) {
+        int pageNo = 1;
+        boolean hasMoreData = true;
 
-                try {
-                    TourApiResponse<TourApiItemsWrapper> response = tourApiClient.getAllJejuRestaurants(pageNo);
+        while (hasMoreData) {
+            try {
+                log.debug("페이지 {} 처리 시작", pageNo);
 
-                    if (response == null || response.response() == null || response.response().body() == null) {
-                        log.warn("페이지 {}에서 빈 응답 수신", pageNo);
-                        break;
-                    }
-
-                    if (response.response().header() != null) {
-                        log.info("API 응답 헤더 - resultCode: {}, resultMsg: {}",
-                                response.response().header().resultCode(),
-                                response.response().header().resultMsg());
-                    }
-
-                    if (response.response().body() != null) {
-                        Integer totalCount = response.response().body().totalCount();
-                        Integer numOfRows = response.response().body().numOfRows();
-                        Integer currentPageNo = response.response().body().pageNo();
-
-                        log.info("API 응답 바디 - totalCount: {}, numOfRows: {}, pageNo: {}",
-                                totalCount, numOfRows, currentPageNo);
-                    }
-
-                    TourApiItemsWrapper itemsWrapper = response.response().body().items();
-                    if (itemsWrapper == null) {
-                        log.info("페이지 {}에서 items가 null. 수집 완료", pageNo);
-                        hasMoreData = false;
-                        continue;
-                    }
-
-                    if (itemsWrapper.item() == null || itemsWrapper.item().isEmpty()) {
-                        log.info("페이지 {}에서 더 이상 데이터가 없음. 수집 완료", pageNo);
-                        hasMoreData = false;
-                        continue;
-                    }
-
-                    List<TourApiRestaurant> restaurants = itemsWrapper.item();
-                    log.info("페이지 {}에서 {}개 매장 데이터 수신", pageNo, restaurants.size());
-
-                    for (TourApiRestaurant tourApiRestaurant : restaurants) {
-                        totalProcessed++;
-
-                        log.debug("처리 중인 매장: contentId={}, title={}, lat={}, lng={}",
-                                tourApiRestaurant.contentId(),
-                                tourApiRestaurant.title(),
-                                tourApiRestaurant.latitude(),
-                                tourApiRestaurant.longitude());
-
-                        try {
-                            Restaurant restaurant = tourApiMapper.toRestaurant(tourApiRestaurant);
-
-                            if (restaurant == null) {
-                                skipCount++;
-                                log.warn("매장 데이터 스킵 (매퍼에서 null 반환): contentId={}, title={}",
-                                        tourApiRestaurant.contentId(), tourApiRestaurant.title());
-                                continue;
-                            }
-
-                            tourApiSyncService.saveOrUpdateRestaurant(restaurant);
-                            successCount++;
-
-                            if (successCount % 50 == 0) {
-                                log.info("진행 상황: {}개 성공, {}개 실패, {}개 스킵",
-                                        successCount, failureCount, skipCount);
-                            }
-
-                        } catch (Exception e) {
-                            failureCount++;
-                            failedContentIds.add(tourApiRestaurant.contentId());
-                            log.error("매장 저장 실패: contentId={}, title={}, error={}",
-                                    tourApiRestaurant.contentId(), tourApiRestaurant.title(), e.getMessage());
-                        }
-                    }
-
-                    Integer totalCount = response.response().body().totalCount();
-                    if (totalCount != null && totalProcessed >= totalCount) {
-                        hasMoreData = false;
-                        log.info("전체 데이터 수집 완료: 총 {}개 중 {}개 처리", totalCount, totalProcessed);
-                    } else {
-                        pageNo++;
-                        log.debug("다음 페이지로 진행: pageNo={}, 현재까지 처리: {}/{}",
-                                pageNo, totalProcessed, totalCount);
-                    }
-
-                } catch (Exception e) {
-                    log.error("페이지 {} 처리 중 오류 발생: {}", pageNo, e.getMessage());
-                    errorMessage = "페이지 " + pageNo + " 처리 실패: " + e.getMessage();
+                TourApiResponse<TourApiItemsWrapper> response = fetchPageData(pageNo);
+                if (response == null) {
+                    log.warn("페이지 {}에서 null 응답", pageNo);
                     break;
                 }
-            }
 
-        } catch (Exception e) {
-            log.error("데이터 수집 중 전체 오류 발생", e);
-            errorMessage = "전체 수집 실패: " + e.getMessage();
+                List<TourApiRestaurant> restaurants = extractRestaurants(response);
+                if (restaurants.isEmpty()) {
+                    log.debug("페이지 {}에서 데이터 없음", pageNo);
+                    hasMoreData = false;
+                    continue;
+                }
+
+                processRestaurantsInPage(restaurants, resultBuilder);
+
+                if (isCollectionComplete(response, resultBuilder.getTotalProcessed())) {
+                    hasMoreData = false;
+                    log.debug("데이터 수집 완료: {}개 처리", resultBuilder.getTotalProcessed());
+                } else {
+                    pageNo++;
+                    addApiCallDelay();
+                }
+
+            } catch (Exception e) {
+                log.error("페이지 {} 처리 실패: {}", pageNo, e.getMessage());
+                resultBuilder.setError("페이지 " + pageNo + " 처리 실패: " + e.getMessage());
+                break;
+            }
+        }
+    }
+
+    private TourApiResponse<TourApiItemsWrapper> fetchPageData(int pageNo) {
+        return tourApiClient.getAllJejuRestaurants(pageNo);
+    }
+
+    private List<TourApiRestaurant> extractRestaurants(TourApiResponse<TourApiItemsWrapper> response) {
+        if (response.response() == null ||
+                response.response().body() == null ||
+                response.response().body().items() == null ||
+                response.response().body().items().item() == null) {
+            return new ArrayList<>();
         }
 
-        LocalDateTime endTime = LocalDateTime.now();
+        List<TourApiRestaurant> restaurants = response.response().body().items().item();
+        log.debug("페이지에서 {}개 매장 수신", restaurants.size());
+        return restaurants;
+    }
 
-        BatchResult result = new BatchResult(
-                totalProcessed,
-                successCount,
-                failureCount,
-                skipCount,
-                failedContentIds,
-                startTime,
-                endTime,
-                errorMessage,
-                errorMessage == null
-        );
+    private void processRestaurantsInPage(List<TourApiRestaurant> restaurants, BatchResultBuilder resultBuilder) {
+        for (TourApiRestaurant tourApiRestaurant : restaurants) {
+            processSingleRestaurant(tourApiRestaurant, resultBuilder);
 
-        log.info("제주 음식점 데이터 수집 완료 - 처리: {}, 성공: {}, 실패: {}, 스킵: {}",
-                totalProcessed, successCount, failureCount, skipCount);
+            if (resultBuilder.getSuccessCount() % PROGRESS_LOG_INTERVAL == 0) {
+                log.info("진행률: {}개 성공", resultBuilder.getSuccessCount());
+            }
+        }
+    }
 
-        return result;
+    private void processSingleRestaurant(TourApiRestaurant tourApiRestaurant, BatchResultBuilder resultBuilder) {
+        resultBuilder.incrementTotal();
+
+        try {
+            Restaurant restaurant = tourApiMapper.toRestaurant(tourApiRestaurant);
+
+            if (restaurant == null) {
+                resultBuilder.incrementSkipped();
+                resultBuilder.addFailedContentId(tourApiRestaurant.contentId());
+                log.debug("매장 스킵: contentId={}", tourApiRestaurant.contentId());
+                return;
+            }
+
+            tourApiSyncService.saveOrUpdateRestaurant(restaurant);
+            resultBuilder.incrementSuccess();
+
+        } catch (Exception e) {
+            resultBuilder.incrementFailed();
+            resultBuilder.addFailedContentId(tourApiRestaurant.contentId());
+            log.error("매장 저장 실패: contentId={}, error={}",
+                    tourApiRestaurant.contentId(), e.getMessage());
+        }
+    }
+
+    private boolean isCollectionComplete(TourApiResponse<TourApiItemsWrapper> response, int totalProcessed) {
+        if (response.response() == null || response.response().body() == null) {
+            return true;
+        }
+
+        Integer totalCount = response.response().body().totalCount();
+        return totalCount != null && totalProcessed >= totalCount;
+    }
+
+    private void addApiCallDelay() {
+        try {
+            Thread.sleep(API_CALL_DELAY_MS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("API 호출 지연 중 인터럽트");
+        }
     }
 
     public TourApiResponse<TourApiItemsWrapper> getRestaurantsByPage(int pageNo) {
-        log.info("페이지 {} 데이터 조회", pageNo);
-        return tourApiClient.getAllJejuRestaurants(pageNo);
+        log.debug("페이지 {} 조회 요청", pageNo);
+
+        try {
+            TourApiResponse<TourApiItemsWrapper> response = tourApiClient.getAllJejuRestaurants(pageNo);
+
+            if (response != null && response.response() != null && response.response().body() != null) {
+                int itemCount = extractRestaurants(response).size();
+                log.debug("페이지 {} 조회 완료: {}개", pageNo, itemCount);
+            }
+
+            return response;
+        } catch (Exception e) {
+            log.error("페이지 {} 조회 실패: {}", pageNo, e.getMessage());
+            throw new RuntimeException("페이지 조회 실패", e);
+        }
     }
 }
