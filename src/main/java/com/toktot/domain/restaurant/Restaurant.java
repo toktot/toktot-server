@@ -23,7 +23,7 @@ public class Restaurant {
     private Long id;
 
     @Column(name = "external_tour_api_id", length = 50)
-    private Long externalTourApiId;
+    private String externalTourApiId;
 
     @Column(name = "external_kakao_id", length = 100)
     private String externalKakaoId;
