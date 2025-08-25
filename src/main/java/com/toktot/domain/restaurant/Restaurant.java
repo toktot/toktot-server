@@ -124,4 +124,9 @@ public class Restaurant {
     public void updateSyncTime() {
         this.lastSyncedAt = LocalDateTime.now();
     }
+
+    public void updateKakaoId(String kakaoId) {
+        this.externalKakaoId = kakaoId;
+        this.lastSyncedAt = LocalDateTime.now();
+    }
 }
