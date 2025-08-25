@@ -46,6 +46,7 @@ public class Restaurant {
     @Column(precision = 11, scale = 8, nullable = false)
     private BigDecimal longitude;
 
+    @Setter
     @Column(length = 20)
     private String phone;
 
@@ -84,8 +85,13 @@ public class Restaurant {
     @Column(length = 500)
     private String website;
 
-    @Column(name = "business_hours", columnDefinition = "TEXT")
+    @Setter
+    @Column(name = "business_hours")
     private String businessHours;
+
+    @Setter
+    @Column(name = "popular_menus")
+    private String popularMenus;
 
     public void updateFromTourApiData(Restaurant newData) {
         if (newData == null) {
