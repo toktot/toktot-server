@@ -7,6 +7,7 @@ import com.toktot.external.tourapi.dto.BatchResult;
 import com.toktot.external.tourapi.dto.TourApiItemsWrapper;
 import com.toktot.external.tourapi.dto.TourApiResponse;
 import com.toktot.external.tourapi.service.TourApiDetailIntroService;
+import com.toktot.external.tourapi.service.TourApiImageService;
 import com.toktot.web.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ public class TourApiSyncController {
     private final TourApiService tourApiService;
     private final TourApiSyncService tourApiSyncService;
     private final TourApiDetailIntroService tourApiDetailIntroService;
+    private final TourApiImageService tourApiImageService;
 
     @PostMapping("/sync")
     public ResponseEntity<ApiResponse<BatchResult>> syncAllRestaurants() {
@@ -62,6 +64,26 @@ public class TourApiSyncController {
 
         } catch (Exception e) {
             log.error("상세정보 동기화 중 예외 발생", e);
+            return ResponseEntity.ok(ApiResponse.error(ErrorCode.EXTERNAL_SERVICE_ERROR));
+        }
+    }
+
+    @PostMapping("/images")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> syncImages() {
+        log.info("TourAPI 이미지 동기화 요청");
+
+        try {
+            int successCount = tourApiImageService.syncAllRestaurantsImages();
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("successCount", successCount);
+            result.put("syncedAt", LocalDateTime.now());
+            result.put("dataType", "DETAIL_IMAGE");
+
+            return ResponseEntity.ok(ApiResponse.success(result));
+
+        } catch (Exception e) {
+            log.error("이미지 동기화 중 예외 발생", e);
             return ResponseEntity.ok(ApiResponse.error(ErrorCode.EXTERNAL_SERVICE_ERROR));
         }
     }
