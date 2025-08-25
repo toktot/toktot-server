@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toktot.external.tourapi.config.TourApiProperties;
+import com.toktot.external.tourapi.dto.TourApiDetailImageWrapper;
 import com.toktot.external.tourapi.dto.TourApiResponse;
 import com.toktot.external.tourapi.dto.TourApiItemsWrapper;
 import com.toktot.external.tourapi.exception.TourApiRateLimitException;
@@ -148,6 +149,105 @@ public class TourApiClient {
 
         } catch (Exception e) {
             log.error("DetailIntro API JSON 파싱 실패: contentId={}, error={}", contentId, e.getMessage());
+            return null;
+        }
+    }
+
+    public TourApiResponse<TourApiDetailImageWrapper> getRestaurantImages(String contentId) {
+        log.info("DetailImage API 호출: contentId={}", contentId);
+
+        if (contentId == null || contentId.trim().isEmpty()) {
+            log.warn("contentId가 비어있음");
+            return null;
+        }
+
+        String encodedKey = URLEncoder.encode(properties.getServiceKey(), StandardCharsets.UTF_8);
+        String url = buildDetailImageUrl(encodedKey, contentId);
+        long startTime = System.currentTimeMillis();
+
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofMillis(properties.getReadTimeout()))
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            long responseTime = System.currentTimeMillis() - startTime;
+
+            log.debug("DetailImage API 응답: status={}, responseTime={}ms", response.statusCode(), responseTime);
+
+            if (response.statusCode() == 200) {
+                return processDetailImageResponse(response.body(), responseTime, contentId);
+            } else {
+                log.error("DetailImage API HTTP 오류: status={}, body={}", response.statusCode(), response.body());
+            }
+            return null;
+
+        } catch (Exception e) {
+            log.error("DetailImage API 호출 예외: contentId={}, error={}", contentId, e.getMessage());
+            return null;
+        }
+    }
+
+    private String buildDetailImageUrl(String encodedKey, String contentId) {
+        return new StringBuilder(properties.getBaseUrl())
+                .append("/detailImage2")
+                .append("?serviceKey=").append(encodedKey)
+                .append("&MobileOS=ETC")
+                .append("&MobileApp=AppTest")
+                .append("&_type=json")
+                .append("&contentId=").append(contentId)
+                .append("&imageYN=Y")
+                .append("&numOfRows=10")
+                .append("&pageNo=1")
+                .toString();
+    }
+
+    private TourApiResponse<TourApiDetailImageWrapper> processDetailImageResponse(String responseBody, long responseTime, String contentId) {
+        try {
+            if (responseBody == null || responseBody.trim().isEmpty()) {
+                log.warn("DetailImage API 빈 응답: contentId={}", contentId);
+                return null;
+            }
+
+            JsonNode rootNode = objectMapper.readTree(responseBody);
+            JsonNode responseNode = rootNode.get("response");
+
+            if (responseNode != null) {
+                JsonNode headerNode = responseNode.get("header");
+                if (headerNode != null) {
+                    String resultCode = headerNode.get("resultCode").asText();
+                    String resultMsg = headerNode.get("resultMsg").asText();
+                    log.debug("DetailImage API 헤더: resultCode={}, resultMsg={}", resultCode, resultMsg);
+                }
+            }
+
+            TourApiResponse<TourApiDetailImageWrapper> apiResponse = objectMapper.readValue(
+                    responseBody,
+                    objectMapper.getTypeFactory().constructParametricType(
+                            TourApiResponse.class,
+                            TourApiDetailImageWrapper.class
+                    )
+            );
+
+            if (apiResponse != null && apiResponse.response() != null && apiResponse.response().header() != null) {
+                String resultCode = apiResponse.response().header().resultCode();
+
+                if ("0000".equals(resultCode)) {
+                    log.info("DetailImage API 호출 성공: contentId={}, responseTime={}ms", contentId, responseTime);
+                    return apiResponse;
+                } else {
+                    log.warn("DetailImage API 오류 응답: contentId={}, resultCode={}", contentId, resultCode);
+                }
+            } else {
+                log.warn("DetailImage API 응답 구조 오류: contentId={}", contentId);
+            }
+
+            return null;
+
+        } catch (Exception e) {
+            log.error("DetailImage API JSON 파싱 실패: contentId={}, error={}", contentId, e.getMessage());
             return null;
         }
     }
