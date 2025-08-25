@@ -75,6 +75,7 @@ public class Restaurant {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Setter
     @Column(name = "image", length = 500)
     private String image;
 
@@ -123,5 +124,4 @@ public class Restaurant {
     public void updateSyncTime() {
         this.lastSyncedAt = LocalDateTime.now();
     }
-
 }

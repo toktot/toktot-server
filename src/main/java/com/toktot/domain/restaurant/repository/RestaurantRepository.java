@@ -16,4 +16,7 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
     long countByDataSource(DataSource dataSource);
 
     List<Restaurant> findAllByDataSource(DataSource dataSource);
+
+    List<Restaurant> findAllByDataSourceAndIsActive(DataSource dataSource, Boolean isActive);
+
 }
