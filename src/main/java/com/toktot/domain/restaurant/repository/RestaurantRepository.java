@@ -24,4 +24,6 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
             BigDecimal minLat, BigDecimal maxLat,
             BigDecimal minLon, BigDecimal maxLon
     );
+
+    List<Restaurant> findByExternalKakaoIdIsNull();
 }

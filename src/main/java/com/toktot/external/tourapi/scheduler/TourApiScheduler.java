@@ -1,5 +1,6 @@
 package com.toktot.external.tourapi.scheduler;
 
+import com.toktot.domain.restaurant.service.RestaurantMatchService;
 import com.toktot.external.tourapi.TourApiService;
 import com.toktot.external.tourapi.dto.BatchResult;
 import com.toktot.external.tourapi.service.TourApiDetailIntroService;
@@ -22,6 +23,7 @@ public class TourApiScheduler {
     private final TourApiService tourApiService;
     private final TourApiDetailIntroService tourApiDetailIntroService;
     private final TourApiImageService tourApiImageService;
+    private final RestaurantMatchService restaurantMatchService;
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Scheduled(cron = "0 0 2 * * *", zone = "Asia/Seoul")
@@ -88,7 +90,7 @@ public class TourApiScheduler {
         }
     }
 
-    @Scheduled(cron = "0 0 4 * * *")
+    @Scheduled(cron = "0 0 4 * * *", zone = "Asia/Seoul")
     public void syncRestaurantImages() {
         log.info("=== TourAPI 이미지 동기화 스케줄러 시작 ===");
 
@@ -98,6 +100,25 @@ public class TourApiScheduler {
 
         } catch (Exception e) {
             log.error("=== TourAPI 이미지 동기화 실패 ===", e);
+        }
+    }
+
+    @Scheduled(cron = "0 0 5 * * *", zone = "Asia/Seoul")
+    public void addExternalKakaoIdInTourApiRestaurant() {
+        String startTime = LocalDateTime.now().format(FORMATTER);
+        log.info("TourAPI 카카오 ID 매칭 배치 스케줄러 시작 - {}", startTime);
+
+        try {
+            restaurantMatchService.addExternalKakaoIdInTourApiRestaurant();
+
+            String endTime = LocalDateTime.now().format(FORMATTER);
+            log.info("TourAPI 카카오 ID 매칭 배치 스케줄러 완료 - {}", endTime);
+
+        } catch (Exception e) {
+            String errorTime = LocalDateTime.now().format(FORMATTER);
+            log.error("TourAPI 카카오 ID 매칭 배치 스케줄러 예외 발생 - {} - {}",
+                    errorTime, e.getMessage(), e);
+            sendFailureNotification("카카오 ID 매칭 배치", "배치 작업 예외: " + e.getMessage());
         }
     }
 

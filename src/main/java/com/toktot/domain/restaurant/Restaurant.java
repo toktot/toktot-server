@@ -25,6 +25,7 @@ public class Restaurant {
     @Column(name = "external_tour_api_id", length = 50)
     private String externalTourApiId;
 
+    @Setter
     @Column(name = "external_kakao_id", length = 100)
     private String externalKakaoId;
 
@@ -60,6 +61,7 @@ public class Restaurant {
     private DataSource dataSource = DataSource.USER_CREATED;
 
     @Builder.Default
+    @Setter
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 

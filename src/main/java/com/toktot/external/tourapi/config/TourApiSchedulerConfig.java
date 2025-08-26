@@ -73,6 +73,7 @@ public class TourApiSchedulerConfig {
             log.info("예정된 배치 작업: TourAPI 기본정보 동기화: 매일 새벽 2시 (cron: '0 0 2 * * *')");
             log.info("예정된 배치 작업: TourAPI DetailIntro 동기화: 매일 새벽 3시 (cron: '0 0 3 * * *')");
             log.info("예정된 배치 작업: TourAPI 이미지 동기화: 매일 새벽 4시 (cron: '0 0 4 * * *')");
+            log.info("예정된 배치 작업: TourAPI & Kakao ID 동기화: 매일 새벽 5시 (cron: '0 0 5 * * *')");
         }
     }
 }
