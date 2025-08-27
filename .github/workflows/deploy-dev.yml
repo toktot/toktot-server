@@ -45,7 +45,7 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/toktot:dev
             ${{ secrets.DOCKERHUB_USERNAME }}/toktot:dev-${{ github.sha }}
 
-      - name: EC2 배포 및 SQL 스크립트 실행
+      - name: EC2 배포 및 헬스체크
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -55,25 +55,34 @@ jobs:
             echo "🚀 Dev 서버 배포 시작..."
             cd toktot-server
             
+            # Git 저장소 상태 확인
+            if [ ! -d ".git" ]; then
+              echo "❌ Git 저장소를 찾을 수 없습니다!"
+              exit 1
+            fi
+            
             # 로컬 브랜치를 dev로 강제 체크아웃하고 origin/dev 기준으로 리셋
-            git fetch origin
-            git checkout -B dev origin/dev
+            git fetch origin || { echo "❌ Git fetch 실패!"; exit 1; }
+            git checkout -B dev origin/dev || { echo "❌ Git checkout 실패!"; exit 1; }
 
             # 필요한 디렉토리 생성
-            mkdir -p nginx/conf.d
-            mkdir -p certbot/www
-            mkdir -p certbot/conf
+            mkdir -p nginx/conf.d certbot/www certbot/conf
 
             # 최신 이미지 pull
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/toktot:dev
+            echo "📥 최신 Docker 이미지 다운로드 중..."
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/toktot:dev || { 
+              echo "❌ Docker 이미지 pull 실패!"; exit 1; 
+            }
 
-            # 기존 컨테이너 중지
-            docker-compose down || true
+            # 기존 컨테이너 중지 (안전하게)
+            echo "🛑 기존 컨테이너 중지 중..."
+            docker-compose down || echo "⚠️ 기존 컨테이너 없음 (정상)"
 
             # 사용하지 않는 이미지 정리
-            docker image prune -f
+            docker image prune -f || echo "⚠️ 이미지 정리 실패 (계속 진행)"
 
-            # ⭐ 환경변수와 함께 docker-compose 실행 ⭐
+            # 환경변수와 함께 docker-compose 실행
+            echo "🚀 Docker Compose 실행 중..."
             DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" \
             POSTGRES_PASSWORD="${{ secrets.DB_PASSWORD }}" \
             JWT_SECRET="${{ secrets.JWT_SECRET }}" \
@@ -89,96 +98,104 @@ jobs:
             TOUR_API_SERVICE_KEY="${{ secrets.TOUR_API_SERVICE_KEY }}" \
             docker-compose up -d
 
-            echo "⏳ 서버 시작 대기 중..."
-            sleep 45
-
-            # 환경변수 전달 확인
-            echo "🔍 컨테이너 환경변수 확인:"
-            docker exec toktot-dev-app env | grep -E "(AWS|S3|JWT)" | head -5 || echo "환경변수 확인 실패"
-
-            # 컨테이너 상태 확인
-            echo "📊 컨테이너 상태:"
+            # 컨테이너 시작 확인
+            echo "📊 컨테이너 상태 확인:"
             docker-compose ps
-
-            # nginx 헬스체크
-            echo "🔍 Nginx 헬스체크 실행..."
-            if curl -f http://localhost/health; then
-              echo "✅ Nginx 정상 동작 확인!"
-            else
-              echo "❌ Nginx 헬스체크 실패! 로그:"
-              docker-compose logs --tail=20 nginx
-            fi
-
-            # 애플리케이션 헬스체크 (nginx를 통해)
-            echo "🔍 애플리케이션 헬스체크 실행..."
-            if curl -f http://localhost/actuator/health; then
-              echo "✅ 애플리케이션 헬스체크 성공!"
-            else
-              echo "❌ 애플리케이션 헬스체크 실패! 로그:"
-              docker-compose logs --tail=50 app
+            
+            # 컨테이너가 실행 중인지 확인
+            if ! docker-compose ps | grep -q "Up"; then
+              echo "❌ 컨테이너 실행 실패!"
+              echo "🔍 로그 확인:"
+              docker-compose logs --tail=20
               exit 1
             fi
 
-            # ⭐ 최적화된 SQL 스크립트 실행 부분 ⭐
-            echo "🗃️ SQL 스크립트 실행 시작..."
+            # 서버 준비 대기 (헬스체크 기반)
+            echo "⏳ 서버 준비 대기 중..."
+            max_wait=120
+            wait_time=0
             
-            # PostgreSQL 연결 빠른 확인 (최대 3번만 시도)
-            echo "🔍 PostgreSQL 연결 상태 확인..."
-            max_attempts=3
-            attempt=1
-            while [ $attempt -le $max_attempts ]; do
-              if docker exec toktot-dev-db pg_isready -U toktot_user -d toktot_dev > /dev/null 2>&1; then
-                echo "✅ PostgreSQL 연결 확인 완료!"
+            while [ $wait_time -lt $max_wait ]; do
+              if curl -f http://localhost/actuator/health > /dev/null 2>&1; then
+                echo "✅ 서버 준비 완료! (${wait_time}초 소요)"
                 break
               fi
-              echo "⏳ PostgreSQL 연결 재시도... ($attempt/$max_attempts)"
-              sleep 1
-              attempt=$((attempt + 1))
+            
+              if [ $wait_time -gt 60 ]; then
+                echo "⏳ 서버 시작 중... (${wait_time}초 경과)"
+                # 중간 체크: 컨테이너 상태
+                docker-compose ps | grep -E "(app|nginx)" || echo "⚠️ 컨테이너 상태 이상"
+              fi
+            
+              sleep 5
+              wait_time=$((wait_time + 5))
             done
             
-            if [ $attempt -gt $max_attempts ]; then
-              echo "❌ PostgreSQL 연결 실패! 헬스체크는 성공했지만 DB 연결에 문제가 있습니다."
-              docker-compose logs --tail=10 postgres
+            if [ $wait_time -ge $max_wait ]; then
+              echo "❌ 서버 시작 타임아웃 (${max_wait}초)"
+              echo "🔍 애플리케이션 로그:"
+              docker-compose logs --tail=30 app || echo "앱 로그 확인 불가"
+              exit 1
+            fi
+
+            # 환경변수 전달 확인 (중요한 변수들만)
+            echo "🔍 필수 환경변수 확인:"
+            env_check_passed=true
+            
+            if docker-compose exec -T app env | grep -q "AWS_ACCESS_KEY_ID"; then
+              echo "✅ AWS 설정 확인됨"
+            else
+              echo "❌ AWS 환경변수 누락!"
+              env_check_passed=false
+            fi
+            
+            if docker-compose exec -T app env | grep -q "JWT_SECRET"; then
+              echo "✅ JWT 설정 확인됨"
+            else
+              echo "❌ JWT 환경변수 누락!"
+              env_check_passed=false
+            fi
+            
+            if [ "$env_check_passed" = false ]; then
+              echo "❌ 필수 환경변수 누락으로 배포 실패!"
+              exit 1
+            fi
+
+            # Nginx 헬스체크
+            echo "🔍 Nginx 헬스체크 실행..."
+            if curl -f http://localhost/health > /dev/null 2>&1; then
+              echo "✅ Nginx 정상 동작 확인!"
+            else
+              echo "❌ Nginx 헬스체크 실패!"
+              echo "🔍 Nginx 로그:"
+              docker-compose logs --tail=20 nginx || echo "Nginx 로그 확인 불가"
+              # Nginx 실패해도 애플리케이션은 확인
+            fi
+
+            # 애플리케이션 최종 헬스체크
+            echo "🔍 애플리케이션 최종 헬스체크..."
+            if curl -f http://localhost/actuator/health > /dev/null 2>&1; then
+              echo "✅ 애플리케이션 헬스체크 성공!"
+            
+              # 추가 엔드포인트 확인
+              if curl -f http://localhost/actuator/info > /dev/null 2>&1; then
+                echo "✅ 애플리케이션 정보 엔드포인트 정상!"
+              fi
+            
+            else
+              echo "❌ 애플리케이션 헬스체크 실패!"
+              echo "🔍 애플리케이션 로그 (최근 50줄):"
+              docker-compose logs --tail=50 app || echo "앱 로그 확인 불가"
               exit 1
             fi
             
-            # data 폴더의 SQL 스크립트 파일 확인
-            echo "📁 SQL 스크립트 파일 확인:"
-            if ls src/main/resources/data/*.sql 1> /dev/null 2>&1; then
-              echo "✅ SQL 파일들을 찾았습니다:"
-              ls -la src/main/resources/data/*.sql
-            else
-              echo "⚠️ SQL 파일을 찾을 수 없습니다."
-              echo "🎉 Dev 서버 배포 완료 (SQL 스크립트 없음)!"
-              exit 0
-            fi
-            
-            # SQL 스크립트 실행 (파일명 순서대로)
-            sql_executed=false
-            for sql_file in src/main/resources/data/*.sql; do
-              if [ -f "$sql_file" ]; then
-                echo "📄 실행 중: $(basename $sql_file)"
-                if docker exec -i toktot-dev-db psql -U toktot_user -d toktot_dev < "$sql_file"; then
-                  echo "✅ $(basename $sql_file) 실행 성공"
-                  sql_executed=true
-                else
-                  echo "❌ $(basename $sql_file) 실행 실패"
-                  # 실패한 스크립트 로그 확인
-                  echo "🔍 PostgreSQL 로그 확인:"
-                  docker-compose logs --tail=5 postgres
-                  # 실패해도 다른 스크립트는 계속 실행
-                fi
-              fi
-            done
-            
-            if [ "$sql_executed" = true ]; then
-              echo "✅ SQL 스크립트 실행 완료!"
-            else
-              echo "⚠️ 실행할 SQL 스크립트가 없습니다."
-            fi
-            
-            # 최종 데이터베이스 상태 확인
-            echo "🔍 데이터베이스 테이블 확인:"
-            docker exec toktot-dev-db psql -U toktot_user -d toktot_dev -c "\dt" || echo "테이블 조회 실패"
-            
-            echo "🎉 Dev 서버 배포 및 SQL 스크립트 실행 완료!"
+            # 배포 성공 알림
+            echo ""
+            echo "🎉 ================================"
+            echo "🎉 Dev 서버 배포 성공!"
+            echo "🎉 ================================"
+            echo "📍 서버: ${{ secrets.EC2_HOST }}"
+            echo "🔗 헬스체크: http://${{ secrets.EC2_HOST }}/actuator/health"
+            echo "📝 커밋: ${{ github.sha }}"
+            echo "🕐 배포 시간: $(date)"
+            echo "================================"
