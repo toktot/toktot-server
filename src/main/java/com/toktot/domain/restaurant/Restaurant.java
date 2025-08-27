@@ -1,6 +1,7 @@
 package com.toktot.domain.restaurant;
 
 import com.toktot.domain.restaurant.type.DataSource;
+import com.toktot.external.kakao.dto.response.KakaoPlaceInfo;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -25,6 +26,7 @@ public class Restaurant {
     @Column(name = "external_tour_api_id", length = 50)
     private String externalTourApiId;
 
+    @Setter
     @Column(name = "external_kakao_id", length = 100)
     private String externalKakaoId;
 
@@ -60,6 +62,7 @@ public class Restaurant {
     private DataSource dataSource = DataSource.USER_CREATED;
 
     @Builder.Default
+    @Setter
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
@@ -121,12 +124,14 @@ public class Restaurant {
                 !Objects.equals(this.category, newData.getCategory());
     }
 
-    public void updateSyncTime() {
-        this.lastSyncedAt = LocalDateTime.now();
-    }
-
-    public void updateKakaoId(String kakaoId) {
-        this.externalKakaoId = kakaoId;
-        this.lastSyncedAt = LocalDateTime.now();
+    public void updateKakaoData(KakaoPlaceInfo k) {
+        this.externalKakaoId = k.getId();
+        this.category = k.getCategoryGroupName();
+        this.phone = k.getPhone();
+        this.address = k.getAddressName();
+        this.roadAddress = k.getRoadAddressName();
+        this.latitude = k.getLatitude();
+        this.longitude = k.getLongitude();
+        this.website = k.getPlaceUrl();
     }
 }

@@ -1,16 +1,17 @@
 package com.toktot.external.kakao.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.toktot.external.kakao.KakaoApiConstants;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import com.toktot.domain.restaurant.Restaurant;
+import com.toktot.domain.restaurant.type.DataSource;
+import lombok.*;
 
 import java.math.BigDecimal;
 
+@Builder
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
 public class KakaoPlaceInfo {
 
     @JsonProperty("id")
@@ -65,19 +66,18 @@ public class KakaoPlaceInfo {
         }
     }
 
-    public boolean hasValidCoordinates() {
-        return getLongitude() != null && getLatitude() != null;
-    }
-
-    public boolean isFoodCategory() {
-        return categoryGroupCode != null &&
-                (categoryGroupCode.equals(KakaoApiConstants.CATEGORY_FOOD) || categoryGroupCode.equals(KakaoApiConstants.CATEGORY_CAFE));
-    }
-
-    public String getMainCategory() {
-        if (categoryName == null) return null;
-        String[] categories = categoryName.split(" > ");
-        return categories.length > 0 ? categories[0].trim() : null;
+    public Restaurant toEntity() {
+        return Restaurant.builder()
+                .externalKakaoId(id)
+                .name(placeName)
+                .category(categoryGroupName)
+                .address(roadAddressName)
+                .latitude(getLatitude())
+                .longitude(getLongitude())
+                .phone(phone)
+                .dataSource(DataSource.KAKAO)
+                .website(placeUrl)
+                .build();
     }
 
 }
