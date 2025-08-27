@@ -17,10 +17,7 @@ public record KakaoPlaceSearchResponse(
         KakaoMeta meta,
 
         @JsonProperty("current_page")
-        Integer currentPage,
-
-        @JsonProperty("is_end")
-        Boolean isEnd
+        Integer currentPage
 ) {
 
     public KakaoPlaceSearchResponse mergeWithPreviousResults(KakaoPlaceSearchResponse beforeResponse) {
@@ -39,8 +36,7 @@ public record KakaoPlaceSearchResponse(
         return new KakaoPlaceSearchResponse(
                 mergedPlaceInfos,
                 this.meta,
-                this.currentPage,
-                this.isEnd
+                this.currentPage
         );
     }
 
@@ -50,11 +46,11 @@ public record KakaoPlaceSearchResponse(
                         KakaoApiConstants.CATEGORY_CAFE.equals(place.getCategoryGroupCode()))
                 .toList();
 
-        return new KakaoPlaceSearchResponse(filteredPlaces, meta, 0, null);
+        return new KakaoPlaceSearchResponse(filteredPlaces, meta, 0);
     }
 
-    public boolean hasResults() {
-        return placeInfos != null && !placeInfos.isEmpty();
+    public boolean isEnd() {
+        return meta.isEnd();
     }
 
     public int getResultCount() {

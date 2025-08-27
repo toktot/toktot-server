@@ -2,10 +2,8 @@ package com.toktot.external.kakao.service;
 
 import com.toktot.common.exception.ErrorCode;
 import com.toktot.common.exception.ToktotException;
-import com.toktot.domain.restaurant.Restaurant;
 import com.toktot.external.kakao.KakaoApiConstants;
 import com.toktot.external.kakao.KakaoApiProperties;
-import com.toktot.external.kakao.dto.request.RestaurantSearchRequest;
 import com.toktot.external.kakao.dto.response.KakaoPlaceSearchResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,15 +30,15 @@ public class KakaoMapService {
 
     private final KakaoApiProperties kakaoApiProperties;
 
-    public KakaoPlaceSearchResponse searchJejuAllFoodAndCafePlace(RestaurantSearchRequest request) {
+    public KakaoPlaceSearchResponse searchJejuAllFoodAndCafePlace(String query, Integer page) {
         String endpoint = kakaoApiProperties.getBaseUrl() + KakaoApiConstants.KEYWORD_ENDPOINT;
 
         try {
             String url = UriComponentsBuilder
                     .fromUriString(kakaoApiProperties.getBaseUrl())
                     .path(KakaoApiConstants.KEYWORD_ENDPOINT)
-                    .queryParam(KakaoApiConstants.PARAM_QUERY, request.query())
-                    .queryParam(KakaoApiConstants.PARAM_PAGE, request.page())
+                    .queryParam(KakaoApiConstants.PARAM_QUERY, query)
+                    .queryParam(KakaoApiConstants.PARAM_PAGE, page)
                     .queryParam(KakaoApiConstants.PARAM_SIZE, KakaoApiConstants.DEFAULT_SIZE)
                     .queryParam(KakaoApiConstants.PARAM_RECT, KakaoApiConstants.JEJU_RECT)
                     .build()
@@ -74,6 +72,36 @@ public class KakaoMapService {
                     .queryParam(KakaoApiConstants.PARAM_QUERY, placeName)
                     .queryParam(KakaoApiConstants.PARAM_LONGITUDE, longitude.toString())
                     .queryParam(KakaoApiConstants.PARAM_LATITUDE, latitude.toString())
+                    .queryParam(KakaoApiConstants.PARAM_RADIUS, 10)
+                    .build()
+                    .toString();
+
+            HttpEntity<Void> entity = new HttpEntity<>(createHeaders());
+
+            ResponseEntity<KakaoPlaceSearchResponse> responseEntity = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    new ParameterizedTypeReference<>() {
+                    });
+
+            KakaoPlaceSearchResponse response = responseEntity.getBody();
+
+            log.info(
+                    KakaoApiConstants.LOG_API_CALL_SUCCESS,
+                    response != null ? response.getResultCount() : 0);
+            return response.filterFoodAndCafe();
+        } catch (Exception e) {
+            throw new ToktotException(ErrorCode.RESTAURANT_NOT_FOUND);
+        }
+    }
+
+    public KakaoPlaceSearchResponse searchRestaurantAddress(String address) {
+        try {
+            String url = UriComponentsBuilder
+                    .fromUriString(kakaoApiProperties.getBaseUrl())
+                    .path(KakaoApiConstants.KEYWORD_ENDPOINT)
+                    .queryParam(KakaoApiConstants.PARAM_QUERY, address)
                     .build()
                     .toString();
 
