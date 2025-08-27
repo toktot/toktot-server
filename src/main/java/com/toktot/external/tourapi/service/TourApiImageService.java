@@ -3,7 +3,6 @@ package com.toktot.external.tourapi.service;
 import com.toktot.domain.restaurant.Restaurant;
 import com.toktot.domain.restaurant.repository.RestaurantRepository;
 import com.toktot.domain.restaurant.type.DataSource;
-import com.toktot.external.tourapi.TourApiClient;
 import com.toktot.external.tourapi.dto.TourApiDetailImage;
 import com.toktot.external.tourapi.dto.TourApiDetailImageWrapper;
 import com.toktot.external.tourapi.dto.TourApiResponse;

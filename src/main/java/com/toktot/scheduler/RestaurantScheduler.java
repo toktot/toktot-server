@@ -1,4 +1,4 @@
-package com.toktot.external.tourapi.scheduler;
+package com.toktot.scheduler;
 
 import com.toktot.domain.restaurant.service.RestaurantMatchService;
 import com.toktot.external.tourapi.TourApiService;
@@ -18,7 +18,7 @@ import java.time.format.DateTimeFormatter;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class TourApiScheduler {
+public class RestaurantScheduler {
 
     private final TourApiService tourApiService;
     private final TourApiDetailIntroService tourApiDetailIntroService;
@@ -28,40 +28,17 @@ public class TourApiScheduler {
 
     @Scheduled(cron = "0 0 2 * * *", zone = "Asia/Seoul")
     @Async
-    public void scheduledTourApiSync() {
-        String startTime = LocalDateTime.now().format(FORMATTER);
-        log.info("TourAPI 기본정보 배치 동기화 시작 - {}", startTime);
+    public void scheduledBaseData() {
+        log.info("TourAPI 기본정보 배치 동기화 시작");
 
         try {
-            BatchResult result = tourApiService.collectAllJejuRestaurants();
-
-            String endTime = LocalDateTime.now().format(FORMATTER);
-            Duration duration = Duration.between(result.startTime(), result.endTime());
-
-            if (result.isCompleted()) {
-                log.info("TourAPI 기본정보 배치 동기화 완료 - {}", endTime);
-                log.info("처리 결과: 성공 {}개, 실패 {}개, 스킵 {}개",
-                        result.successCount(), result.failureCount(), result.skipCount());
-                log.info("소요시간: {}분 {}초",
-                        duration.toMinutes(), duration.getSeconds() % 60);
-
-                if (result.successCount() > 0) {
-                    sendSuccessNotification("기본정보", result);
-                }
-            } else {
-                log.error("TourAPI 기본정보 배치 동기화 실패 - {}", endTime);
-                log.error("오류 내용: {}", result.errorMessage());
-                sendFailureNotification("기본정보 동기화", result.errorMessage());
-            }
-
+            tourApiService.findRestaurantsInJeju();
         } catch (Exception e) {
-            String errorTime = LocalDateTime.now().format(FORMATTER);
-            log.error("TourAPI 기본정보 배치 동기화 예외 발생 - {} - {}", errorTime, e.getMessage(), e);
-            sendFailureNotification("기본정보 배치", "배치 작업 예외: " + e.getMessage());
+            log.error("TourAPI 기본정보 배치 동기화 예외 발생 - {}", e.getMessage(), e);
         }
     }
 
-    @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 20 2 * * *", zone = "Asia/Seoul")
     @Async
     public void scheduledDetailIntroSync() {
         String startTime = LocalDateTime.now().format(FORMATTER);
@@ -90,7 +67,7 @@ public class TourApiScheduler {
         }
     }
 
-    @Scheduled(cron = "0 0 4 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 40 2 * * *", zone = "Asia/Seoul")
     public void syncRestaurantImages() {
         log.info("=== TourAPI 이미지 동기화 스케줄러 시작 ===");
 
@@ -103,22 +80,22 @@ public class TourApiScheduler {
         }
     }
 
-    @Scheduled(cron = "0 0 5 * * *", zone = "Asia/Seoul")
-    public void addExternalKakaoIdInTourApiRestaurant() {
+    @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Seoul")
+    public void syncKakaoAndTourApiData() {
         String startTime = LocalDateTime.now().format(FORMATTER);
-        log.info("TourAPI 카카오 ID 매칭 배치 스케줄러 시작 - {}", startTime);
+        log.info("TourAPI & 카카오 매칭 배치 스케줄러 시작 - {}", startTime);
 
         try {
             restaurantMatchService.addExternalKakaoIdInTourApiRestaurant();
 
             String endTime = LocalDateTime.now().format(FORMATTER);
-            log.info("TourAPI 카카오 ID 매칭 배치 스케줄러 완료 - {}", endTime);
+            log.info("TourAPI & 카카오 ID 매칭 배치 스케줄러 완료 - {}", endTime);
 
         } catch (Exception e) {
             String errorTime = LocalDateTime.now().format(FORMATTER);
-            log.error("TourAPI 카카오 ID 매칭 배치 스케줄러 예외 발생 - {} - {}",
+            log.error("TourAPI & 카카오 ID 매칭 배치 스케줄러 예외 발생 - {} - {}",
                     errorTime, e.getMessage(), e);
-            sendFailureNotification("카카오 ID 매칭 배치", "배치 작업 예외: " + e.getMessage());
+            sendFailureNotification("카카오 매칭 배치", "배치 작업 예외: " + e.getMessage());
         }
     }
 

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toktot.domain.restaurant.Restaurant;
 import com.toktot.domain.restaurant.repository.RestaurantRepository;
 import com.toktot.domain.restaurant.type.DataSource;
-import com.toktot.external.tourapi.TourApiClient;
 import com.toktot.external.tourapi.dto.TourApiDetailIntro;
 import com.toktot.external.tourapi.dto.TourApiResponse;
 import com.toktot.external.tourapi.mapper.TourApiDetailIntroWrapper;
@@ -59,8 +58,6 @@ public class TourApiDetailIntroService {
                     log.debug("전화번호 설정: {}", detailIntro.infoCenterFood().trim());
                 }
             }
-
-            restaurant.updateSyncTime();
 
         } catch (Exception e) {
             log.error("필드 업데이트 실패", e);
