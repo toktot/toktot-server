@@ -2,20 +2,16 @@ package com.toktot.web.controller.restaurant;
 
 import com.toktot.common.exception.ErrorCode;
 import com.toktot.domain.restaurant.service.RestaurantMatchService;
-import com.toktot.external.tourapi.TourApiService;
-import com.toktot.external.tourapi.TourApiSyncService;
-import com.toktot.external.tourapi.dto.BatchResult;
-import com.toktot.external.tourapi.dto.TourApiItemsWrapper;
-import com.toktot.external.tourapi.dto.TourApiResponse;
+import com.toktot.external.tourapi.service.TourApiService;
+import com.toktot.external.tourapi.service.TourApiSyncService;
 import com.toktot.external.tourapi.service.TourApiDetailIntroService;
 import com.toktot.external.tourapi.service.TourApiImageService;
 import com.toktot.web.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.coyote.Response;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.time.Duration;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;

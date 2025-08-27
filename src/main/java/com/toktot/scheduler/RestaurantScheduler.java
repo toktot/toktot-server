@@ -1,7 +1,7 @@
 package com.toktot.scheduler;
 
 import com.toktot.domain.restaurant.service.RestaurantMatchService;
-import com.toktot.external.tourapi.TourApiService;
+import com.toktot.external.tourapi.service.TourApiService;
 import com.toktot.external.tourapi.dto.BatchResult;
 import com.toktot.external.tourapi.service.TourApiDetailIntroService;
 import com.toktot.external.tourapi.service.TourApiImageService;

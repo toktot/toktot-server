@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toktot.common.exception.ErrorCode;
 import com.toktot.common.exception.ToktotException;
-import com.toktot.external.tourapi.TourApiConstants;
+import com.toktot.external.tourapi.dto.TourApiConstants;
 import com.toktot.external.tourapi.config.TourApiProperties;
 import com.toktot.external.tourapi.dto.TourApiDetailImageWrapper;
 import com.toktot.external.tourapi.dto.TourApiItemsWrapper;

@@ -1,4 +1,4 @@
-package com.toktot.external.tourapi;
+package com.toktot.external.tourapi.service;
 
 import com.toktot.domain.restaurant.Restaurant;
 import com.toktot.domain.restaurant.repository.RestaurantRepository;
