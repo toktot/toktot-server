@@ -1,8 +1,10 @@
 package com.toktot.web.controller.restaurant;
 
+import com.toktot.domain.restaurant.service.RestaurantSearchService;
 import com.toktot.domain.review.service.RestaurantReviewService;
 import com.toktot.domain.user.User;
 import com.toktot.web.dto.ApiResponse;
+import com.toktot.web.dto.restaurant.response.RestaurantDetailResponse;
 import com.toktot.web.dto.review.response.ReviewResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +22,16 @@ import org.springframework.web.bind.annotation.*;
 public class RestaurantDetailController {
 
     private final RestaurantReviewService restaurantReviewService;
+    private final RestaurantSearchService restaurantSearchService;
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<RestaurantDetailResponse>> getRestaurantDetail(
+            @PathVariable @Positive Long restaurantId) {
+        log.info("get: restaurant detail - restaurants.id = {}", restaurantId);
+
+        RestaurantDetailResponse response = restaurantSearchService.searchRestaurantDetail(restaurantId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 
     @GetMapping("/reviews")
     public ResponseEntity<ApiResponse<Page<ReviewResponse>>> getRestaurantReviews(
