@@ -16,6 +16,11 @@ public record RestaurantSearchResponse(
         @JsonProperty("is_end")
         Boolean is_end
 ) {
+
+    public static RestaurantSearchResponse from(List<RestaurantInfoResponse> places, Integer currentPage, Boolean is_end) {
+        return new RestaurantSearchResponse(places, currentPage, is_end);
+    }
+
     public static RestaurantSearchResponse from(KakaoPlaceSearchResponse response, Integer page) {
         return RestaurantSearchResponse.builder()
                 .places(response.getPlaceInfos()

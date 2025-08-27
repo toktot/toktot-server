@@ -1,6 +1,7 @@
 package com.toktot.web.dto.restaurant.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.toktot.domain.restaurant.Restaurant;
 import com.toktot.external.kakao.dto.response.KakaoPlaceInfo;
 import lombok.Builder;
 import org.springframework.util.StringUtils;
@@ -39,6 +40,19 @@ public record RestaurantInfoResponse(
         Integer point,
         Integer percent
 ) {
+    public static RestaurantInfoResponse from(Restaurant entity, KakaoPlaceInfo kakaoPlaceInfo) {
+        return RestaurantInfoResponse.builder()
+                .id(entity.getId())
+                .externalKakaoId(entity.getExternalKakaoId())
+                .name(entity.getName())
+                .address(extractCityAndDistrict(kakaoPlaceInfo.getAddressName()))
+                .distance(getDistance(kakaoPlaceInfo.getDistance()))
+                .mainMenus(entity.getPopularMenus())
+                .longitude(entity.getLongitude())
+                .latitude(entity.getLatitude())
+                .image(entity.getImage())
+                .build();
+    }
 
     public static RestaurantInfoResponse from(KakaoPlaceInfo kakaoPlaceInfo) {
         return RestaurantInfoResponse.builder()
