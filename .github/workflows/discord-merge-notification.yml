@@ -8,23 +8,44 @@ on:
     branches: [ dev ]
 
 jobs:
-  notify-merge:
-    if: github.event_name == 'push' || (github.event.pull_request.merged == true)
+  notify-push:
+    if: github.event_name == 'push' && !contains(github.event.head_commit.message, 'Merge pull request')
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Discord 머지 알림
+      - name: Discord 직접 푸시 알림
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: "🎉 TokTot Dev 브랜치 업데이트"
+          title: "🚀 TokTot Dev push"
           description: |
             브랜치: ${{ github.ref_name }}
-            커밋: ${{ github.event.head_commit.message || github.event.pull_request.title }}
-            시간: ${{ github.event.head_commit.timestamp || github.event.pull_request.merged_at }}
+            커밋: ${{ github.event.head_commit.message }}
+            작성자: ${{ github.event.head_commit.author.name }}
+            시간: ${{ github.event.head_commit.timestamp }}
+          username: "TokTot Bot"
+          avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
 
+  notify-merge:
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Discord PR 머지 알림
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          title: "🎉 TokTot PR merge"
+          description: |
+            PR 제목: ${{ github.event.pull_request.title }}
+            브랜치: ${{ github.event.pull_request.head.ref }} → ${{ github.event.pull_request.base.ref }}
+            작성자: ${{ github.event.pull_request.user.login }}
+            머지 시간: ${{ github.event.pull_request.merged_at }}
           username: "TokTot Bot"
           avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
