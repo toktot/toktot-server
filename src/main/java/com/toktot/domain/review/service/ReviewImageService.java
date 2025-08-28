@@ -31,15 +31,13 @@ public class ReviewImageService {
 
     private static final int MAX_IMAGES = 5;
 
-    public List<ReviewImageDTO> uploadImages(List<MultipartFile> files, Long userId, String externalKakaoId) {
-        validateUploadRequest(files);
-
+    public List<ReviewImageDTO> uploadImages(List<MultipartFile> files, Long userId, Long restaurantId) {
         List<ReviewImageDTO> uploadedImages = new ArrayList<>();
         List<String> uploadedS3Keys = new ArrayList<>();
 
         for (MultipartFile file : files) {
             ReviewS3StorageService.S3UploadResult uploadResult =
-                    reviewS3StorageService.uploadTempImage(file, userId, externalKakaoId);
+                    reviewS3StorageService.uploadTempImage(file, userId, restaurantId);
 
             ReviewImageDTO imageDTO = ReviewImageDTO.create(
                     uploadResult.getImageId(),
@@ -49,7 +47,7 @@ public class ReviewImageService {
                     0
             );
 
-            boolean added = reviewSessionService.tryAddImageToSession(userId, externalKakaoId, imageDTO);
+            boolean added = reviewSessionService.tryAddImageToSession(userId, restaurantId, imageDTO);
             if (!added) {
                 reviewS3StorageService.deleteTempImage(uploadResult.getS3Key());
                 throw new ToktotException(ErrorCode.OPERATION_NOT_ALLOWED, "이미지는 최대 " + MAX_IMAGES + "개까지만 업로드 가능합니다.");
@@ -59,13 +57,13 @@ public class ReviewImageService {
             uploadedS3Keys.add(uploadResult.getS3Key());
         }
 
-        log.info("Image upload completed - userId: {}, externalKakaoId: {}, count: {}",
-                userId, externalKakaoId, uploadedImages.size());
+        log.info("Image upload completed - user.id: {}, restaurant.id: {}, count: {}",
+                userId, restaurantId, uploadedImages.size());
         return uploadedImages;
     }
 
-    public void deleteImage(String imageId, Long userId, String externalKakaoId) {
-        ReviewSessionDTO session = reviewSessionService.getSession(userId, externalKakaoId)
+    public void deleteImage(String imageId, Long userId, Long restaurantId) {
+        ReviewSessionDTO session = reviewSessionService.getSession(userId, restaurantId)
                 .orElseThrow(() -> new ToktotException(ErrorCode.RESOURCE_NOT_FOUND, "세션을 찾을 수 없습니다."));
 
         ReviewImageDTO imageToDelete = session.getImages().stream()
@@ -74,17 +72,17 @@ public class ReviewImageService {
                 .orElseThrow(() -> new ToktotException(ErrorCode.RESOURCE_NOT_FOUND, "삭제할 이미지를 찾을 수 없습니다."));
 
         reviewS3StorageService.deleteTempImage(imageToDelete.getS3Key());
-        reviewSessionService.removeImageFromSession(userId, externalKakaoId, imageId);
+        reviewSessionService.removeImageFromSession(userId, restaurantId, imageId);
 
     }
 
-    public ReviewSessionDTO getCurrentSession(Long userId, String externalKakaoId) {
-        return reviewSessionService.getSession(userId, externalKakaoId)
-                .orElse(ReviewSessionDTO.create(userId, externalKakaoId));
+    public ReviewSessionDTO getCurrentSession(Long userId, Long restaurantId) {
+        return reviewSessionService.getSession(userId, restaurantId)
+                .orElse(ReviewSessionDTO.create(userId, restaurantId));
     }
 
-    public void clearSession(Long userId, String externalKakaoId) {
-        ReviewSessionDTO session = reviewSessionService.getSession(userId, externalKakaoId)
+    public void clearSession(Long userId, Long restaurantId) {
+        ReviewSessionDTO session = reviewSessionService.getSession(userId, restaurantId)
                 .orElse(null);
 
         if (session != null && session.getImages() != null) {
@@ -97,20 +95,8 @@ public class ReviewImageService {
             }
         }
 
-        reviewSessionService.deleteSession(userId, externalKakaoId);
-        log.info("Session cleared - userId: {}, externalKakaoId: {}", userId, externalKakaoId);
-    }
-
-    private void validateUploadRequest(List<MultipartFile> files) {
-        if (files == null || files.isEmpty()) {
-            throw new ToktotException(ErrorCode.MISSING_REQUIRED_FIELD, "업로드할 파일이 없습니다.");
-        }
-
-        for (MultipartFile file : files) {
-            if (file.isEmpty()) {
-                throw new ToktotException(ErrorCode.INVALID_INPUT, "빈 파일은 업로드할 수 없습니다.");
-            }
-        }
+        reviewSessionService.deleteSession(userId, restaurantId);
+        log.info("Session cleared - user.id: {}, restaurant.id: {}", userId, restaurantId);
     }
 
     @Transactional

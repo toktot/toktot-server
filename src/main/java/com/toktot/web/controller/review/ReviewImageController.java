@@ -9,6 +9,7 @@ import com.toktot.domain.user.User;
 import com.toktot.web.dto.ApiResponse;
 import com.toktot.web.dto.review.response.ImageUploadResponse;
 import com.toktot.web.dto.review.response.SessionInfoResponse;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -30,23 +31,19 @@ public class ReviewImageController {
     @PostMapping
     public ResponseEntity<ApiResponse<ImageUploadResponse>> uploadImages(
             @RequestParam("files") MultipartFile[] files,
-            @RequestParam("external_kakao_id") String externalKakaoId,
+            @RequestParam("id") @Positive Long id,
             @AuthenticationPrincipal User user
     ) {
-        log.debug("Image upload request - userId: {}, externalKakaoId: {}, fileCount: {}",
-                user.getId(), externalKakaoId, files.length);
+        log.debug("Image upload request - user.id: {}, restaurant.id: {}, files.length: {}",
+                user.getId(), id, files.length);
 
-        validateUploadRequest(files, externalKakaoId);
+        validateUploadRequest(files, id);
 
         List<MultipartFile> fileList = Arrays.asList(files);
-        List<ReviewImageDTO> uploadedImages = reviewImageService.uploadImages(
-                fileList, user.getId(), externalKakaoId);
+        List<ReviewImageDTO> uploadedImages = reviewImageService.uploadImages(fileList, user.getId(), id);
 
-        ReviewSessionDTO session = reviewImageService.getCurrentSession(user.getId(), externalKakaoId);
+        ReviewSessionDTO session = reviewImageService.getCurrentSession(user.getId(), id);
         ImageUploadResponse response = ImageUploadResponse.from(uploadedImages, session);
-
-        log.info("Image upload completed - userId: {}, externalKakaoId: {}, uploaded: {}, total: {}",
-                user.getId(), externalKakaoId, uploadedImages.size(), session.getImageCount());
 
         return ResponseEntity.ok(ApiResponse.success("이미지 업로드가 완료되었습니다.", response));
     }
@@ -54,97 +51,72 @@ public class ReviewImageController {
     @DeleteMapping("/{imageId}")
     public ResponseEntity<ApiResponse<SessionInfoResponse>> deleteImage(
             @PathVariable String imageId,
-            @RequestParam("external_kakao_id") String externalKakaoId,
+            @RequestParam("id") @Positive Long id,
             @AuthenticationPrincipal User user
     ) {
-        log.debug("Image delete request - userId: {}, externalKakaoId: {}, imageId: {}",
-                user.getId(), externalKakaoId, imageId);
+        log.debug("Image delete request - user.id: {}, restaurant.id: {}, imageId: {}",
+                user.getId(), id, imageId);
 
-        validateDeleteRequest(imageId, externalKakaoId);
+        reviewImageService.deleteImage(imageId, user.getId(), id);
 
-        reviewImageService.deleteImage(imageId, user.getId(), externalKakaoId);
-
-        ReviewSessionDTO session = reviewImageService.getCurrentSession(user.getId(), externalKakaoId);
+        ReviewSessionDTO session = reviewImageService.getCurrentSession(user.getId(), id);
         SessionInfoResponse response = SessionInfoResponse.from(session);
-
-        log.info("Image deleted - userId: {}, externalKakaoId: {}, imageId: {}, remaining: {}",
-                user.getId(), externalKakaoId, imageId, session.getImageCount());
 
         return ResponseEntity.ok(ApiResponse.success("이미지가 삭제되었습니다.", response));
     }
 
     @GetMapping
     public ResponseEntity<ApiResponse<SessionInfoResponse>> getCurrentSession(
-            @RequestParam("external_kakao_id") String externalKakaoId,
+            @RequestParam("id") @Positive Long id,
             @AuthenticationPrincipal User user
     ) {
-        log.debug("Session info request - userId: {}, externalKakaoId: {}",
-                user.getId(), externalKakaoId);
+        log.debug("Session info request - user.id: {}, restaurant.id: {}",
+                user.getId(), id);
 
-        validateExternalKakaoId(externalKakaoId);
-
-        ReviewSessionDTO session = reviewImageService.getCurrentSession(user.getId(), externalKakaoId);
+        ReviewSessionDTO session = reviewImageService.getCurrentSession(user.getId(), id);
         SessionInfoResponse response = SessionInfoResponse.from(session);
 
         return ResponseEntity.ok(ApiResponse.success("세션 정보를 조회했습니다.", response));
     }
 
-    @DeleteMapping
+    @DeleteMapping("/clear/{id}")
     public ResponseEntity<ApiResponse<String>> clearSession(
-            @RequestParam("external_kakao_id") String externalKakaoId,
+            @PathVariable @Positive Long id,
             @AuthenticationPrincipal User user
     ) {
-        log.debug("Session clear request - userId: {}, externalKakaoId: {}",
-                user.getId(), externalKakaoId);
+        log.debug("Session clear request - user.id: {}, restaurant.id: {}",
+                user.getId(), id);
 
-        validateExternalKakaoId(externalKakaoId);
-
-        ReviewSessionDTO sessionBeforeClear = reviewImageService.getCurrentSession(user.getId(), externalKakaoId);
-        int imageCountBeforeClear = sessionBeforeClear.getImageCount();
-
-        reviewImageService.clearSession(user.getId(), externalKakaoId);
-
-        log.info("Session cleared - userId: {}, externalKakaoId: {}, clearedCount: {}",
-                user.getId(), externalKakaoId, imageCountBeforeClear);
-
+        reviewImageService.clearSession(user.getId(), id);
         return ResponseEntity.ok(ApiResponse.success("세션이 초기화되었습니다.", "cleared"));
     }
 
-    private void validateUploadRequest(MultipartFile[] files, String externalKakaoId) {
+    private void validateUploadRequest(MultipartFile[] files, Long id) {
         if (files == null || files.length == 0) {
-            log.debug("Upload validation failed - no files, externalKakaoId: {}", externalKakaoId);
+            log.debug("Upload validation failed - no files, restaurant.id: {}", id);
             throw new ToktotException(ErrorCode.MISSING_REQUIRED_FIELD, "업로드할 파일을 선택해주세요.");
         }
 
         if (files.length > 5) {
-            log.debug("Upload validation failed - too many files: {}, externalKakaoId: {}",
-                    files.length, externalKakaoId);
+            log.debug("Upload validation failed - too many files: {}, restaurant.id: {}",
+                    files.length, id);
             throw new ToktotException(ErrorCode.INVALID_INPUT, "한 번에 최대 5개의 파일만 업로드 가능합니다.");
         }
 
-        validateExternalKakaoId(externalKakaoId);
-
         for (MultipartFile file : files) {
             if (file.isEmpty()) {
-                log.debug("Upload validation failed - empty file: {}, externalKakaoId: {}",
-                        file.getOriginalFilename(), externalKakaoId);
+                log.debug("Upload validation failed - empty file: {}, restaurant.id: {}",
+                        file.getOriginalFilename(), id);
                 throw new ToktotException(ErrorCode.INVALID_INPUT, "빈 파일은 업로드할 수 없습니다.");
+            }
+
+            if (file.getSize() > 5 * 1024 * 1024) {
+                log.debug("Upload validation failed - file too large: {}, size: {}, restaurant.id: {}",
+                        file.getOriginalFilename(), file.getSize(), id);
+                throw new ToktotException(ErrorCode.FILE_SIZE_EXCEEDED,
+                        "파일 크기는 5MB를 초과할 수 없습니다: " + file.getOriginalFilename());
             }
         }
     }
 
-    private void validateDeleteRequest(String imageId, String externalKakaoId) {
-        if (imageId == null || imageId.trim().isEmpty()) {
-            log.debug("Delete validation failed - missing imageId, externalKakaoId: {}", externalKakaoId);
-            throw new ToktotException(ErrorCode.MISSING_REQUIRED_FIELD, "삭제할 이미지 ID가 필요합니다.");
-        }
-        validateExternalKakaoId(externalKakaoId);
-    }
-
-    private void validateExternalKakaoId(String externalKakaoId) {
-        if (externalKakaoId == null) {
-            log.debug("ExternalKakaoId is null");
-            throw new ToktotException(ErrorCode.INVALID_INPUT, "올바른 음식점 ID가 필요합니다.");
-        }
-    }
 }

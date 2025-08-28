@@ -30,8 +30,8 @@ public class ReviewS3MigrationService {
     private static final String REVIEWS_PREFIX = "reviews";
 
     public void migrateSessionImages(ReviewSessionDTO session, Long reviewId) {
-        log.debug("S3 migration started - userId: {}, externalKakaoId: {}, reviewId: {}, imageCount: {}",
-                session.getUserId(), session.getExternalKakaoId(), reviewId, session.getImages().size());
+        log.debug("S3 migration started - userId: {}, restaurantId: {}, reviewId: {}, imageCount: {}",
+                session.getUserId(), session.getRestaurantId(), reviewId, session.getImages().size());
 
         List<String> migratedKeys = new ArrayList<>();
         List<String> originalKeys = new ArrayList<>();
@@ -39,7 +39,7 @@ public class ReviewS3MigrationService {
         try {
             for (ReviewImageDTO imageDTO : session.getImages()) {
                 String originalKey = imageDTO.getS3Key();
-                String newKey = buildReviewImageKey(session.getExternalKakaoId(), reviewId,
+                String newKey = buildReviewImageKey(session.getRestaurantId(), reviewId,
                         imageDTO.getOrder(), imageDTO.getImageId());
 
                 log.debug("Migrating image - imageId: {}, originalKey: {}, newKey: {}",
@@ -57,11 +57,11 @@ public class ReviewS3MigrationService {
             deleteOriginalTempFiles(originalKeys);
 
             log.info("S3 migration completed - userId: {}, externalKakaoId: {}, reviewId: {}, migratedImages: {}",
-                    session.getUserId(), session.getExternalKakaoId(), reviewId, migratedKeys.size());
+                    session.getUserId(), session.getRestaurantId(), reviewId, migratedKeys.size());
 
         } catch (Exception e) {
             log.error("S3 migration failed - userId: {}, externalKakaoId: {}, reviewId: {}, error: {}",
-                    session.getUserId(), session.getExternalKakaoId(), reviewId, e.getMessage(), e);
+                    session.getUserId(), session.getRestaurantId(), reviewId, e.getMessage(), e);
 
             rollbackMigratedFiles(migratedKeys);
 
@@ -139,13 +139,13 @@ public class ReviewS3MigrationService {
         log.warn("Rollback completed - processed: {}", migratedKeys.size());
     }
 
-    private String buildReviewImageKey(String externalKakaoId, Long reviewId, int order, String imageId) {
+    private String buildReviewImageKey(Long restaurantId, Long reviewId, int order, String imageId) {
         String extension = extractExtension(imageId);
         String filename = String.format("%d_%s.%s", order, imageId, extension);
-        String key = String.format("%s/%s/%d/%s", REVIEWS_PREFIX, externalKakaoId, reviewId, filename);
+        String key = String.format("%s/%d/%d/%s", REVIEWS_PREFIX, restaurantId, reviewId, filename);
 
-        log.trace("Built review image key - externalKakaoId: {}, reviewId: {}, order: {}, key: {}",
-                externalKakaoId, reviewId, order, key);
+        log.trace("Built review image key - restaurantId: {}, reviewId: {}, order: {}, key: {}",
+                restaurantId, reviewId, order, key);
 
         return key;
     }
