@@ -5,13 +5,33 @@ on:
     branches:
       - dev
 
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Discord 배포 시작 알림
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          title: "⚠️ TokTot Dev 서버 배포 시작"
+          description: |
+            **🔧 배포 진행 중 - 일시적 서비스 중단**
+            
+            **커밋**: ${{ github.event.head_commit.message }}
+            
+            📊 **진행상황**: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          color: 0xffa500
+          username: "TokTot Deploy Bot"
+          avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -45,157 +65,70 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/toktot:dev
             ${{ secrets.DOCKERHUB_USERNAME }}/toktot:dev-${{ github.sha }}
 
-      - name: EC2 배포 및 헬스체크
+      - name: EC2 배포 실행
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          COMMIT_SHA: ${{ github.sha }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+          KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
+          TOUR_API_SERVICE_KEY: ${{ secrets.TOUR_API_SERVICE_KEY }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
+          envs: DOCKERHUB_USERNAME,COMMIT_SHA,DISCORD_WEBHOOK_URL,GITHUB_REPOSITORY,GITHUB_RUN_ID,POSTGRES_PASSWORD,JWT_SECRET,KAKAO_CLIENT_ID,KAKAO_CLIENT_SECRET,MAIL_USERNAME,MAIL_PASSWORD,REDIS_PASSWORD,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,S3_BUCKET_NAME,KAKAO_REST_API_KEY,TOUR_API_SERVICE_KEY
           script: |
-            echo "🚀 Dev 서버 배포 시작..."
+            # 프로젝트 디렉토리로 이동
             cd toktot-server
             
-            # Git 저장소 상태 확인
-            if [ ! -d ".git" ]; then
-              echo "❌ Git 저장소를 찾을 수 없습니다!"
-              exit 1
-            fi
+            # 스크립트 실행 권한 부여
+            chmod +x scripts/*.sh
             
-            # 로컬 브랜치를 dev로 강제 체크아웃하고 origin/dev 기준으로 리셋
-            git fetch origin || { echo "❌ Git fetch 실패!"; exit 1; }
-            git checkout -B dev origin/dev || { echo "❌ Git checkout 실패!"; exit 1; }
+            # 배포 스크립트 실행 (환경변수는 자동으로 전달됨)
+            ./scripts/deploy.sh
 
-            # 필요한 디렉토리 생성
-            mkdir -p nginx/conf.d certbot/www certbot/conf
+      - name: Discord 배포 성공 알림
+        if: success()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          title: "✅ TokTot Dev 서버 배포 성공"
+          description: |
+            **🎉 배포 완료 - 서비스 정상 운영 중**
+            
+            **커밋**: ${{ github.event.head_commit.message }}
+            **새 버전**: `dev-${{ github.sha }}`
+            **배포 시간**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          color: 0x00ff00
+          username: "TokTot Deploy Bot"
+          avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
 
-            # 최신 이미지 pull
-            echo "📥 최신 Docker 이미지 다운로드 중..."
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/toktot:dev || { 
-              echo "❌ Docker 이미지 pull 실패!"; exit 1; 
-            }
-
-            # 기존 컨테이너 중지 (안전하게)
-            echo "🛑 기존 컨테이너 중지 중..."
-            docker-compose down || echo "⚠️ 기존 컨테이너 없음 (정상)"
-
-            # 사용하지 않는 이미지 정리
-            docker image prune -f || echo "⚠️ 이미지 정리 실패 (계속 진행)"
-
-            # 환경변수와 함께 docker-compose 실행
-            echo "🚀 Docker Compose 실행 중..."
-            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" \
-            POSTGRES_PASSWORD="${{ secrets.DB_PASSWORD }}" \
-            JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-            KAKAO_CLIENT_ID="${{ secrets.KAKAO_CLIENT_ID }}" \
-            KAKAO_CLIENT_SECRET="${{ secrets.KAKAO_CLIENT_SECRET }}" \
-            MAIL_USERNAME="${{ secrets.MAIL_USERNAME }}" \
-            MAIL_PASSWORD="${{ secrets.MAIL_PASSWORD }}" \
-            REDIS_PASSWORD="${{ secrets.REDIS_PASSWORD }}" \
-            AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
-            AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
-            S3_BUCKET_NAME="${{ secrets.S3_BUCKET_NAME }}" \
-            KAKAO_REST_API_KEY="${{ secrets.KAKAO_REST_API_KEY }}" \
-            TOUR_API_SERVICE_KEY="${{ secrets.TOUR_API_SERVICE_KEY }}" \
-            docker-compose up -d
-
-            # 컨테이너 시작 확인
-            echo "📊 컨테이너 상태 확인:"
-            docker-compose ps
+      - name: Discord 배포 실패 알림
+        if: failure()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          title: "🔄 TokTot Dev 서버 배포 실패"
+          description: |
+            **⚠️ 배포 실패 감지**
             
-            # 컨테이너가 실행 중인지 확인
-            if ! docker-compose ps | grep -q "Up"; then
-              echo "❌ 컨테이너 실행 실패!"
-              echo "🔍 로그 확인:"
-              docker-compose logs --tail=20
-              exit 1
-            fi
-
-            # 서버 준비 대기 (헬스체크 기반)
-            echo "⏳ 서버 준비 대기 중..."
-            max_wait=120
-            wait_time=0
-            
-            while [ $wait_time -lt $max_wait ]; do
-              if curl -f http://localhost/actuator/health > /dev/null 2>&1; then
-                echo "✅ 서버 준비 완료! (${wait_time}초 소요)"
-                break
-              fi
-            
-              if [ $wait_time -gt 60 ]; then
-                echo "⏳ 서버 시작 중... (${wait_time}초 경과)"
-                # 중간 체크: 컨테이너 상태
-                docker-compose ps | grep -E "(app|nginx)" || echo "⚠️ 컨테이너 상태 이상"
-              fi
-            
-              sleep 5
-              wait_time=$((wait_time + 5))
-            done
-            
-            if [ $wait_time -ge $max_wait ]; then
-              echo "❌ 서버 시작 타임아웃 (${max_wait}초)"
-              echo "🔍 애플리케이션 로그:"
-              docker-compose logs --tail=30 app || echo "앱 로그 확인 불가"
-              exit 1
-            fi
-
-            # 환경변수 전달 확인 (중요한 변수들만)
-            echo "🔍 필수 환경변수 확인:"
-            env_check_passed=true
-            
-            if docker-compose exec -T app env | grep -q "AWS_ACCESS_KEY_ID"; then
-              echo "✅ AWS 설정 확인됨"
-            else
-              echo "❌ AWS 환경변수 누락!"
-              env_check_passed=false
-            fi
-            
-            if docker-compose exec -T app env | grep -q "JWT_SECRET"; then
-              echo "✅ JWT 설정 확인됨"
-            else
-              echo "❌ JWT 환경변수 누락!"
-              env_check_passed=false
-            fi
-            
-            if [ "$env_check_passed" = false ]; then
-              echo "❌ 필수 환경변수 누락으로 배포 실패!"
-              exit 1
-            fi
-
-            # Nginx 헬스체크
-            echo "🔍 Nginx 헬스체크 실행..."
-            if curl -f http://localhost/health > /dev/null 2>&1; then
-              echo "✅ Nginx 정상 동작 확인!"
-            else
-              echo "❌ Nginx 헬스체크 실패!"
-              echo "🔍 Nginx 로그:"
-              docker-compose logs --tail=20 nginx || echo "Nginx 로그 확인 불가"
-              # Nginx 실패해도 애플리케이션은 확인
-            fi
-
-            # 애플리케이션 최종 헬스체크
-            echo "🔍 애플리케이션 최종 헬스체크..."
-            if curl -f http://localhost/actuator/health > /dev/null 2>&1; then
-              echo "✅ 애플리케이션 헬스체크 성공!"
-            
-              # 추가 엔드포인트 확인
-              if curl -f http://localhost/actuator/info > /dev/null 2>&1; then
-                echo "✅ 애플리케이션 정보 엔드포인트 정상!"
-              fi
-            
-            else
-              echo "❌ 애플리케이션 헬스체크 실패!"
-              echo "🔍 애플리케이션 로그 (최근 50줄):"
-              docker-compose logs --tail=50 app || echo "앱 로그 확인 불가"
-              exit 1
-            fi
-            
-            # 배포 성공 알림
-            echo ""
-            echo "🎉 ================================"
-            echo "🎉 Dev 서버 배포 성공!"
-            echo "🎉 ================================"
-            echo "📍 서버: ${{ secrets.EC2_HOST }}"
-            echo "🔗 헬스체크: http://${{ secrets.EC2_HOST }}/actuator/health"
-            echo "📝 커밋: ${{ github.sha }}"
-            echo "🕐 배포 시간: $(date)"
-            echo "================================"
+            **🔍 실패한 배포**:
+            - **브랜치**: ${{ github.ref_name }}
+            - **커밋**: ${{ github.event.head_commit.message }}
+            - **작성자**: ${{ github.event.head_commit.author.name }}
+          color: 0xff9900
+          username: "TokTot Deploy Bot"
+          avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
