@@ -52,9 +52,9 @@ public class ReviewService {
         validateIsMain(request.images());
         validateImageOrder(request.images());
         Restaurant restaurant = restaurantRepository
-                .findByExternalKakaoId(request.externalKakaoId())
+                .findById(request.id())
                 .orElse(createNewRestaurant(request));
-        ReviewSessionDTO reviewSessionDTO = getReviewSessionDTO(user.getId(), request.externalKakaoId());
+        ReviewSessionDTO reviewSessionDTO = getReviewSessionDTO(user.getId(), request.id());
         validateSessionImages(reviewSessionDTO, request.images());
         Review review = Review.create(user, restaurant, request.valueForMoneyScore(), request.mealTime());
 
@@ -64,7 +64,7 @@ public class ReviewService {
         reviewRepository.save(review);
         reviewS3MigrationService.migrateSessionImages(reviewSessionDTO, review.getId());
 
-        reviewSessionService.deleteSession(user.getId(), request.externalKakaoId());
+        reviewSessionService.deleteSession(user.getId(), request.id());
         return ReviewCreateResponse.from(review.getId(), review.getRestaurant().getId());
     }
 
@@ -93,15 +93,15 @@ public class ReviewService {
         }
     }
 
-    private ReviewSessionDTO getReviewSessionDTO(Long userId, String externalKakaoId) {
-        ReviewSessionDTO session = reviewSessionService.getSession(userId, externalKakaoId)
+    private ReviewSessionDTO getReviewSessionDTO(Long userId, Long restaurantId) {
+        ReviewSessionDTO session = reviewSessionService.getSession(userId, restaurantId)
                 .orElseThrow(() -> {
                     return new ToktotException(ErrorCode.RESOURCE_NOT_FOUND,
                             "이미지 업로드 세션을 찾을 수 없습니다. 이미지를 다시 업로드해주세요.");
                 });
 
         if (session.getImages() == null || session.getImages().isEmpty()) {
-            log.warn("Empty session images - userId: {}, externalKakaoId: {}", userId, externalKakaoId);
+            log.warn("Empty session images - userId: {}, restaurantId: {}", userId, restaurantId);
             throw new ToktotException(ErrorCode.INVALID_INPUT, "업로드된 이미지가 없습니다.");
         }
 
