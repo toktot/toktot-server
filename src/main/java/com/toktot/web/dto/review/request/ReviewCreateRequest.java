@@ -10,10 +10,10 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public record ReviewCreateRequest(
-        @JsonProperty(value = "external_kakao_id", required = true)
+        @JsonProperty(value = "id", required = true)
         @NotNull(message = "가게를 선택해주세요.")
         @Positive(message = "가게를 선택해주세요.")
-        String externalKakaoId,
+        Long id,
 
         @JsonProperty(value = "restaurant_name", required = true)
         @NotNull(message = "가게를 선택해주세요.")
