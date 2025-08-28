@@ -39,7 +39,7 @@ public class ReviewSessionService {
         if sessionData == false then
             session = {
                 userId = tonumber(ARGV[2]),
-                externalKakaoId = tonumber(ARGV[3]),
+                restaurantId = tonumber(ARGV[3]),
                 images = {},
                 createdAt = ARGV[4],
                 lastModified = ARGV[4]
@@ -62,8 +62,8 @@ public class ReviewSessionService {
         return 1
         """;
 
-    public Optional<ReviewSessionDTO> getSession(Long userId, String externalKakaoId) {
-        String sessionKey = buildSessionKey(userId, externalKakaoId);
+    public Optional<ReviewSessionDTO> getSession(Long userId, Long restaurantId) {
+        String sessionKey = buildSessionKey(userId, restaurantId);
         String sessionJson = redisTemplate.opsForValue().get(sessionKey);
 
         if (sessionJson == null) {
@@ -81,15 +81,15 @@ public class ReviewSessionService {
     }
 
     public void saveSession(ReviewSessionDTO session) {
-        String sessionKey = buildSessionKey(session.getUserId(), session.getExternalKakaoId());
+        String sessionKey = buildSessionKey(session.getUserId(), session.getRestaurantId());
         String sessionJson = serializeSession(session);
         Duration ttl = Duration.ofHours(sessionTtlHours);
 
         redisTemplate.opsForValue().set(sessionKey, sessionJson, ttl);
     }
 
-    public boolean tryAddImageToSession(Long userId, String externalKakaoId, ReviewImageDTO imageDTO) {
-        String sessionKey = buildSessionKey(userId, externalKakaoId);
+    public boolean tryAddImageToSession(Long userId, Long restaurantId, ReviewImageDTO imageDTO) {
+        String sessionKey = buildSessionKey(userId, restaurantId);
         String imageJson = serializeImageDTO(imageDTO);
         String timestamp = DateTimeUtil.nowWithoutNanos().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 
@@ -98,7 +98,7 @@ public class ReviewSessionService {
                 List.of(sessionKey),
                 imageJson,
                 userId.toString(),
-                externalKakaoId.toString(),
+                restaurantId.toString(),
                 timestamp,
                 String.valueOf(MAX_IMAGES),
                 String.valueOf(sessionTtlHours * 3600)
@@ -107,15 +107,15 @@ public class ReviewSessionService {
         boolean success = result != null && result == 1;
 
         if (!success) {
-            log.warn("Failed to add image to session - max images reached: userId={}, externalKakaoId={}, imageId={}",
-                    userId, externalKakaoId, imageDTO.getImageId());
+            log.warn("Failed to add image to session - max images reached: userId={}, restaurantId={}, imageId={}",
+                    userId, restaurantId, imageDTO.getImageId());
         }
 
         return success;
     }
 
-    public void removeImageFromSession(Long userId, String externalKakaoId, String imageId) {
-        Optional<ReviewSessionDTO> sessionOpt = getSession(userId, externalKakaoId);
+    public void removeImageFromSession(Long userId, Long restaurantId, String imageId) {
+        Optional<ReviewSessionDTO> sessionOpt = getSession(userId, restaurantId);
 
         if (sessionOpt.isEmpty()) {
             throw new ToktotException(ErrorCode.RESOURCE_NOT_FOUND, "세션을 찾을 수 없습니다.");
@@ -132,8 +132,8 @@ public class ReviewSessionService {
         saveSession(session);
     }
 
-    public void deleteSession(Long userId, String externalKakaoId) {
-        String sessionKey = buildSessionKey(userId, externalKakaoId);
+    public void deleteSession(Long userId, Long restaurantId) {
+        String sessionKey = buildSessionKey(userId, restaurantId);
         redisTemplate.delete(sessionKey);
     }
 
@@ -150,8 +150,8 @@ public class ReviewSessionService {
         redisTemplate.expire(sessionKey, ttl);
     }
 
-    private String buildSessionKey(Long userId, String externalKakaoId) {
-        return String.format("%s:%d:%s", SESSION_KEY_PREFIX, userId, externalKakaoId);
+    private String buildSessionKey(Long userId, Long restaurantId) {
+        return String.format("%s:%d:%d", SESSION_KEY_PREFIX, userId, restaurantId);
     }
 
     private String serializeSession(ReviewSessionDTO session) {
