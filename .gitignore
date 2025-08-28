@@ -201,6 +201,10 @@ build/
 # Gradle cache
 .gradle-cache/
 
+### QueryDSL 생성 파일 ###
+src/main/generated/
+**/generated/
+
 ### Docker 관련 ###
 # Docker Compose override files
 docker-compose.override.yml
