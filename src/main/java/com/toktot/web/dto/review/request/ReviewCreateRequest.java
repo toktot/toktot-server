@@ -6,7 +6,6 @@ import com.toktot.domain.review.type.MealTime;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 public record ReviewCreateRequest(
@@ -14,18 +13,6 @@ public record ReviewCreateRequest(
         @NotNull(message = "가게를 선택해주세요.")
         @Positive(message = "가게를 선택해주세요.")
         Long id,
-
-        @JsonProperty(value = "restaurant_name", required = true)
-        @NotNull(message = "가게를 선택해주세요.")
-        String restaurantName,
-
-        @JsonProperty(required = true)
-        @NotNull(message = "가게를 선택해주세요.")
-        BigDecimal longitude,
-
-        @JsonProperty(required = true)
-        @NotNull(message = "가게를 선택해주세요.")
-        BigDecimal latitude,
 
         @JsonProperty(value = "images", required = true)
         @NotEmpty(message = "이미지는 최소 1장 이상 업로드해주세요.")

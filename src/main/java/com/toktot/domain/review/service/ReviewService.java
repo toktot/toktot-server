@@ -4,23 +4,18 @@ import com.toktot.common.exception.ErrorCode;
 import com.toktot.common.exception.ToktotException;
 import com.toktot.domain.restaurant.Restaurant;
 import com.toktot.domain.restaurant.repository.RestaurantRepository;
-import com.toktot.domain.restaurant.type.DataSource;
 import com.toktot.domain.review.Review;
 import com.toktot.domain.review.dto.ReviewImageDTO;
 import com.toktot.domain.review.dto.ReviewSessionDTO;
 import com.toktot.domain.review.repository.ReviewRepository;
 import com.toktot.domain.review.type.TooltipType;
 import com.toktot.domain.user.User;
-import com.toktot.external.kakao.dto.response.KakaoPlaceInfo;
-import com.toktot.external.kakao.dto.response.KakaoPlaceSearchResponse;
-import com.toktot.external.kakao.service.KakaoMapService;
 import com.toktot.web.dto.review.request.ReviewCreateRequest;
 import com.toktot.web.dto.review.request.ReviewImageRequest;
 import com.toktot.web.dto.review.request.TooltipRequest;
 import com.toktot.web.dto.review.response.ReviewCreateResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.mapping.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,7 +31,6 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ReviewService {
 
-    private final KakaoMapService kakaoMapService;
     private final ReviewSessionService reviewSessionService;
     private final ReviewS3MigrationService reviewS3MigrationService;
     private final ReviewKeywordService reviewKeywordService;
@@ -53,7 +47,7 @@ public class ReviewService {
         validateImageOrder(request.images());
         Restaurant restaurant = restaurantRepository
                 .findById(request.id())
-                .orElse(createNewRestaurant(request));
+                .orElseThrow(() -> new ToktotException(ErrorCode.RESTAURANT_NOT_FOUND));
         ReviewSessionDTO reviewSessionDTO = getReviewSessionDTO(user.getId(), request.id());
         validateSessionImages(reviewSessionDTO, request.images());
         Review review = Review.create(user, restaurant, request.valueForMoneyScore(), request.mealTime());
@@ -139,24 +133,5 @@ public class ReviewService {
                 }
             }
         }
-    }
-
-    private Restaurant createNewRestaurant(ReviewCreateRequest request) {
-        KakaoPlaceSearchResponse response = kakaoMapService.searchRestaurantByNameAndCoordinates(request.restaurantName(), request.longitude(), request.longitude());
-        if (response.placeInfos().isEmpty()) {
-            throw new ToktotException(ErrorCode.RESTAURANT_NOT_FOUND);
-        }
-
-        KakaoPlaceInfo restaurant = response.placeInfos().getFirst();
-        return Restaurant.builder()
-                .externalKakaoId(restaurant.getId())
-                .name(restaurant.getPlaceName())
-                .category(restaurant.getCategoryName())
-                .address(restaurant.getAddressName())
-                .latitude(restaurant.getLatitude())
-                .longitude(restaurant.getLongitude())
-                .phone(restaurant.getPhone())
-                .dataSource(DataSource.KAKAO)
-                .build();
     }
 }

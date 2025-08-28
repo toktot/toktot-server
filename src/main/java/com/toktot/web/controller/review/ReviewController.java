@@ -25,8 +25,8 @@ public class ReviewController {
             @Valid @RequestBody ReviewCreateRequest request,
             @AuthenticationPrincipal User user
     ) {
-        log.debug("Review creation request - userId: {}, externalKakaoId: {}, keywordCount: {}, imageCount: {}",
-                user.getId(), request.externalKakaoId(), request.keywords().size(), request.images().size());
+        log.debug("Review creation request - userId: {}, restaurant.id: {}, keywordCount: {}, imageCount: {}",
+                user.getId(), request.id(), request.keywords().size(), request.images().size());
 
         ReviewCreateResponse response = reviewService.createReview(request, user);
 
