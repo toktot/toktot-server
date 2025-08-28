@@ -11,31 +11,14 @@ import java.math.BigDecimal;
 @Builder
 public record RestaurantInfoResponse(
         Long id,
-        @JsonProperty("external_kakao_id")
-        String externalKakaoId,
-
         String name,
         String address,
         String distance,
-
-        @JsonProperty("main_menus")
-        String mainMenus,
-
-        @JsonProperty("average_rating")
-        BigDecimal averageRating,
-
-        @JsonProperty("review_count")
-        Long reviewCount,
-
-        BigDecimal longitude,
-
-        BigDecimal latitude,
-
-        @JsonProperty("is_good_price_store")
-        Boolean isGoodPriceStore,
-
-        @JsonProperty("is_local_store")
-        Boolean isLocalStore,
+        @JsonProperty("main_menus") String mainMenus,
+        @JsonProperty("average_rating") BigDecimal averageRating,
+        @JsonProperty("review_count") Long reviewCount,
+        @JsonProperty("is_good_price_store") Boolean isGoodPriceStore,
+        @JsonProperty("is_local_store") Boolean isLocalStore,
         String image,
         Integer point,
         Integer percent
@@ -43,25 +26,19 @@ public record RestaurantInfoResponse(
     public static RestaurantInfoResponse from(Restaurant entity, KakaoPlaceInfo kakaoPlaceInfo) {
         return RestaurantInfoResponse.builder()
                 .id(entity.getId())
-                .externalKakaoId(entity.getExternalKakaoId())
                 .name(entity.getName())
                 .address(extractCityAndDistrict(kakaoPlaceInfo.getAddressName()))
                 .distance(getDistance(kakaoPlaceInfo.getDistance()))
                 .mainMenus(entity.getPopularMenus())
-                .longitude(entity.getLongitude())
-                .latitude(entity.getLatitude())
                 .image(entity.getImage())
                 .build();
     }
 
     public static RestaurantInfoResponse from(KakaoPlaceInfo kakaoPlaceInfo) {
         return RestaurantInfoResponse.builder()
-                .externalKakaoId(kakaoPlaceInfo.getId())
                 .name(kakaoPlaceInfo.getPlaceName())
                 .address(extractCityAndDistrict(kakaoPlaceInfo.getAddressName()))
                 .distance(getDistance(kakaoPlaceInfo.getDistance()))
-                .longitude(kakaoPlaceInfo.getLongitude())
-                .latitude(kakaoPlaceInfo.getLatitude())
                 .build();
     }
 
