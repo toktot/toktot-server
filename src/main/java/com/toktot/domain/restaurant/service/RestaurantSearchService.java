@@ -42,7 +42,7 @@ public class RestaurantSearchService {
             KakaoPlaceSearchResponse kakaoResponse = kakaoMapService.searchJejuAllFoodAndCafePlace(query, currentPage);
             isEnd = kakaoResponse.isEnd();
             for (KakaoPlaceInfo kakaoPlaceInfo : kakaoResponse.placeInfos()) {
-                Optional<Restaurant> byExternalKakaoId = restaurantRepository.findByExternalKakaoId(kakaoPlaceInfo.getId());
+                Optional<Restaurant> byExternalKakaoId = restaurantRepository.findByExternalKakaoIdAndIsActive(kakaoPlaceInfo.getId(), true);
 
                 if (byExternalKakaoId.isPresent()) {
                     Restaurant restaurant = byExternalKakaoId.get();
@@ -60,7 +60,7 @@ public class RestaurantSearchService {
                 isEnd = addKakaoResponse.isEnd();
 
                 for (KakaoPlaceInfo kakaoPlaceInfo : addKakaoResponse.placeInfos()) {
-                    Optional<Restaurant> byExternalKakaoId = restaurantRepository.findByExternalKakaoId(kakaoPlaceInfo.getId());
+                    Optional<Restaurant> byExternalKakaoId = restaurantRepository.findByExternalKakaoIdAndIsActive(kakaoPlaceInfo.getId(), true);
 
                     if (byExternalKakaoId.isPresent()) {
                         Restaurant restaurant = byExternalKakaoId.get();
