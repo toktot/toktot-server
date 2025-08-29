@@ -1,4 +1,4 @@
-package com.toktot.domain.restaurant.dto;
+package com.toktot.domain.restaurant.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.toktot.external.kakao.dto.response.KakaoPlaceSearchResponse;

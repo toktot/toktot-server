@@ -1,4 +1,4 @@
-package com.toktot.external.kakao.dto.request;
+package com.toktot.domain.restaurant.dto.request;
 
 import java.math.BigDecimal;
 

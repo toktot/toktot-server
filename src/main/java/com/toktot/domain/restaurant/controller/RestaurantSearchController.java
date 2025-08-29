@@ -1,9 +1,9 @@
 package com.toktot.domain.restaurant.controller;
 
 import com.toktot.domain.restaurant.service.RestaurantSearchService;
-import com.toktot.external.kakao.dto.request.RestaurantSearchRequest;
+import com.toktot.domain.restaurant.dto.request.RestaurantSearchRequest;
 import com.toktot.web.dto.ApiResponse;
-import com.toktot.domain.restaurant.dto.RestaurantSearchResponse;
+import com.toktot.domain.restaurant.dto.response.RestaurantSearchResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
