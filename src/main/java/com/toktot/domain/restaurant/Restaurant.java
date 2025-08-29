@@ -97,33 +97,6 @@ public class Restaurant {
     @Column(name = "popular_menus")
     private String popularMenus;
 
-    public void updateFromTourApiData(Restaurant newData) {
-        if (newData == null) {
-            return;
-        }
-
-        this.name = newData.getName();
-        this.address = newData.getAddress();
-        this.phone = newData.getPhone();
-        this.latitude = newData.getLatitude();
-        this.longitude = newData.getLongitude();
-        this.category = newData.getCategory();
-        this.lastSyncedAt = LocalDateTime.now();
-    }
-
-    public boolean hasDataChangedFrom(Restaurant newData) {
-        if (newData == null) {
-            return false;
-        }
-
-        return !Objects.equals(this.name, newData.getName()) ||
-                !Objects.equals(this.address, newData.getAddress()) ||
-                !Objects.equals(this.phone, newData.getPhone()) ||
-                !Objects.equals(this.latitude, newData.getLatitude()) ||
-                !Objects.equals(this.longitude, newData.getLongitude()) ||
-                !Objects.equals(this.category, newData.getCategory());
-    }
-
     public void updateKakaoData(KakaoPlaceInfo k) {
         this.externalKakaoId = k.getId();
         this.category = k.getCategoryGroupName();
@@ -133,5 +106,17 @@ public class Restaurant {
         this.latitude = k.getLatitude();
         this.longitude = k.getLongitude();
         this.website = k.getPlaceUrl();
+    }
+
+    public void updateTourApiDetailCommon(String phone, String image, String image2) {
+        if (phone != null && !phone.trim().isEmpty() && !phone.equals(this.phone)) {
+                this.phone = phone;
+            }
+
+        if (image != null && !image.trim().isEmpty() && !image.equals(this.image)) {
+            this.image = image;
+        } else if (image2 != null && !image2.trim().isEmpty() && !image2.equals(this.image)) {
+            this.image = image2;
+        }
     }
 }

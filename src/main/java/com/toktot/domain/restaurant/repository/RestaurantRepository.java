@@ -13,8 +13,6 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
     
     Optional<Restaurant> findByExternalKakaoIdAndIsActive(String externalKakaoId, Boolean isActive);
 
-    List<Restaurant> findAllByDataSource(DataSource dataSource);
-
     List<Restaurant> findAllByDataSourceAndIsActive(DataSource dataSource, Boolean isActive);
 
     List<Restaurant> findByExternalKakaoIdIsNull();
