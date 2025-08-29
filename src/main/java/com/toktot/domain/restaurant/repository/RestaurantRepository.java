@@ -10,8 +10,8 @@ import java.util.Optional;
 public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 
     Optional<Restaurant> findByExternalTourApiId(String externalTourApiId);
-
-    Optional<Restaurant> findByExternalKakaoId(String externalKakaoId);
+    
+    Optional<Restaurant> findByExternalKakaoIdAndIsActive(String externalKakaoId, Boolean isActive);
 
     List<Restaurant> findAllByDataSource(DataSource dataSource);
 
