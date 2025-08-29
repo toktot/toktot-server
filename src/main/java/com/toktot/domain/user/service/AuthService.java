@@ -2,7 +2,7 @@ package com.toktot.domain.user.service;
 
 import com.toktot.config.security.JwtTokenProvider;
 import com.toktot.domain.user.User;
-import com.toktot.web.dto.auth.response.TokenResponse;
+import com.toktot.domain.user.dto.response.TokenResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

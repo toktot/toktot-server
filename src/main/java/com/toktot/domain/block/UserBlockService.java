@@ -4,7 +4,6 @@ import com.toktot.common.exception.ErrorCode;
 import com.toktot.common.exception.ToktotException;
 import com.toktot.domain.user.User;
 import com.toktot.domain.user.repository.UserRepository;
-import com.toktot.web.dto.block.UserBlockRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -7,7 +7,7 @@ import com.toktot.domain.report.repository.ReviewReportRepository;
 import com.toktot.domain.review.Review;
 import com.toktot.domain.review.repository.ReviewRepository;
 import com.toktot.domain.user.User;
-import com.toktot.web.dto.report.request.ReviewReportRequest;
+import com.toktot.domain.report.dto.ReviewReportRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

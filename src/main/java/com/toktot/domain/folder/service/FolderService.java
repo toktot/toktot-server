@@ -9,7 +9,7 @@ import com.toktot.domain.folder.repository.FolderReviewRepository;
 import com.toktot.domain.review.Review;
 import com.toktot.domain.review.repository.ReviewRepository;
 import com.toktot.domain.user.User;
-import com.toktot.web.dto.folder.response.FolderResponse;
+import com.toktot.domain.folder.dto.response.FolderResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
