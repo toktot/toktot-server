@@ -1,5 +1,8 @@
 package com.toktot.domain.review.type;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.toktot.common.exception.ErrorCode;
+import com.toktot.common.exception.ToktotException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -49,4 +52,13 @@ public enum KeywordType {
 
     private final String displayName;
     private final KeywordCategory category;
+
+    @JsonCreator
+    public static KeywordType from(String value) {
+        try {
+            return KeywordType.valueOf(value.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ToktotException(ErrorCode.INVALID_INPUT, "keyword type error");
+        }
+    }
 }
