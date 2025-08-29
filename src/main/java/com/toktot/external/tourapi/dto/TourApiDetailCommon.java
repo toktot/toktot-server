@@ -1,58 +1,15 @@
 package com.toktot.external.tourapi.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record TourApiDetailCommon(
-        @JsonProperty("contentid")
-        String contentId,
-
-        @JsonProperty("homepage")
-        String homepage,
-
-        @JsonProperty("overview")
-        String overview,
-
-        @JsonProperty("tel")
-        String tel,
-
-        @JsonProperty("telname")
-        String telName,
-
-        @JsonProperty("title")
-        String title,
-
-        @JsonProperty("firstimage")
-        String firstImage,
-
-        @JsonProperty("firstimage2")
-        String firstImage2,
-
-        @JsonProperty("areacode")
-        String areaCode,
-
-        @JsonProperty("sigungucode")
-        String sigunguCode,
-
-        @JsonProperty("addr1")
-        String addr1,
-
-        @JsonProperty("addr2")
-        String addr2,
-
-        @JsonProperty("mapx")
-        String mapX,
-
-        @JsonProperty("mapy")
-        String mapY,
-
-        @JsonProperty("zipcode")
-        String zipCode,
-
-        @JsonProperty("modifiedtime")
-        String modifiedTime,
-
-        @JsonProperty("createdtime")
-        String createdTime
+        @JsonProperty("contentid") String id,
+        @JsonProperty("tel") String phone,
+        @JsonProperty("homepage") String url,
+        @JsonProperty("firstimage") String image,
+        @JsonProperty("firstimage2") String image2
 ) {
 
 }

@@ -1,10 +1,10 @@
 package com.toktot.scheduler;
 
 import com.toktot.domain.restaurant.service.RestaurantMatchService;
-import com.toktot.external.tourapi.TourApiService;
+import com.toktot.external.tourapi.service.TourApiDetailCommonService;
+import com.toktot.external.tourapi.service.TourApiService;
 import com.toktot.external.tourapi.dto.BatchResult;
 import com.toktot.external.tourapi.service.TourApiDetailIntroService;
-import com.toktot.external.tourapi.service.TourApiImageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -22,7 +22,7 @@ public class RestaurantScheduler {
 
     private final TourApiService tourApiService;
     private final TourApiDetailIntroService tourApiDetailIntroService;
-    private final TourApiImageService tourApiImageService;
+    private final TourApiDetailCommonService tourApiDetailCommonService;
     private final RestaurantMatchService restaurantMatchService;
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -68,15 +68,14 @@ public class RestaurantScheduler {
     }
 
     @Scheduled(cron = "0 40 2 * * *", zone = "Asia/Seoul")
-    public void syncRestaurantImages() {
-        log.info("=== TourAPI 이미지 동기화 스케줄러 시작 ===");
+    public void syncRestaurantDetailCommon() {
+        log.info("DetailCommon 배치 스케줄러 시작");
 
         try {
-            int successCount = tourApiImageService.syncAllRestaurantsImages();
-            log.info("=== TourAPI 이미지 동기화 완료: {} 건 성공 ===", successCount);
-
+            int syncedCount = tourApiDetailCommonService.syncAllRestaurantsDetailCommon();
+            log.info("DetailCommon 배치 완료: {} 건 처리", syncedCount);
         } catch (Exception e) {
-            log.error("=== TourAPI 이미지 동기화 실패 ===", e);
+            log.error("DetailCommon 배치 실패", e);
         }
     }
 

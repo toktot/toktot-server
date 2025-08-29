@@ -1,9 +1,8 @@
-package com.toktot.external.tourapi;
+package com.toktot.external.tourapi.service;
 
 import com.toktot.domain.restaurant.Restaurant;
 import com.toktot.external.tourapi.dto.*;
 import com.toktot.external.tourapi.mapper.TourApiMapper;
-import com.toktot.external.tourapi.service.TourApiClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

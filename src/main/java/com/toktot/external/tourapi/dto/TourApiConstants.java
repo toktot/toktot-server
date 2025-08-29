@@ -1,4 +1,4 @@
-package com.toktot.external.tourapi;
+package com.toktot.external.tourapi.dto;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
