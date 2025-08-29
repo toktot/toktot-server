@@ -105,7 +105,7 @@ public class TourApiDetailIntroService {
 
     @Transactional
     public int syncAllRestaurantsDetailIntro() {
-        List<Restaurant> restaurants = restaurantRepository.findAllByDataSource(DataSource.TOUR_API);
+        List<Restaurant> restaurants = restaurantRepository.findAllByDataSourceAndIsActive(DataSource.TOUR_API, true);
 
         int total = restaurants.size();
         int success = 0;

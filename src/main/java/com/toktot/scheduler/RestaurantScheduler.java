@@ -1,6 +1,7 @@
 package com.toktot.scheduler;
 
 import com.toktot.domain.restaurant.service.RestaurantMatchService;
+import com.toktot.external.tourapi.service.TourApiDetailCommonService;
 import com.toktot.external.tourapi.service.TourApiService;
 import com.toktot.external.tourapi.dto.BatchResult;
 import com.toktot.external.tourapi.service.TourApiDetailIntroService;
@@ -21,6 +22,7 @@ public class RestaurantScheduler {
 
     private final TourApiService tourApiService;
     private final TourApiDetailIntroService tourApiDetailIntroService;
+    private final TourApiDetailCommonService tourApiDetailCommonService;
     private final RestaurantMatchService restaurantMatchService;
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -62,6 +64,18 @@ public class RestaurantScheduler {
             String errorTime = LocalDateTime.now().format(FORMATTER);
             log.error("TourAPI DetailIntro 배치 동기화 예외 발생 - {} - {}", errorTime, e.getMessage(), e);
             sendFailureNotification("DetailIntro 배치", "배치 작업 예외: " + e.getMessage());
+        }
+    }
+
+    @Scheduled(cron = "0 40 2 * * *", zone = "Asia/Seoul")
+    public void syncRestaurantDetailCommon() {
+        log.info("DetailCommon 배치 스케줄러 시작");
+
+        try {
+            int syncedCount = tourApiDetailCommonService.syncAllRestaurantsDetailCommon();
+            log.info("DetailCommon 배치 완료: {} 건 처리", syncedCount);
+        } catch (Exception e) {
+            log.error("DetailCommon 배치 실패", e);
         }
     }
 

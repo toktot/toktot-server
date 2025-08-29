@@ -2,6 +2,7 @@ package com.toktot.web.controller.restaurant;
 
 import com.toktot.common.exception.ErrorCode;
 import com.toktot.domain.restaurant.service.RestaurantMatchService;
+import com.toktot.external.tourapi.service.TourApiDetailCommonService;
 import com.toktot.external.tourapi.service.TourApiService;
 import com.toktot.external.tourapi.service.TourApiDetailIntroService;
 import com.toktot.web.dto.ApiResponse;
@@ -21,6 +22,7 @@ import java.util.Map;
 public class TourApiSyncController {
 
     private final TourApiService tourApiService;
+    private final TourApiDetailCommonService tourApiDetailCommonService;
     private final TourApiDetailIntroService tourApiDetailIntroService;
     private final RestaurantMatchService restaurantMatchService;
 
@@ -69,6 +71,22 @@ public class TourApiSyncController {
 
         } catch (Exception e) {
             log.error("TourAPI 카카오 ID 매칭 배치 스케줄러 예외 발생 - {}", e.getMessage(), e);
+        }
+    }
+
+    @PostMapping("/detail-common")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> syncDetailCommon() {
+        try {
+            int successCount = tourApiDetailCommonService.syncAllRestaurantsDetailCommon();
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("successCount", successCount);
+            result.put("syncedAt", LocalDateTime.now());
+
+            return ResponseEntity.ok(ApiResponse.success(result));
+        } catch (Exception e) {
+            log.error("DetailCommon 동기화 실패", e);
+            return ResponseEntity.ok(ApiResponse.error(ErrorCode.EXTERNAL_SERVICE_ERROR));
         }
     }
 
