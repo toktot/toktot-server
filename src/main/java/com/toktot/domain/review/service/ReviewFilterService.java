@@ -1,5 +1,6 @@
 package com.toktot.domain.review.service;
 
+import com.toktot.domain.search.type.SortType;
 import com.toktot.web.dto.request.SearchCriteria;
 import com.toktot.web.dto.request.SearchRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ public class ReviewFilterService {
         validateRatingFilter(request);
         validateLocalFoodFilter(request);
         validateKeywordFilter(request);
+        validateSortFilter(request);
 
         return SearchCriteria.from(request);
     }
@@ -94,6 +96,18 @@ public class ReviewFilterService {
             sb.append(", 키워드: ").append(String.join(", ", criteria.keywords()));
         }
 
+        if (criteria.hasSortFilter()) {
+            sb.append(", 정렬: ").append(criteria.sort().getDisplayName());
+        }
+
         return sb.toString();
+    }
+
+    private void validateSortFilter(SearchRequest request) {
+        if (request.hasSortFilter()) {
+            if (request.sort() == SortType.DISTANCE && !request.hasLocationFilter()) {
+                throw new IllegalArgumentException("거리순 정렬을 위해서는 위치 정보가 필요합니다.");
+            }
+        }
     }
 }
