@@ -5,7 +5,7 @@ import com.toktot.domain.review.service.RestaurantReviewService;
 import com.toktot.domain.user.User;
 import com.toktot.web.dto.ApiResponse;
 import com.toktot.domain.restaurant.dto.response.RestaurantDetailResponse;
-import com.toktot.domain.review.dto.response.ReviewResponse;
+import com.toktot.domain.review.dto.response.RestaurantReviewResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import jakarta.validation.constraints.Positive;
@@ -34,7 +34,7 @@ public class RestaurantDetailController {
     }
 
     @GetMapping("/reviews")
-    public ResponseEntity<ApiResponse<Page<ReviewResponse>>> getRestaurantReviews(
+    public ResponseEntity<ApiResponse<Page<RestaurantReviewResponse>>> getRestaurantReviews(
             @PathVariable @Positive Long restaurantId,
             @AuthenticationPrincipal User user,
             Pageable pageable
@@ -43,7 +43,7 @@ public class RestaurantDetailController {
                 .setMessage("Restaurant reviews for " + restaurantId + " are available")
                 .addKeyValue("restaurantId", restaurantId)
                 .log();
-        Page<ReviewResponse> response = restaurantReviewService.getRestaurantReviews(restaurantId, pageable, user.getId());
+        Page<RestaurantReviewResponse> response = restaurantReviewService.getRestaurantReviews(restaurantId, pageable, user.getId());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

@@ -10,7 +10,7 @@ import java.util.List;
 
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ReviewResponse(
+public record RestaurantReviewResponse(
         Long id,
         ReviewUserResponse user,
         List<ReviewImageResponse> images,
@@ -20,8 +20,8 @@ public record ReviewResponse(
         Boolean isWriter
 ) {
 
-    public static ReviewResponse from(Review review, Long loginUserId, ReviewUserResponse userResponse) {
-        return ReviewResponse.builder()
+    public static RestaurantReviewResponse from(Review review, Long loginUserId, ReviewUserResponse userResponse) {
+        return RestaurantReviewResponse.builder()
                 .id(review.getId())
                 .user(userResponse)
                 .images(review.getImages()

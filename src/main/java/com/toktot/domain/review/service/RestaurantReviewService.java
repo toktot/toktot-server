@@ -7,7 +7,7 @@ import com.toktot.domain.review.Review;
 import com.toktot.domain.review.repository.ReviewRepository;
 import com.toktot.domain.user.User;
 import com.toktot.domain.user.repository.UserRepository;
-import com.toktot.domain.review.dto.response.ReviewResponse;
+import com.toktot.domain.review.dto.response.RestaurantReviewResponse;
 import com.toktot.domain.user.dto.response.ReviewUserResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +28,7 @@ public class RestaurantReviewService {
     private final ReviewRepository reviewRepository;
     private final RestaurantRepository restaurantRepository;
 
-    public Page<ReviewResponse> getRestaurantReviews(Long restaurantId, Pageable pageable, Long userId) {
+    public Page<RestaurantReviewResponse> getRestaurantReviews(Long restaurantId, Pageable pageable, Long userId) {
         log.info("가게 리뷰 조회 시작 - restaurantId: {}, page: {}, size: {}",
                 restaurantId, pageable.getPageNumber(), pageable.getPageSize());
 
@@ -49,8 +49,8 @@ public class RestaurantReviewService {
         }
     }
 
-    private ReviewResponse convertToReviewResponse(Review review, Long userId) {
-        return ReviewResponse.from(review, userId, getReviewUserResponse(review.getUser()));
+    private RestaurantReviewResponse convertToReviewResponse(Review review, Long userId) {
+        return RestaurantReviewResponse.from(review, userId, getReviewUserResponse(review.getUser()));
     }
 
     private ReviewUserResponse getReviewUserResponse(User user) {
