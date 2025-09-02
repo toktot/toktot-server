@@ -41,15 +41,4 @@ public class ReviewSearchService {
             throw e;
         }
     }
-
-    public Page<ReviewSearchResponse> searchReviewsByQuery(String query, Pageable pageable) {
-        SearchRequest request = new SearchRequest(query, null, null, null, null, null);
-        return searchReviews(request, pageable);
-    }
-
-    public Page<ReviewSearchResponse> searchReviewsNearby(String query, Double latitude, Double longitude, Integer radius, Pageable pageable) {
-        var locationFilter = new com.toktot.web.dto.request.LocationFilterRequest(latitude, longitude, radius);
-        SearchRequest request = new SearchRequest(query, locationFilter, null, null, null, null);
-        return searchReviews(request, pageable);
-    }
 }

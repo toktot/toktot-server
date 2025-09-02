@@ -104,7 +104,8 @@ public class ReviewSearchRepositoryImpl implements ReviewSearchRepositoryCustom 
             builder.and(JPAExpressions
                     .select(tooltip.rating.avg())
                     .from(tooltip)
-                    .where(tooltip.reviewImage.review.eq(review))
+                    .where(tooltip.reviewImage.review.eq(review)
+                            .and(tooltip.tooltipType.eq(TooltipType.FOOD)))
                     .goe(criteria.minRating()));
         }
 
@@ -169,8 +170,6 @@ public class ReviewSearchRepositoryImpl implements ReviewSearchRepositoryCustom 
         );
     }
 
-
-
     private void addOrderBy(JPAQuery<ReviewSearchResponse> query, Pageable pageable, SearchCriteria criteria) {
         if (pageable.getSort().isSorted()) {
             for (Sort.Order order : pageable.getSort()) {
@@ -180,13 +179,31 @@ public class ReviewSearchRepositoryImpl implements ReviewSearchRepositoryCustom 
                     case "createdAt":
                         query.orderBy(new OrderSpecifier<>(direction, review.createdAt));
                         break;
+                    case "rating":
+                        query.orderBy(new OrderSpecifier<>(direction,
+                                JPAExpressions
+                                        .select(tooltip.rating.avg())
+                                        .from(tooltip)
+                                        .where(tooltip.reviewImage.review.eq(review))
+                        ));
+                        break;
                     case "valueForMoneyScore":
                         query.orderBy(new OrderSpecifier<>(direction, review.valueForMoneyScore));
                         break;
                     case "distance":
                         if (criteria.hasLocationFilter()) {
                             query.orderBy(new OrderSpecifier<>(direction, buildDistanceExpression(criteria)));
+                        } else {
+                            query.orderBy(new OrderSpecifier<>(Order.DESC, review.createdAt));
                         }
+                        break;
+                    case "popularity":
+                        query.orderBy(new OrderSpecifier<>(direction,
+                                JPAExpressions
+                                        .select(review.count())
+                                        .from(review)
+                                        .where(review.restaurant.eq(review.restaurant))
+                        ));
                         break;
                     default:
                         query.orderBy(new OrderSpecifier<>(Order.DESC, review.createdAt));
