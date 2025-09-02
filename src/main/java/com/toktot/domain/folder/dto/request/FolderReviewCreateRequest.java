@@ -1,0 +1,18 @@
+package com.toktot.domain.folder.dto.request;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+
+import java.util.List;
+
+public record FolderReviewCreateRequest(
+        @JsonProperty(value = "folder_ids")
+        @NotEmpty(message = "저장할 폴더를 최소 1개 이상 선택해주세요.")
+        List<Long> folderIds,
+
+        @JsonProperty(value = "review_id")
+        @NotNull(message = "저장할 리뷰를 선택해주세요.")
+        Long reviewId
+) {
+}

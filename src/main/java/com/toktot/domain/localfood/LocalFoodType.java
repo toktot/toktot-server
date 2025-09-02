@@ -1,5 +1,8 @@
 package com.toktot.domain.localfood;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.toktot.common.exception.ErrorCode;
+import com.toktot.common.exception.ToktotException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -15,11 +18,21 @@ public enum LocalFoodType {
     GRILLED_CUTLASSFISH("갈치구이", "cutlassfish_icon"),
     RAW_FISH_MULHOE("회/물회", "raw_fish_icon"),
     BING_RICE_CAKE("빙떡", "bing_icon"),
-    OMEGI_RICE_CAKE("오메기떡", "omegi_icon");
+    OMEGI_RICE_CAKE("오메기떡", "omegi_icon"),
 
 
     ;
 
     private final String displayName;
     private final String iconName;
+
+    @JsonCreator
+    public static LocalFoodType from(String value) {
+        try {
+            return LocalFoodType.valueOf(value.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ToktotException(ErrorCode.INVALID_INPUT, "local_food type error");
+        }
+    }
+
 }

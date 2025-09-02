@@ -1,7 +1,7 @@
 package com.toktot.domain.localfood.service;
 
 import com.toktot.domain.localfood.repository.LocalFoodRepository;
-import com.toktot.web.dto.localfood.LocalFoodResponse;
+import com.toktot.domain.localfood.dto.LocalFoodResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -1,6 +1,6 @@
 package com.toktot.domain.user.service;
 
-import com.toktot.common.logging.SecurityEventLogger;
+import com.toktot.interceptor.logging.SecurityEventLogger;
 import com.toktot.domain.user.AuditLog;
 import com.toktot.domain.user.User;
 import com.toktot.domain.user.repository.AuditLogRepository;

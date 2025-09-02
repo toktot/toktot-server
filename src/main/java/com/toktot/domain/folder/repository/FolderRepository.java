@@ -2,16 +2,16 @@ package com.toktot.domain.folder.repository;
 
 import com.toktot.domain.folder.Folder;
 import com.toktot.domain.user.User;
-import com.toktot.web.dto.folder.response.FolderResponse;
-import io.lettuce.core.dynamic.annotation.Param;
+import com.toktot.domain.folder.dto.response.FolderResponse;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
 public interface FolderRepository extends JpaRepository<Folder, Long> {
 
-    @Query("SELECT new com.toktot.web.dto.folder.response.FolderResponse(" +
+    @Query("SELECT new com.toktot.domain.folder.dto.response.FolderResponse(" +
             "f.id, f.folderName, COUNT(fr.review.id), f.createdAt, f.isDefault) " +
             "FROM Folder f " +
             "LEFT JOIN f.folderReviews fr " +

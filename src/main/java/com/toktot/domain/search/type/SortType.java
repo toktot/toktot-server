@@ -1,5 +1,8 @@
 package com.toktot.domain.search.type;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.toktot.common.exception.ErrorCode;
+import com.toktot.common.exception.ToktotException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -16,5 +19,14 @@ public enum SortType {
 
     private final String displayName;
     private final String queryParam;
+
+    @JsonCreator
+    public static SortType from(String value) {
+        try {
+            return SortType.valueOf(value.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ToktotException(ErrorCode.INVALID_INPUT, "sort type error");
+        }
+    }
 
 }
