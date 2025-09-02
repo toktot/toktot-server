@@ -2,6 +2,7 @@ package com.toktot.web.dto.request;
 
 import com.toktot.domain.localfood.LocalFoodType;
 import com.toktot.domain.review.type.MealTime;
+import com.toktot.domain.search.type.SortType;
 
 import java.util.List;
 
@@ -15,7 +16,8 @@ public record SearchCriteria(
         Integer localFoodMinPrice,
         Integer localFoodMaxPrice,
         MealTime mealTime,
-        List<String> keywords
+        List<String> keywords,
+        SortType sort
 ) {
     public static SearchCriteria from(SearchRequest request) {
         return new SearchCriteria(
@@ -28,7 +30,8 @@ public record SearchCriteria(
                 request.hasPriceRangeFilter() ? request.localFood().minPrice() : null,
                 request.hasPriceRangeFilter() ? request.localFood().maxPrice() : null,
                 request.mealTime(),
-                request.keywords()
+                request.keywords(),
+                request.sort()
         );
     }
 
@@ -59,5 +62,8 @@ public record SearchCriteria(
     public boolean hasValidQuery() {
         return query != null && !query.trim().isEmpty();
     }
+
+
+    public boolean hasSortFilter() { return sort != null; }
 }
 

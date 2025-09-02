@@ -1,6 +1,7 @@
 package com.toktot.web.dto.request;
 
 import com.toktot.domain.review.type.MealTime;
+import com.toktot.domain.search.type.SortType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 
@@ -21,7 +22,8 @@ public record SearchRequest(
 
         List<String> keywords,
 
-        MealTime mealTime
+        MealTime mealTime,
+        SortType sort
 ) {
     public boolean hasLocationFilter() {
         return location != null && location.latitude() != null && location.longitude() != null;
@@ -43,4 +45,6 @@ public record SearchRequest(
     public boolean hasKeywordFilter() {
         return keywords != null && !keywords.isEmpty();
     }
+
+    public boolean hasSortFilter() { return sort != null; }
 }
