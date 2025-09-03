@@ -6,6 +6,7 @@ import lombok.Builder;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Builder
 public record ReviewFeedResponse(
@@ -16,13 +17,13 @@ public record ReviewFeedResponse(
         Integer satisfactionScore,
         MealTime mealTime,
         LocalDateTime createdAt,
-        List<String> keywords,
+        Set<String> keywords,
         List<ReviewFeedImageResponse> images,
         ReviewRestaurantInfo restaurant
 ) {
 
     public static ReviewFeedResponse from(Review review, ReviewAuthorResponse author,
-                                          List<String> keywords, ReviewRestaurantInfo restaurant,
+                                          Set<String> keywords, ReviewRestaurantInfo restaurant,
                                           Boolean isBookmarked, Boolean isWriter) {
         List<ReviewFeedImageResponse> images = review.getImages().stream()
                 .map(ReviewFeedImageResponse::from)

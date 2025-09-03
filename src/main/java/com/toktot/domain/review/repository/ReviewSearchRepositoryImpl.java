@@ -475,9 +475,9 @@ public class ReviewSearchRepositoryImpl implements ReviewSearchRepositoryCustom 
                     BigDecimal avgRating = userAverageRatings.getOrDefault(authorUser.getId(), BigDecimal.ZERO);
                     ReviewAuthorResponse author = ReviewAuthorResponse.from(authorUser, (int) reviewCount, avgRating);
 
-                    List<String> keywords = r.getKeywords().stream()
+                    Set<String> keywords = r.getKeywords().stream()
                             .map(k -> k.getKeywordType().getDisplayName())
-                            .toList();
+                            .collect(Collectors.toSet());
                     ReviewRestaurantInfo restaurantInfo = ReviewRestaurantInfo.from(r.getRestaurant(), null);
                     boolean isBookmarked = bookmarkedReviewIds.contains(r.getId());
                     boolean isWriter = authorUser.getId().equals(currentUserId);
