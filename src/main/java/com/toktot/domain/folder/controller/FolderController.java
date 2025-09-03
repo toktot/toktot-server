@@ -1,6 +1,9 @@
 package com.toktot.domain.folder.controller;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.toktot.domain.folder.service.FolderService;
+import com.toktot.domain.review.dto.response.search.ReviewListResponse;
+import com.toktot.domain.review.service.ReviewSearchService;
 import com.toktot.domain.user.User;
 import com.toktot.web.dto.ApiResponse;
 import com.toktot.domain.folder.dto.request.FolderCreateRequest;
@@ -9,6 +12,10 @@ import com.toktot.domain.folder.dto.response.FolderResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +29,7 @@ import java.util.List;
 public class FolderController {
 
     private final FolderService folderService;
+    private final ReviewSearchService reviewSearchService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<FolderResponse>> createFolder(
@@ -70,4 +78,27 @@ public class FolderController {
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @GetMapping("/reviews/{folderId}")
+    public ResponseEntity<ApiResponse<Page<ReviewListResponse>>> getSavedReviews(
+            @PathVariable Long folderId,
+            @AuthenticationPrincipal User user,
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        log.atInfo()
+                .setMessage("저장한 리뷰 조회 요청")
+                .addKeyValue("userId", user.getId())
+                .addKeyValue("folderId", folderId)
+                .log();
+        folderService.validateFolderOwn(user.getId(), folderId);
+        Page<ReviewListResponse> response = reviewSearchService.getSavedReviews(
+                user.getId(),
+                folderId,
+                pageable
+        );
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+
 }
