@@ -57,6 +57,13 @@ public class FolderService {
         }
     }
 
+    public void validateFolderOwn(Long userId, Long folderId) {
+        if (!folderRepository.existsFolderByUserIdAndId(userId, folderId)) {
+            log.info("folder {} does not exist, userId {}", folderId, userId);
+            throw new ToktotException(ErrorCode.ACCESS_DENIED, "접근할 수 없는 폴더입니다.");
+        }
+    }
+
     private void createFolderReview(User user, Long folderId, Review review) {
         Folder folder = folderRepository.findById(folderId)
                 .orElseThrow(() -> new ToktotException(ErrorCode.FOLDER_NOT_FOUND));
