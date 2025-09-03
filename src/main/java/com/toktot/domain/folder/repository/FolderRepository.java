@@ -20,5 +20,7 @@ public interface FolderRepository extends JpaRepository<Folder, Long> {
             "ORDER BY f.isDefault DESC, f.createdAt ASC")
     List<FolderResponse> findFoldersWithReviewCountByUserId(@Param("userId") Long userId);
 
+    boolean existsFolderByUserIdAndId(Long userId, Long id);
+
     boolean existsByUserAndIsDefaultTrue(User user);
 }

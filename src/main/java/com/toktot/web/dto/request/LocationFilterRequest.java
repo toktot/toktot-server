@@ -3,13 +3,13 @@ package com.toktot.web.dto.request;
 import jakarta.validation.constraints.*;
 
 public record LocationFilterRequest(
-        @DecimalMin(value = "33.0", message = "위도는 33.0 이상이어야 합니다.")
-        @DecimalMax(value = "34.0", message = "위도는 34.0 이하여야 합니다.")
+        @DecimalMin(value = "33.0", message = "위치 설정에 오류가 발생했습니다.")
+        @DecimalMax(value = "34.0", message = "위치 설정에 오류가 발생했습니다.")
         @NotNull(message = "위도는 필수입니다.")
         Double latitude,
 
-        @DecimalMin(value = "126.0", message = "경도는 126.0 이상이어야 합니다.")
-        @DecimalMax(value = "127.0", message = "경도는 127.0 이하여야 합니다.")
+        @DecimalMin(value = "126.0", message = "위치 설정에 오류가 발생했습니다.")
+        @DecimalMax(value = "127.0", message = "위치 설정에 오류가 발생했습니다.")
         @NotNull(message = "경도는 필수입니다.")
         Double longitude,
 

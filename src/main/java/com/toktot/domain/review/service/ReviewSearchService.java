@@ -1,15 +1,22 @@
 package com.toktot.domain.review.service;
 
-import com.toktot.domain.review.dto.response.ReviewSearchResponse;
+import com.toktot.domain.block.UserBlockRepository;
+import com.toktot.domain.review.dto.response.search.RestaurantDetailReviewResponse;
+import com.toktot.domain.review.dto.response.search.RestaurantReviewStatisticsResponse;
+import com.toktot.domain.review.dto.response.search.ReviewFeedResponse;
+import com.toktot.domain.review.dto.response.search.ReviewListResponse;
 import com.toktot.domain.review.repository.ReviewSearchRepositoryCustom;
+import com.toktot.domain.search.type.SortType;
 import com.toktot.web.dto.request.SearchCriteria;
-import com.toktot.web.dto.request.SearchRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collections;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -18,38 +25,61 @@ import org.springframework.transaction.annotation.Transactional;
 public class ReviewSearchService {
 
     private final ReviewSearchRepositoryCustom reviewSearchRepository;
-    private final ReviewFilterService reviewFilterService;
+    private final UserBlockRepository userBlockRepository;
 
-    public Page<ReviewSearchResponse> searchReviews(SearchRequest request, Pageable pageable) {
-        long startTime = System.currentTimeMillis();
+    public Page<ReviewListResponse> searchReviews(SearchCriteria criteria, Long currentUserId, Pageable pageable) {
+        log.info("리뷰 검색 시작 - query: {}, userId: {}", criteria.query(), currentUserId);
 
-        try {
-            SearchCriteria criteria = reviewFilterService.validateAndConvert(request);
+        List<Long> blockedUserIds = getBlockedUserIds(currentUserId);
 
-            log.info("리뷰 검색 시작: {}", reviewFilterService.buildSearchLogMessage(criteria));
+        return reviewSearchRepository.searchReviewsWithFilters(criteria, currentUserId, blockedUserIds, pageable);
+    }
 
-            Page<ReviewSearchResponse> result = reviewSearchRepository.searchReviewsWithFilters(criteria, pageable);
+    public Page<ReviewListResponse> getSavedReviews(Long userId, Long folderId, Pageable pageable) {
+        log.info("저장한 리뷰 조회 - userId: {}, folderId: {}", userId, folderId);
 
-            long endTime = System.currentTimeMillis();
-            log.info("리뷰 검색 완료 - 결과 수: {}, 응답 시간: {}ms", result.getTotalElements(), endTime - startTime);
+        List<Long> blockedUserIds = getBlockedUserIds(userId);
 
-            return result;
+        return reviewSearchRepository.findSavedReviews(userId, folderId, blockedUserIds, pageable);
+    }
 
-        } catch (Exception e) {
-            long endTime = System.currentTimeMillis();
-            log.error("리뷰 검색 실패 - 응답 시간: {}ms, 오류: {}", endTime - startTime, e.getMessage(), e);
-            throw e;
+    public Page<ReviewListResponse> getMyReviews(Long userId, Pageable pageable) {
+        log.info("작성한 리뷰 조회 - userId: {}", userId);
+
+        return reviewSearchRepository.findMyReviews(userId, pageable);
+    }
+
+    public Page<RestaurantDetailReviewResponse> getRestaurantReviews(Long restaurantId, Long reviewId,
+                                                                     SortType sortType, Long currentUserId,
+                                                                     Pageable pageable) {
+        log.info("가게 상세 페이지 리뷰 조회 - restaurantId: {}, reviewId: {}, sortType: {}",
+                restaurantId, reviewId, sortType);
+
+        List<Long> blockedUserIds = getBlockedUserIds(currentUserId);
+
+        return reviewSearchRepository.findRestaurantReviews(restaurantId, reviewId, sortType,
+                currentUserId, blockedUserIds, pageable);
+    }
+
+    public Page<ReviewFeedResponse> getReviewFeed(SearchCriteria criteria, Long currentUserId, Pageable pageable) {
+        log.info("실시간 리뷰 피드 조회 - userId: {}", currentUserId);
+
+        List<Long> blockedUserIds = getBlockedUserIds(currentUserId);
+
+        return reviewSearchRepository.findReviewFeed(criteria, currentUserId, blockedUserIds, pageable);
+    }
+
+    public RestaurantReviewStatisticsResponse getRestaurantReviewStatistics(Long restaurantId) {
+        log.info("가게 리뷰 통계 조회 - restaurantId: {}", restaurantId);
+
+        return reviewSearchRepository.getRestaurantReviewStatistics(restaurantId);
+    }
+
+    private List<Long> getBlockedUserIds(Long currentUserId) {
+        if (currentUserId == null) {
+            return Collections.emptyList();
         }
-    }
 
-    public Page<ReviewSearchResponse> searchReviewsByQuery(String query, Pageable pageable) {
-        SearchRequest request = new SearchRequest(query, null, null, null, null, null);
-        return searchReviews(request, pageable);
-    }
-
-    public Page<ReviewSearchResponse> searchReviewsNearby(String query, Double latitude, Double longitude, Integer radius, Pageable pageable) {
-        var locationFilter = new com.toktot.web.dto.request.LocationFilterRequest(latitude, longitude, radius);
-        SearchRequest request = new SearchRequest(query, locationFilter, null, null, null, null);
-        return searchReviews(request, pageable);
+        return userBlockRepository.findBlockedUserIdsByBlockerUserId(currentUserId);
     }
 }

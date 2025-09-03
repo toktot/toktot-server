@@ -1,5 +1,6 @@
 package com.toktot.domain.review.service;
 
+import com.toktot.domain.search.type.SortType;
 import com.toktot.web.dto.request.SearchCriteria;
 import com.toktot.web.dto.request.SearchRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ public class ReviewFilterService {
         validateRatingFilter(request);
         validateLocalFoodFilter(request);
         validateKeywordFilter(request);
+        validateSortFilter(request);
 
         return SearchCriteria.from(request);
     }
@@ -64,36 +66,11 @@ public class ReviewFilterService {
         }
     }
 
-    public String buildSearchLogMessage(SearchCriteria criteria) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("검색 조건 - ");
-        sb.append("검색어: ").append(criteria.query());
-
-        if (criteria.hasLocationFilter()) {
-            sb.append(", 위치: (").append(criteria.latitude()).append(", ").append(criteria.longitude()).append(")");
-            sb.append(", 반경: ").append(criteria.radius()).append("m");
+    private void validateSortFilter(SearchRequest request) {
+        if (request.hasSortFilter()) {
+            if (request.sort() == SortType.DISTANCE && !request.hasLocationFilter()) {
+                throw new IllegalArgumentException("거리순 정렬을 위해서는 위치 정보가 필요합니다.");
+            }
         }
-
-        if (criteria.hasRatingFilter()) {
-            sb.append(", 최소별점: ").append(criteria.minRating());
-        }
-
-        if (criteria.hasLocalFoodFilter()) {
-            sb.append(", 향토음식: ").append(criteria.localFoodType().getDisplayName());
-        }
-
-        if (criteria.hasPriceRangeFilter()) {
-            sb.append(", 가격범위: ").append(criteria.localFoodMinPrice()).append("-").append(criteria.localFoodMaxPrice());
-        }
-
-        if (criteria.hasMealTimeFilter()) {
-            sb.append(", 식사시간: ").append(criteria.mealTime().getDisplayName());
-        }
-
-        if (criteria.hasKeywordFilter()) {
-            sb.append(", 키워드: ").append(String.join(", ", criteria.keywords()));
-        }
-
-        return sb.toString();
     }
 }

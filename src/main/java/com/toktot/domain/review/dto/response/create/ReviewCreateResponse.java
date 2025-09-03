@@ -1,4 +1,4 @@
-package com.toktot.domain.review.dto.response;
+package com.toktot.domain.review.dto.response.create;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

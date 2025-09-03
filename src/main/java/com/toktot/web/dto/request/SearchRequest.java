@@ -1,13 +1,13 @@
 package com.toktot.web.dto.request;
 
 import com.toktot.domain.review.type.MealTime;
+import com.toktot.domain.search.type.SortType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 
 import java.util.List;
 
 public record SearchRequest(
-        @NotBlank(message = "검색어는 필수입니다.")
         String query,
 
         @Valid
@@ -21,8 +21,14 @@ public record SearchRequest(
 
         List<String> keywords,
 
-        MealTime mealTime
+        MealTime mealTime,
+        SortType sort
 ) {
+
+    public boolean hasQuery() {
+        return query != null && !query.isBlank();
+    }
+
     public boolean hasLocationFilter() {
         return location != null && location.latitude() != null && location.longitude() != null;
     }
@@ -43,4 +49,6 @@ public record SearchRequest(
     public boolean hasKeywordFilter() {
         return keywords != null && !keywords.isEmpty();
     }
+
+    public boolean hasSortFilter() { return sort != null; }
 }
