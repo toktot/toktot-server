@@ -13,7 +13,7 @@ import com.toktot.domain.user.User;
 import com.toktot.domain.review.dto.request.ReviewCreateRequest;
 import com.toktot.domain.review.dto.request.ReviewImageRequest;
 import com.toktot.domain.review.dto.request.TooltipRequest;
-import com.toktot.domain.review.dto.response.ReviewCreateResponse;
+import com.toktot.domain.review.dto.response.create.ReviewCreateResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

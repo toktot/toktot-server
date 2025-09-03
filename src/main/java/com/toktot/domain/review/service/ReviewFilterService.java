@@ -66,43 +66,6 @@ public class ReviewFilterService {
         }
     }
 
-    public String buildSearchLogMessage(SearchCriteria criteria) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("검색 조건 - ");
-        sb.append("검색어: ").append(criteria.query());
-
-        if (criteria.hasLocationFilter()) {
-            sb.append(", 위치: (").append(criteria.latitude()).append(", ").append(criteria.longitude()).append(")");
-            sb.append(", 반경: ").append(criteria.radius()).append("m");
-        }
-
-        if (criteria.hasRatingFilter()) {
-            sb.append(", 최소별점: ").append(criteria.minRating());
-        }
-
-        if (criteria.hasLocalFoodFilter()) {
-            sb.append(", 향토음식: ").append(criteria.localFoodType().getDisplayName());
-        }
-
-        if (criteria.hasPriceRangeFilter()) {
-            sb.append(", 가격범위: ").append(criteria.localFoodMinPrice()).append("-").append(criteria.localFoodMaxPrice());
-        }
-
-        if (criteria.hasMealTimeFilter()) {
-            sb.append(", 식사시간: ").append(criteria.mealTime().getDisplayName());
-        }
-
-        if (criteria.hasKeywordFilter()) {
-            sb.append(", 키워드: ").append(String.join(", ", criteria.keywords()));
-        }
-
-        if (criteria.hasSortFilter()) {
-            sb.append(", 정렬: ").append(criteria.sort().getDisplayName());
-        }
-
-        return sb.toString();
-    }
-
     private void validateSortFilter(SearchRequest request) {
         if (request.hasSortFilter()) {
             if (request.sort() == SortType.DISTANCE && !request.hasLocationFilter()) {
