@@ -21,7 +21,7 @@ public record SearchCriteria(
 ) {
     public static SearchCriteria from(SearchRequest request) {
         return new SearchCriteria(
-                request.query().trim(),
+                request.hasQuery() ? request.query() : null,
                 request.hasLocationFilter() ? request.location().latitude() : null,
                 request.hasLocationFilter() ? request.location().longitude() : null,
                 request.hasLocationFilter() ? request.location().radius() : null,

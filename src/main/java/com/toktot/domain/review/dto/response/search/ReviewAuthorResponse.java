@@ -1,4 +1,4 @@
-package com.toktot.domain.user.dto.response;
+package com.toktot.domain.review.dto.response.search;
 
 import com.toktot.domain.user.User;
 import lombok.Builder;
@@ -6,7 +6,7 @@ import lombok.Builder;
 import java.math.BigDecimal;
 
 @Builder
-public record ReviewUserResponse(
+public record ReviewAuthorResponse(
         Long id,
         String nickname,
         String profileImageUrl,
@@ -14,18 +14,13 @@ public record ReviewUserResponse(
         BigDecimal averageRating
 ) {
 
-    public static ReviewUserResponse from(User user, Integer reviewCount, BigDecimal averageRating) {
-        if (averageRating == null) {
-            averageRating = BigDecimal.ZERO;
-        }
-
-        return ReviewUserResponse.builder()
+    public static ReviewAuthorResponse from(User user, Integer reviewCount, BigDecimal averageRating) {
+        return ReviewAuthorResponse.builder()
                 .id(user.getId())
                 .nickname(user.getNickname())
                 .profileImageUrl(user.getProfileImageUrl())
-                .reviewCount(reviewCount)
-                .averageRating(averageRating)
+                .reviewCount(reviewCount != null ? reviewCount : 0)
+                .averageRating(averageRating != null ? averageRating : BigDecimal.ZERO)
                 .build();
     }
-
 }

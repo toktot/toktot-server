@@ -8,7 +8,6 @@ import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 
 public record SearchRequest(
-        @NotBlank(message = "검색어는 필수입니다.")
         String query,
 
         @Valid
@@ -25,6 +24,11 @@ public record SearchRequest(
         MealTime mealTime,
         SortType sort
 ) {
+
+    public boolean hasQuery() {
+        return query != null && !query.isBlank();
+    }
+
     public boolean hasLocationFilter() {
         return location != null && location.latitude() != null && location.longitude() != null;
     }
