@@ -14,9 +14,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Entity
 @Table(name = "reviews")
@@ -41,7 +39,7 @@ public class Review {
 
     @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<ReviewImage> images = new ArrayList<>();
+    private Set<ReviewImage> images = new HashSet<>();
 
     @Column(name = "meal_time", length = 20, nullable = false)
     @Enumerated(EnumType.STRING)
@@ -78,7 +76,7 @@ public class Review {
         return Review.builder()
                 .user(user)
                 .restaurant(restaurant)
-                .images(new ArrayList<>())
+                .images(new HashSet<>())
                 .keywords(new ArrayList<>())
                 .isHidden(false)
                 .reportCount(0)
@@ -95,14 +93,6 @@ public class Review {
     public void addKeyword(ReviewKeyword reviewKeyword) {
         this.keywords.add(reviewKeyword);
         reviewKeyword.assignReview(this);
-    }
-
-    public boolean isWriter(Long userId) {
-        if (userId == null) {
-            return false;
-        }
-
-        return Objects.equals(this.user.getId(), userId);
     }
 
     public void increaseReportCount() {

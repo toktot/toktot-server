@@ -7,8 +7,8 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "review_images")
@@ -49,7 +49,7 @@ public class ReviewImage {
     @OneToMany(mappedBy = "reviewImage", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     @BatchSize(size = 20)
-    private List<Tooltip> tooltips = new ArrayList<>();
+    private Set<Tooltip> tooltips = new HashSet<>();
 
     @CreatedDate
     @Column(nullable = false, updatable = false)
@@ -63,7 +63,7 @@ public class ReviewImage {
                 .imageUrl(imageUrl)
                 .fileSize(fileSize)
                 .imageOrder(imageOrder)
-                .tooltips(new ArrayList<>())
+                .tooltips(new HashSet<>())
                 .isMain(isMain)
                 .build();
     }
