@@ -2,8 +2,10 @@ package com.toktot.domain.restaurant.service;
 
 import com.toktot.common.exception.ErrorCode;
 import com.toktot.common.exception.ToktotException;
+import com.toktot.domain.block.UserBlockRepository;
 import com.toktot.domain.restaurant.Restaurant;
 import com.toktot.domain.restaurant.repository.RestaurantRepository;
+import com.toktot.domain.restaurant.repository.RestaurantSearchRepository;
 import com.toktot.external.kakao.KakaoApiConstants;
 import com.toktot.domain.restaurant.dto.request.RestaurantSearchRequest;
 import com.toktot.external.kakao.dto.response.KakaoPlaceInfo;
@@ -12,12 +14,16 @@ import com.toktot.external.kakao.service.KakaoMapService;
 import com.toktot.domain.restaurant.dto.response.RestaurantDetailResponse;
 import com.toktot.domain.restaurant.dto.response.RestaurantInfoResponse;
 import com.toktot.domain.restaurant.dto.response.RestaurantSearchResponse;
+import com.toktot.web.dto.request.SearchCriteria;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -29,7 +35,9 @@ import java.util.stream.Collectors;
 public class RestaurantSearchService {
 
     private final RestaurantRepository restaurantRepository;
+    private final RestaurantSearchRepository restaurantSearchRepository;
     private final KakaoMapService kakaoMapService;
+    private final UserBlockRepository userBlockRepository;
 
     @Transactional
     public RestaurantSearchResponse searchFromKakaoWithPagination(RestaurantSearchRequest request) {
@@ -77,6 +85,30 @@ public class RestaurantSearchService {
         return restaurantRepository.findById(id)
                 .map(RestaurantDetailResponse::from)
                 .orElseThrow(() -> new ToktotException(ErrorCode.RESTAURANT_NOT_FOUND));
+    }
+
+    public Page<RestaurantInfoResponse> searchRestaurantsWithFilters(
+            SearchCriteria criteria,
+            Long currentUserId,
+            Pageable pageable) {
+
+        log.info("필터 조건으로 식당 검색 - userId: {}", currentUserId);
+
+        List<Long> blockedUserIds = getBlockedUserIds(currentUserId);
+
+        return restaurantSearchRepository.searchRestaurantsWithFilters(
+                criteria,
+                currentUserId,
+                blockedUserIds,
+                pageable
+        );
+    }
+
+    private List<Long> getBlockedUserIds(Long currentUserId) {
+        if (currentUserId == null) {
+            return Collections.emptyList();
+        }
+        return userBlockRepository.findBlockedUserIdsByBlockerUserId(currentUserId);
     }
 
     private void validateSearchRequest(RestaurantSearchRequest request) {
