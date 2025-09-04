@@ -127,9 +127,18 @@ public class ReviewImageService {
                 reviewImageRequest.isMain()
         );
 
-        reviewImage.setImageUrl(restaurantId, reviewId);
-
+        reviewImage.setImageUrl(restaurantId, reviewId, getExtension(sessionImage.getImageUrl()));
         return reviewImage;
+    }
+
+    private String getExtension(String url) {
+        int lastDotIndex = url.lastIndexOf('.');
+        String extension = "";
+
+        if (lastDotIndex != -1 && lastDotIndex < url.length() - 1) {
+            extension = url.substring(lastDotIndex);
+        }
+        return extension;
     }
 
     private Tooltip createTooltipFromRequest(TooltipRequest request) {
