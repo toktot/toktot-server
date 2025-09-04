@@ -9,18 +9,10 @@ import java.util.List;
 
 public record SearchRequest(
         String query,
-
-        @Valid
         LocationFilterRequest location,
-
-        @Valid
         RatingFilterRequest rating,
-
-        @Valid
         LocalFoodFilterRequest localFood,
-
         List<String> keywords,
-
         MealTime mealTime,
         SortType sort
 ) {
