@@ -53,9 +53,8 @@ public class ReviewService {
         Review review = Review.create(user, restaurant, request.valueForMoneyScore(), request.mealTime());
 
         reviewKeywordService.saveKeywordsInReview(review, request.keywords());
-        reviewImageService.saveImagesInReview(review, request.images(), reviewSessionDTO);
-
         reviewRepository.save(review);
+        reviewImageService.saveImagesInReview(review, request.images(), reviewSessionDTO);
         reviewS3MigrationService.migrateSessionImages(reviewSessionDTO, review.getId());
 
         reviewSessionService.deleteSession(user.getId(), request.id());

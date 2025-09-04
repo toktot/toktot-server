@@ -1,17 +1,20 @@
 package com.toktot.domain.restaurant.dto.request;
 
-import java.math.BigDecimal;
+import com.toktot.domain.search.type.SortType;
+import com.toktot.web.dto.request.LocationFilterRequest;
 
 public record RestaurantSearchRequest(
         String query,
-        BigDecimal longitude,
-        BigDecimal latitude,
-        Integer radius,
+        LocationFilterRequest location,
         Integer page,
-        String sort
+        SortType sort
 ) {
 
-    public RestaurantSearchRequest nextPage() {
-        return new RestaurantSearchRequest(query, longitude, latitude, radius, page + 1, sort);
+    public boolean hasQuery() {
+        return this.query != null && !this.query.isBlank();
+    }
+
+    public boolean hasPage() {
+        return this.page != null && this.page > 0;
     }
 }

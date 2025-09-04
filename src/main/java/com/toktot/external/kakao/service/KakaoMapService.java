@@ -2,9 +2,11 @@ package com.toktot.external.kakao.service;
 
 import com.toktot.common.exception.ErrorCode;
 import com.toktot.common.exception.ToktotException;
+import com.toktot.domain.search.type.SortType;
 import com.toktot.external.kakao.KakaoApiConstants;
 import com.toktot.external.kakao.KakaoApiProperties;
 import com.toktot.external.kakao.dto.response.KakaoPlaceSearchResponse;
+import com.toktot.web.dto.request.LocationFilterRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -14,97 +16,59 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
-
-import java.math.BigDecimal;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class KakaoMapService {
 
-
     @Qualifier("kakaoRestTemplate")
     private final RestTemplate restTemplate;
 
     private final KakaoApiProperties kakaoApiProperties;
 
-    public KakaoPlaceSearchResponse searchJejuAllFoodAndCafePlace(String query, Integer page) {
-        String endpoint = kakaoApiProperties.getBaseUrl() + KakaoApiConstants.KEYWORD_ENDPOINT;
+    public KakaoPlaceSearchResponse searchJejuAllFoodAndCafePlace(String query, Integer page, LocationFilterRequest location, SortType sort) {
+        UriComponentsBuilder builder = UriComponentsBuilder
+                .fromUriString(kakaoApiProperties.getBaseUrl())
+                .path(KakaoApiConstants.KEYWORD_ENDPOINT)
+                .queryParam(KakaoApiConstants.PARAM_QUERY, query)
+                .queryParam(KakaoApiConstants.PARAM_PAGE, page)
+                .queryParam(KakaoApiConstants.PARAM_SIZE, KakaoApiConstants.DEFAULT_SIZE)
+                .queryParam(KakaoApiConstants.PARAM_RECT, KakaoApiConstants.JEJU_RECT);
 
-        try {
-            String url = UriComponentsBuilder
-                    .fromUriString(kakaoApiProperties.getBaseUrl())
-                    .path(KakaoApiConstants.KEYWORD_ENDPOINT)
-                    .queryParam(KakaoApiConstants.PARAM_QUERY, query)
-                    .queryParam(KakaoApiConstants.PARAM_PAGE, page)
-                    .queryParam(KakaoApiConstants.PARAM_SIZE, KakaoApiConstants.DEFAULT_SIZE)
-                    .queryParam(KakaoApiConstants.PARAM_RECT, KakaoApiConstants.JEJU_RECT)
-                    .build()
-                    .toString();
-
-            HttpEntity<Void> entity = new HttpEntity<>(createHeaders());
-
-            ResponseEntity<KakaoPlaceSearchResponse> responseEntity = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    entity,
-                    new ParameterizedTypeReference<>() {
-                    });
-
-            KakaoPlaceSearchResponse response = responseEntity.getBody();
-
-            log.info(
-                    KakaoApiConstants.LOG_API_CALL_SUCCESS,
-                    response != null ? response.getResultCount() : 0);
-            return response.filterFoodAndCafe();
-        } catch (Exception e) {
-            throw new ToktotException(ErrorCode.KAKAO_LOCAL_SERVICE_ERROR, e.getMessage() + endpoint);
+        if (location != null) {
+            builder.queryParam(KakaoApiConstants.PARAM_LONGITUDE, location.longitude())
+                    .queryParam(KakaoApiConstants.PARAM_LATITUDE, location.latitude())
+                    .queryParam(KakaoApiConstants.PARAM_RADIUS, location.radius());
         }
-    }
 
-    public KakaoPlaceSearchResponse searchRestaurantByNameAndCoordinates(String placeName, BigDecimal longitude, BigDecimal latitude) {
-        try {
-            String url = UriComponentsBuilder
-                    .fromUriString(kakaoApiProperties.getBaseUrl())
-                    .path(KakaoApiConstants.KEYWORD_ENDPOINT)
-                    .queryParam(KakaoApiConstants.PARAM_QUERY, placeName)
-                    .queryParam(KakaoApiConstants.PARAM_LONGITUDE, longitude.toString())
-                    .queryParam(KakaoApiConstants.PARAM_LATITUDE, latitude.toString())
-                    .queryParam(KakaoApiConstants.PARAM_RADIUS, 10)
-                    .build()
-                    .toString();
-
-            HttpEntity<Void> entity = new HttpEntity<>(createHeaders());
-
-            ResponseEntity<KakaoPlaceSearchResponse> responseEntity = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    entity,
-                    new ParameterizedTypeReference<>() {
-                    });
-
-            KakaoPlaceSearchResponse response = responseEntity.getBody();
-
-            log.info(
-                    KakaoApiConstants.LOG_API_CALL_SUCCESS,
-                    response != null ? response.getResultCount() : 0);
-            return response.filterFoodAndCafe();
-        } catch (Exception e) {
-            throw new ToktotException(ErrorCode.RESTAURANT_NOT_FOUND);
+        if (sort != null && location != null) {
+            builder.queryParam(KakaoApiConstants.PARAM_SORT, sort.getSortForKakao());
         }
+
+        String url = builder.build().toString();
+
+        KakaoPlaceSearchResponse response = executeKakaoPlaceSearch(url);
+        return response.filterFoodAndCafe();
     }
 
     public KakaoPlaceSearchResponse searchRestaurantAddress(String address) {
-        try {
-            String url = UriComponentsBuilder
-                    .fromUriString(kakaoApiProperties.getBaseUrl())
-                    .path(KakaoApiConstants.KEYWORD_ENDPOINT)
-                    .queryParam(KakaoApiConstants.PARAM_QUERY, address)
-                    .build()
-                    .toString();
+        String url = UriComponentsBuilder
+                .fromUriString(kakaoApiProperties.getBaseUrl())
+                .path(KakaoApiConstants.KEYWORD_ENDPOINT)
+                .queryParam(KakaoApiConstants.PARAM_QUERY, address)
+                .build()
+                .toString();
 
+        KakaoPlaceSearchResponse response = executeKakaoPlaceSearch(url);
+        return response.filterFoodAndCafe();
+    }
+
+    private KakaoPlaceSearchResponse executeKakaoPlaceSearch(String url) {
+        try {
             HttpEntity<Void> entity = new HttpEntity<>(createHeaders());
 
             ResponseEntity<KakaoPlaceSearchResponse> responseEntity = restTemplate.exchange(
@@ -116,12 +80,15 @@ public class KakaoMapService {
 
             KakaoPlaceSearchResponse response = responseEntity.getBody();
 
-            log.info(
-                    KakaoApiConstants.LOG_API_CALL_SUCCESS,
-                    response != null ? response.getResultCount() : 0);
-            return response.filterFoodAndCafe();
-        } catch (Exception e) {
-            throw new ToktotException(ErrorCode.RESTAURANT_NOT_FOUND);
+            if (response == null) {
+                throw new ToktotException(ErrorCode.KAKAO_LOCAL_SERVICE_ERROR, "Kakao API response body is null.");
+            }
+
+            log.info(KakaoApiConstants.LOG_API_CALL_SUCCESS, response.getResultCount());
+            return response;
+        } catch (RestClientException e) {
+            log.error("Failed to call Kakao API. URL: {}", url, e);
+            throw new ToktotException(ErrorCode.KAKAO_LOCAL_SERVICE_ERROR, e.getMessage());
         }
     }
 

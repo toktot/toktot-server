@@ -30,9 +30,6 @@ public class ReviewImage {
     @Column(name = "image_id", length = 100, nullable = false)
     private String imageId;
 
-    @Column(name = "s3_key", length = 500, nullable = false)
-    private String s3Key;
-
     @Column(name = "image_url", length = 500, nullable = false)
     private String imageUrl;
 
@@ -55,17 +52,18 @@ public class ReviewImage {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    public static ReviewImage create(String imageId, String s3Key, String imageUrl,
-                                     Long fileSize, Integer imageOrder, Boolean isMain) {
+    public static ReviewImage create(String imageId, Long fileSize, Integer imageOrder, Boolean isMain) {
         return ReviewImage.builder()
                 .imageId(imageId)
-                .s3Key(s3Key)
-                .imageUrl(imageUrl)
                 .fileSize(fileSize)
                 .imageOrder(imageOrder)
                 .tooltips(new HashSet<>())
                 .isMain(isMain)
                 .build();
+    }
+
+    public void setImageUrl(Long restaurantId, Long reviewId) {
+        this.imageUrl = "https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/reviews/" + restaurantId.toString() + "/" + reviewId.toString() + "/" + this.imageId;
     }
 
     public void assignReview(Review review) {

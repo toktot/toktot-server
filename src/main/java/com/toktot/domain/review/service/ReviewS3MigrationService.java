@@ -39,8 +39,7 @@ public class ReviewS3MigrationService {
         try {
             for (ReviewImageDTO imageDTO : session.getImages()) {
                 String originalKey = imageDTO.getS3Key();
-                String newKey = buildReviewImageKey(session.getRestaurantId(), reviewId,
-                        imageDTO.getOrder(), imageDTO.getImageId());
+                String newKey = buildReviewImageKey(session.getRestaurantId(), reviewId, imageDTO.getImageId());
 
                 log.debug("Migrating image - imageId: {}, originalKey: {}, newKey: {}",
                         imageDTO.getImageId(), originalKey, newKey);
@@ -49,7 +48,7 @@ public class ReviewS3MigrationService {
                 migratedKeys.add(newKey);
                 originalKeys.add(originalKey);
 
-                String newUrl = buildImageUrl(newKey);
+                String newUrl = buildImageUrl(session.getRestaurantId(), reviewId, imageDTO.getImageId());
                 imageDTO.setS3Key(newKey);
                 imageDTO.setImageUrl(newUrl);
             }
@@ -77,6 +76,7 @@ public class ReviewS3MigrationService {
                     .sourceKey(sourceKey)
                     .destinationBucket(bucketName)
                     .destinationKey(destinationKey)
+                    .acl(ObjectCannedACL.PUBLIC_READ)
                     .build();
 
             s3Client.copyObject(copyRequest);
@@ -139,13 +139,13 @@ public class ReviewS3MigrationService {
         log.warn("Rollback completed - processed: {}", migratedKeys.size());
     }
 
-    private String buildReviewImageKey(Long restaurantId, Long reviewId, int order, String imageId) {
+    private String buildReviewImageKey(Long restaurantId, Long reviewId, String imageId) {
         String extension = extractExtension(imageId);
-        String filename = String.format("%d_%s.%s", order, imageId, extension);
+        String filename = String.format("%s.%s", imageId, extension);
         String key = String.format("%s/%d/%d/%s", REVIEWS_PREFIX, restaurantId, reviewId, filename);
 
-        log.trace("Built review image key - restaurantId: {}, reviewId: {}, order: {}, key: {}",
-                restaurantId, reviewId, order, key);
+        log.trace("Built review image key - restaurantId: {}, reviewId: {}, key: {}",
+                restaurantId, reviewId, key);
 
         return key;
     }
@@ -157,11 +157,7 @@ public class ReviewS3MigrationService {
         return filename.substring(filename.lastIndexOf(".") + 1).toLowerCase();
     }
 
-    private String buildImageUrl(String s3Key) {
-        String imageUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, s3Key);
-
-        log.trace("Built image URL - s3Key: {}, url: {}", s3Key, imageUrl);
-
-        return imageUrl;
+    private String buildImageUrl(Long restaurantId, Long reviewId, String imageId) {
+        return String.format("/review/%d/%d/%s", restaurantId, reviewId, imageId);
     }
 }

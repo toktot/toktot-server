@@ -106,7 +106,7 @@ public class ReviewImageService {
 
         for (ReviewImageRequest imageRequest : imageRequests) {
             ReviewImageDTO reviewImageDTO = sessionImageMap.get(imageRequest.imageId());
-            ReviewImage reviewImage = createReviewImageFromRequest(reviewImageDTO, imageRequest);
+            ReviewImage reviewImage = createReviewImageFromRequest(reviewImageDTO, imageRequest, review.getRestaurant().getId(), review.getId());
 
             if (imageRequest.tooltips() != null) {
                 for (TooltipRequest tooltipRequest : imageRequest.tooltips()) {
@@ -119,15 +119,17 @@ public class ReviewImageService {
         }
     }
 
-    private ReviewImage createReviewImageFromRequest(ReviewImageDTO sessionImage, ReviewImageRequest reviewImageRequest) {
-        return ReviewImage.create(
+    private ReviewImage createReviewImageFromRequest(ReviewImageDTO sessionImage, ReviewImageRequest reviewImageRequest, Long restaurantId, Long reviewId) {
+        ReviewImage reviewImage = ReviewImage.create(
                 sessionImage.getImageId(),
-                sessionImage.getS3Key(),
-                sessionImage.getImageUrl(),
                 sessionImage.getFileSize(),
                 reviewImageRequest.order(),
                 reviewImageRequest.isMain()
         );
+
+        reviewImage.setImageUrl(restaurantId, reviewId);
+
+        return reviewImage;
     }
 
     private Tooltip createTooltipFromRequest(TooltipRequest request) {
