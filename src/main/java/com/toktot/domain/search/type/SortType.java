@@ -29,4 +29,12 @@ public enum SortType {
         }
     }
 
+    public String getSortForKakao() {
+        if (this.equals(SortType.DISTANCE)) {
+            return "distance";
+        }
+
+        return "accuracy";
+    }
+
 }
