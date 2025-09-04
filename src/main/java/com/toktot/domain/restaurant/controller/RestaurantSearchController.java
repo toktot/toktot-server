@@ -20,7 +20,7 @@ public class RestaurantSearchController {
 
     @PostMapping("/search")
     public ResponseEntity<ApiResponse<RestaurantSearchResponse>> searchRestaurantsFromKakao(
-            @Valid @RequestBody RestaurantSearchRequest request) {
+            @RequestBody RestaurantSearchRequest request) {
         log.info("Kakao restaurant search request: {}", request);
 
         RestaurantSearchResponse result = restaurantSearchService.searchFromKakaoWithPagination(request);
