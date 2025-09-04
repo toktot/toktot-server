@@ -62,8 +62,8 @@ public class ReviewImage {
                 .build();
     }
 
-    public void setImageUrl(Long restaurantId, Long reviewId) {
-        this.imageUrl = "https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/reviews/" + restaurantId.toString() + "/" + reviewId.toString() + "/" + this.imageId;
+    public void setImageUrl(Long restaurantId, Long reviewId, String extension) {
+        this.imageUrl = "https://toktot-dev-images.s3.ap-northeast-2.amazonaws.com/reviews/" + restaurantId.toString() + "/" + reviewId.toString() + "/" + this.imageId + extension;
     }
 
     public void assignReview(Review review) {
