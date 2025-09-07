@@ -1,4 +1,4 @@
-package com.toktot.domain.restaurant.controller;
+package com.toktot.web.controller;
 
 import com.toktot.common.exception.ErrorCode;
 import com.toktot.domain.restaurant.service.RestaurantMatchService;
@@ -19,7 +19,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/restaurant/tour-api")
 @RequiredArgsConstructor
-public class TourApiSyncController {
+public class TourApiSchedulerController {
 
     private final TourApiService tourApiService;
     private final TourApiDetailCommonService tourApiDetailCommonService;
