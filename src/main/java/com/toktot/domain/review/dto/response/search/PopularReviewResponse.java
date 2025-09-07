@@ -1,8 +1,6 @@
 package com.toktot.domain.review.dto.response.search;
 
-import com.toktot.domain.review.ReviewKeyword;
 import lombok.Builder;
-
 import java.util.List;
 
 @Builder
@@ -16,5 +14,16 @@ public record PopularReviewResponse(
         ReviewRestaurantInfo restaurant,
         Double rating
 ) {
-
+    public PopularReviewResponse withIsBookmarked(boolean isBookmarked) {
+        return new PopularReviewResponse(
+                this.id,
+                this.author,
+                isBookmarked,
+                this.valueForMoneyScore,
+                this.keywords,
+                this.imageUrl,
+                this.restaurant,
+                this.rating
+        );
+    }
 }

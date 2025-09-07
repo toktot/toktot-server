@@ -3,14 +3,13 @@ package com.toktot.domain.review.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.toktot.common.exception.ErrorCode;
-import com.toktot.common.exception.ToktotException;
 import com.toktot.domain.block.UserBlockRepository;
 import com.toktot.domain.folder.repository.FolderReviewRepository;
 import com.toktot.domain.review.Review;
 import com.toktot.domain.review.ReviewImage;
 import com.toktot.domain.review.dto.response.search.PopularReviewResponse;
 import com.toktot.domain.review.dto.response.search.ReviewAuthorResponse;
+import com.toktot.domain.review.dto.response.search.ReviewRestaurantInfo;
 import com.toktot.domain.review.repository.ReviewRepository;
 import com.toktot.domain.review.repository.TooltipRepository;
 import com.toktot.domain.user.User;
@@ -22,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -43,40 +41,46 @@ public class PopularReviewService {
     private final ObjectMapper objectMapper;
 
     private static final String POPULAR_REVIEWS_KEY = "popular:reviews";
+    private static final int POPULAR_REVIEW_COUNT = 15;
 
     public List<PopularReviewResponse> getPopularReviewsForUser(Long currentUserId) {
-        log.info("사용자별 인기 리뷰 조회 - userId: {}", currentUserId);
+        log.info("사용자별 인기 리뷰 조회 시작 - userId: {}", currentUserId);
 
         List<PopularReviewResponse> cachedReviews = getCachedPopularReviews();
 
         if (cachedReviews.isEmpty()) {
-            log.warn("캐시된 인기 리뷰가 없습니다. DB에서 직접 조회합니다.");
-            return getPopularReviews();
+            log.warn("캐시된 인기 리뷰가 없어 DB에서 직접 조회합니다.");
+            return fetchAndMapPopularReviews(currentUserId);
         }
 
+        return applyUserContextToCachedReviews(cachedReviews, currentUserId);
+    }
+
+    public List<PopularReviewResponse> getPopularReviews() {
+        log.info("스케줄러용 인기 리뷰 조회 시작");
+        return fetchAndMapPopularReviews(null);
+    }
+
+    private List<PopularReviewResponse> applyUserContextToCachedReviews(List<PopularReviewResponse> cachedReviews, Long currentUserId) {
         List<Long> blockedUserIds = getBlockedUserIds(currentUserId);
-
-        if (blockedUserIds.isEmpty()) {
-            log.debug("차단된 사용자가 없습니다 - userId: {}", currentUserId);
-            return cachedReviews;
-        }
-
         List<PopularReviewResponse> filteredReviews = cachedReviews.stream()
                 .filter(review -> !blockedUserIds.contains(review.author().id()))
                 .toList();
 
-        log.info("차단 필터링 완료 - 원본: {}개, 필터링 후: {}개, 차단 사용자: {}명",
-                cachedReviews.size(), filteredReviews.size(), blockedUserIds.size());
+        if (filteredReviews.isEmpty()) {
+            return Collections.emptyList();
+        }
 
-        return filteredReviews;
+        List<PopularReviewResponse> finalReviews = updateBookmarkStatus(filteredReviews, currentUserId);
+
+        log.info("캐시 기반 사용자별 리뷰 필터링 완료 - 원본: {}개, 최종: {}개", cachedReviews.size(), finalReviews.size());
+        return finalReviews;
     }
 
-    public List<PopularReviewResponse> getPopularReviews() {
-        log.info("많이 저장한 리뷰 조회 (스케줄러용)");
-
-        List<Long> popularReviewIds = folderReviewRepository.findPopularReviewIds(PageRequest.of(0, 15));
+    private List<PopularReviewResponse> fetchAndMapPopularReviews(Long currentUserId) {
+        List<Long> popularReviewIds = folderReviewRepository.findPopularReviewIds(PageRequest.of(0, POPULAR_REVIEW_COUNT));
         if (popularReviewIds.isEmpty()) {
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
 
         List<Review> reviews = reviewRepository.findWithDetailsByIds(popularReviewIds);
@@ -87,57 +91,78 @@ public class PopularReviewService {
         Map<Long, Double> averageRatingsByReviewId = getAverageRatingsByReviewId(popularReviewIds);
         Map<Long, Long> reviewCountsByUserId = getReviewCountsByUserId(userIds);
         Map<Long, BigDecimal> averageRatingsByUserId = getAverageRatingsByUserId(userIds);
+        Set<Long> bookmarkedReviewIds = getBookmarkedReviewIds(popularReviewIds, currentUserId);
 
         return reviews.stream()
                 .filter(review -> !review.getIsHidden())
-                .map(review -> createPopularReviewResponse(review, averageRatingsByReviewId, reviewCountsByUserId, averageRatingsByUserId))
+                .map(review -> createPopularReviewResponse(
+                        review,
+                        averageRatingsByReviewId,
+                        reviewCountsByUserId,
+                        averageRatingsByUserId,
+                        bookmarkedReviewIds.contains(review.getId())
+                ))
                 .toList();
     }
 
     private List<PopularReviewResponse> getCachedPopularReviews() {
         try {
             String cachedJson = redisTemplate.opsForValue().get(POPULAR_REVIEWS_KEY);
-
-            if (cachedJson == null) {
+            if (cachedJson == null || cachedJson.isBlank()) {
                 log.debug("캐시된 인기 리뷰가 없습니다.");
                 return Collections.emptyList();
             }
-
-            List<PopularReviewResponse> reviews = objectMapper.readValue(
-                    cachedJson,
-                    new TypeReference<List<PopularReviewResponse>>() {}
-            );
-
+            List<PopularReviewResponse> reviews = objectMapper.readValue(cachedJson, new TypeReference<>() {});
             log.debug("캐시에서 인기 리뷰 {}개 조회", reviews.size());
             return reviews;
-
         } catch (JsonProcessingException e) {
-            log.error("캐시된 인기 리뷰 역직렬화 실패", e);
+            log.error("캐시된 인기 리뷰 역직렬화 실패. 캐시를 비우고 DB 조회를 유도합니다.", e);
             return Collections.emptyList();
         } catch (Exception e) {
-            log.error("캐시된 인기 리뷰 조회 실패", e);
+            log.error("캐시 조회 중 예기치 않은 오류 발생", e);
             return Collections.emptyList();
         }
+    }
+
+    private List<PopularReviewResponse> updateBookmarkStatus(List<PopularReviewResponse> reviews, Long currentUserId) {
+        if (currentUserId == null) {
+            return reviews.stream()
+                    .map(review -> review.withIsBookmarked(false))
+                    .toList();
+        }
+
+        List<Long> reviewIds = reviews.stream().map(PopularReviewResponse::id).toList();
+        Set<Long> bookmarkedReviewIds = getBookmarkedReviewIds(reviewIds, currentUserId);
+
+        return reviews.stream()
+                .map(review -> review.withIsBookmarked(bookmarkedReviewIds.contains(review.id())))
+                .toList();
     }
 
     private List<Long> getBlockedUserIds(Long currentUserId) {
         if (currentUserId == null) {
             return Collections.emptyList();
         }
+        return userBlockRepository.findBlockedUserIdsByBlockerUserId(currentUserId);
+    }
 
+    private Set<Long> getBookmarkedReviewIds(List<Long> reviewIds, Long currentUserId) {
+        if (currentUserId == null || reviewIds.isEmpty()) {
+            return Collections.emptySet();
+        }
         try {
-            return userBlockRepository.findBlockedUserIdsByBlockerUserId(currentUserId);
+            return Set.copyOf(folderReviewRepository.findBookmarkedReviewIds(reviewIds, currentUserId));
         } catch (Exception e) {
-            log.error("차단 사용자 목록 조회 실패 - userId: {}", currentUserId, e);
-            return Collections.emptyList();
+            log.error("북마크 상태 조회 실패 - userId: {}", currentUserId, e);
+            return Collections.emptySet();
         }
     }
 
     private PopularReviewResponse createPopularReviewResponse(Review review,
                                                               Map<Long, Double> avgRatingsByReview,
                                                               Map<Long, Long> reviewCountsByUser,
-                                                              Map<Long, BigDecimal> avgRatingsByUser) {
-
+                                                              Map<Long, BigDecimal> avgRatingsByUser,
+                                                              boolean isBookmarked) {
         User user = review.getUser();
         ReviewAuthorResponse authorResponse = ReviewAuthorResponse.builder()
                 .id(user.getId())
@@ -147,27 +172,28 @@ public class PopularReviewService {
                 .averageRating(avgRatingsByUser.get(user.getId()))
                 .build();
 
-        List<String> keywordStrings = new ArrayList<>();
-        try {
-            keywordStrings = review.getKeywords().stream()
-                    .map(rk -> rk.getKeywordType().getDisplayName())
-                    .toList();
-        } catch (Exception e) {
-            log.warn("Keywords 로딩 실패 - reviewId: {}, error: {}", review.getId(), e.getMessage());
-            keywordStrings = List.of();
-        }
+        List<String> keywords = review.getKeywords().stream()
+                .map(rk -> rk.getKeywordType().getDisplayName())
+                .toList();
+
+        ReviewRestaurantInfo restaurantInfo = ReviewRestaurantInfo.from(review.getRestaurant(), null);
 
         return PopularReviewResponse.builder()
                 .id(review.getId())
                 .author(authorResponse)
+                .isBookmarked(isBookmarked)
                 .valueForMoneyScore(review.getValueForMoneyScore())
-                .keywords(keywordStrings)
+                .keywords(keywords)
                 .imageUrl(getMainImageUrl(review.getImages()))
+                .restaurant(restaurantInfo)
                 .rating(avgRatingsByReview.get(review.getId()))
                 .build();
     }
 
     private String getMainImageUrl(Set<ReviewImage> images) {
+        if (images == null || images.isEmpty()) {
+            return null;
+        }
         return images.stream()
                 .filter(ReviewImage::getIsMain)
                 .findFirst()
@@ -177,25 +203,16 @@ public class PopularReviewService {
 
     private Map<Long, Double> getAverageRatingsByReviewId(List<Long> reviewIds) {
         return tooltipRepository.findAverageRatingsByReviewIds(reviewIds).stream()
-                .collect(Collectors.toMap(
-                        row -> (Long) row[0],
-                        row -> (Double) row[1]
-                ));
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> (Double) row[1]));
     }
 
     private Map<Long, Long> getReviewCountsByUserId(Set<Long> userIds) {
         return reviewRepository.findReviewCountsByUserIds(userIds).stream()
-                .collect(Collectors.toMap(
-                        row -> (Long) row[0],
-                        row -> (Long) row[1]
-                ));
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
     }
 
     private Map<Long, BigDecimal> getAverageRatingsByUserId(Set<Long> userIds) {
         return tooltipRepository.findAverageRatingsByUserIds(userIds).stream()
-                .collect(Collectors.toMap(
-                        row -> (Long) row[0],
-                        row -> BigDecimal.valueOf((Double) row[1])
-                ));
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> BigDecimal.valueOf((Double) row[1])));
     }
 }
