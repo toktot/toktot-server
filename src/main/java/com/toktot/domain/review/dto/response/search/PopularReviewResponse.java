@@ -1,7 +1,7 @@
 package com.toktot.domain.review.dto.response.search;
 
 import lombok.Builder;
-import java.util.List;
+import java.util.Set;
 
 @Builder
 public record PopularReviewResponse(
@@ -9,7 +9,7 @@ public record PopularReviewResponse(
         ReviewAuthorResponse author,
         Boolean isBookmarked,
         Integer valueForMoneyScore,
-        List<String> keywords,
+        Set<String> keywords,
         String imageUrl,
         ReviewRestaurantInfo restaurant,
         Double rating

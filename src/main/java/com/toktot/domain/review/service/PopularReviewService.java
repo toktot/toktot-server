@@ -172,9 +172,9 @@ public class PopularReviewService {
                 .averageRating(avgRatingsByUser.get(user.getId()))
                 .build();
 
-        List<String> keywords = review.getKeywords().stream()
+        Set<String> keywords = review.getKeywords().stream()
                 .map(rk -> rk.getKeywordType().getDisplayName())
-                .toList();
+                .collect(Collectors.toSet());
 
         ReviewRestaurantInfo restaurantInfo = ReviewRestaurantInfo.from(review.getRestaurant(), null);
 
