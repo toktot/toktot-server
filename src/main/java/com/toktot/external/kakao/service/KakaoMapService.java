@@ -92,6 +92,21 @@ public class KakaoMapService {
         }
     }
 
+    public KakaoPlaceSearchResponse searchRestaurantByName(String restaurantName) {
+        String url = UriComponentsBuilder
+                .fromUriString(kakaoApiProperties.getBaseUrl())
+                .path(KakaoApiConstants.KEYWORD_ENDPOINT)
+                .queryParam(KakaoApiConstants.PARAM_QUERY, restaurantName)
+                .queryParam(KakaoApiConstants.PARAM_PAGE, 1)
+                .queryParam(KakaoApiConstants.PARAM_SIZE, KakaoApiConstants.DEFAULT_SIZE)
+                .queryParam(KakaoApiConstants.PARAM_RECT, KakaoApiConstants.JEJU_RECT)
+                .build()
+                .toString();
+
+        KakaoPlaceSearchResponse response = executeKakaoPlaceSearch(url);
+        return response.filterFoodAndCafe();
+    }
+
     private HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.set(KakaoApiConstants.HEADER_AUTHORIZATION,
