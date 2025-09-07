@@ -15,6 +15,7 @@ import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,7 +24,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ReviewSessionService {
 
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
 
     @Value("${toktot.review.session.ttl-hours:2}")
@@ -64,13 +65,13 @@ public class ReviewSessionService {
 
     public Optional<ReviewSessionDTO> getSession(Long userId, Long restaurantId) {
         String sessionKey = buildSessionKey(userId, restaurantId);
-        String sessionJson = redisTemplate.opsForValue().get(sessionKey);
+        Object sessionObject = redisTemplate.opsForValue().get(sessionKey);
 
-        if (sessionJson == null) {
+        if (sessionObject == null) {
             return Optional.empty();
         }
 
-        ReviewSessionDTO session = deserializeSession(sessionJson);
+        ReviewSessionDTO session = objectMapper.convertValue(sessionObject, ReviewSessionDTO.class);
         if (session == null) {
             redisTemplate.delete(sessionKey);
             return Optional.empty();
@@ -82,16 +83,15 @@ public class ReviewSessionService {
 
     public void saveSession(ReviewSessionDTO session) {
         String sessionKey = buildSessionKey(session.getUserId(), session.getRestaurantId());
-        String sessionJson = serializeSession(session);
         Duration ttl = Duration.ofHours(sessionTtlHours);
 
-        redisTemplate.opsForValue().set(sessionKey, sessionJson, ttl);
+        redisTemplate.opsForValue().set(sessionKey, session, ttl);
     }
 
     public boolean tryAddImageToSession(Long userId, Long restaurantId, ReviewImageDTO imageDTO) {
         String sessionKey = buildSessionKey(userId, restaurantId);
-        String imageJson = serializeImageDTO(imageDTO);
-        String timestamp = DateTimeUtil.nowWithoutNanos().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        String imageJson = serializeToJson(imageDTO);
+        String timestamp = DateTimeUtil.nowWithoutNanos().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 
         Long result = redisTemplate.execute(
                 RedisScript.of(LUA_SCRIPT_ADD_IMAGE, Long.class),
@@ -115,13 +115,8 @@ public class ReviewSessionService {
     }
 
     public void removeImageFromSession(Long userId, Long restaurantId, String imageId) {
-        Optional<ReviewSessionDTO> sessionOpt = getSession(userId, restaurantId);
-
-        if (sessionOpt.isEmpty()) {
-            throw new ToktotException(ErrorCode.RESOURCE_NOT_FOUND, "세션을 찾을 수 없습니다.");
-        }
-
-        ReviewSessionDTO session = sessionOpt.get();
+        ReviewSessionDTO session = getSession(userId, restaurantId)
+                .orElseThrow(() -> new ToktotException(ErrorCode.RESOURCE_NOT_FOUND, "세션을 찾을 수 없습니다."));
 
         if (!session.hasImage(imageId)) {
             throw new ToktotException(ErrorCode.RESOURCE_NOT_FOUND, "이미지를 찾을 수 없습니다.");
@@ -154,27 +149,12 @@ public class ReviewSessionService {
         return String.format("%s:%d:%d", SESSION_KEY_PREFIX, userId, restaurantId);
     }
 
-    private String serializeSession(ReviewSessionDTO session) {
+    private String serializeToJson(Object object) {
         try {
-            return objectMapper.writeValueAsString(session);
+            return objectMapper.writeValueAsString(object);
         } catch (JsonProcessingException e) {
-            throw new ToktotException(ErrorCode.EXTERNAL_SERVICE_ERROR);
-        }
-    }
-
-    private ReviewSessionDTO deserializeSession(String sessionJson) {
-        try {
-            return objectMapper.readValue(sessionJson, ReviewSessionDTO.class);
-        } catch (JsonProcessingException e) {
-            throw new ToktotException(ErrorCode.EXTERNAL_SERVICE_ERROR);
-        }
-    }
-
-    private String serializeImageDTO(ReviewImageDTO imageDTO) {
-        try {
-            return objectMapper.writeValueAsString(imageDTO);
-        } catch (JsonProcessingException e) {
-            throw new ToktotException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+            log.error("JSON serialization error", e);
+            throw new ToktotException(ErrorCode.EXTERNAL_SERVICE_ERROR, "객체를 JSON으로 변환하는 데 실패했습니다.");
         }
     }
 }
