@@ -18,8 +18,6 @@ public class GoodPriceBatchScheduler {
         log.info("착한가격업소 가격대별 캐시 갱신 배치 시작");
 
         try {
-            goodPriceCacheService.invalidateAllCache();
-
             goodPriceCacheService.cacheGoodPriceRestaurantsByPriceRange();
 
             log.info("착한가격업소 가격대별 캐시 갱신 배치 완료");
