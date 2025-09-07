@@ -8,7 +8,7 @@ import com.toktot.domain.review.dto.response.search.PopularReviewResponse;
 import com.toktot.domain.review.service.PopularReviewService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +21,7 @@ import java.util.List;
 public class ReviewScheduler {
 
     private final PopularReviewService popularReviewService;
-    private final RedisTemplate<String, String> redisTemplate;
+    private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
     private static final String POPULAR_REVIEWS_KEY = "popular:reviews";
