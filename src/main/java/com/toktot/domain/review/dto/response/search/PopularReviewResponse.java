@@ -11,7 +11,7 @@ public record PopularReviewResponse(
         ReviewAuthorResponse author,
         Boolean isBookmarked,
         Integer valueForMoneyScore,
-        List<ReviewKeyword> keywords,
+        List<String> keywords,
         String imageUrl,
         ReviewRestaurantInfo restaurant,
         Double rating
