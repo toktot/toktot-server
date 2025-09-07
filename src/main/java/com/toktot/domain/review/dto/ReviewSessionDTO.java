@@ -1,6 +1,7 @@
 package com.toktot.domain.review.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.toktot.common.util.DateTimeUtil;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -36,6 +37,7 @@ public class ReviewSessionDTO {
         }
     }
 
+    @JsonIgnore
     public int getImageCount() {
         return images != null ? images.size() : 0;
     }

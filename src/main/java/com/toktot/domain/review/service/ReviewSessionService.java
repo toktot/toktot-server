@@ -1,6 +1,5 @@
 package com.toktot.domain.review.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toktot.common.exception.ErrorCode;
 import com.toktot.common.exception.ToktotException;
@@ -11,12 +10,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -33,103 +29,119 @@ public class ReviewSessionService {
     private static final String SESSION_KEY_PREFIX = "review_session";
     private static final int MAX_IMAGES = 5;
 
-    private static final String LUA_SCRIPT_ADD_IMAGE = """
-        local sessionData = redis.call('GET', KEYS[1])
-        local session
-        
-        if sessionData == false then
-            session = {
-                userId = tonumber(ARGV[2]),
-                restaurantId = tonumber(ARGV[3]),
-                images = {},
-                createdAt = ARGV[4],
-                lastModified = ARGV[4]
-            }
-        else
-            session = cjson.decode(sessionData)
-        end
-        
-        local imageCount = #session.images
-        if imageCount >= tonumber(ARGV[5]) then
-            return 0
-        end
-        
-        local newImage = cjson.decode(ARGV[1])
-        newImage.order = imageCount + 1
-        table.insert(session.images, newImage)
-        session.lastModified = ARGV[4]
-        
-        redis.call('SET', KEYS[1], cjson.encode(session), 'EX', tonumber(ARGV[6]))
-        return 1
-        """;
-
     public Optional<ReviewSessionDTO> getSession(Long userId, Long restaurantId) {
-        String sessionKey = buildSessionKey(userId, restaurantId);
-        Object sessionObject = redisTemplate.opsForValue().get(sessionKey);
+        try {
+            String sessionKey = buildSessionKey(userId, restaurantId);
+            Object sessionObject = redisTemplate.opsForValue().get(sessionKey);
 
-        if (sessionObject == null) {
+            if (sessionObject == null) {
+                log.debug("Session not found: {}", sessionKey);
+                return Optional.empty();
+            }
+
+            ReviewSessionDTO session;
+            if (sessionObject instanceof ReviewSessionDTO) {
+                session = (ReviewSessionDTO) sessionObject;
+            } else {
+                session = objectMapper.convertValue(sessionObject, ReviewSessionDTO.class);
+            }
+
+            if (session == null) {
+                log.warn("Failed to deserialize session: {}", sessionKey);
+                redisTemplate.delete(sessionKey);
+                return Optional.empty();
+            }
+
+            extendSessionTtl(sessionKey);
+            log.debug("Session retrieved successfully: userId={}, restaurantId={}, imageCount={}",
+                    userId, restaurantId, session.getImageCount());
+            return Optional.of(session);
+
+        } catch (Exception e) {
+            log.error("Error getting session: userId={}, restaurantId={}", userId, restaurantId, e);
             return Optional.empty();
         }
-
-        ReviewSessionDTO session = objectMapper.convertValue(sessionObject, ReviewSessionDTO.class);
-        if (session == null) {
-            redisTemplate.delete(sessionKey);
-            return Optional.empty();
-        }
-
-        extendSessionTtl(sessionKey);
-        return Optional.of(session);
     }
 
     public void saveSession(ReviewSessionDTO session) {
-        String sessionKey = buildSessionKey(session.getUserId(), session.getRestaurantId());
-        Duration ttl = Duration.ofHours(sessionTtlHours);
+        try {
+            String sessionKey = buildSessionKey(session.getUserId(), session.getRestaurantId());
+            Duration ttl = Duration.ofHours(sessionTtlHours);
 
-        redisTemplate.opsForValue().set(sessionKey, session, ttl);
+            redisTemplate.opsForValue().set(sessionKey, session, ttl);
+
+            log.debug("Session saved: userId={}, restaurantId={}, imageCount={}",
+                    session.getUserId(), session.getRestaurantId(), session.getImageCount());
+
+        } catch (Exception e) {
+            log.error("Error saving session: userId={}, restaurantId={}",
+                    session.getUserId(), session.getRestaurantId(), e);
+            throw new ToktotException(ErrorCode.EXTERNAL_SERVICE_ERROR, "세션 저장에 실패했습니다.");
+        }
     }
 
     public boolean tryAddImageToSession(Long userId, Long restaurantId, ReviewImageDTO imageDTO) {
-        String sessionKey = buildSessionKey(userId, restaurantId);
-        String imageJson = serializeToJson(imageDTO);
-        String timestamp = DateTimeUtil.nowWithoutNanos().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        try {
+            ReviewSessionDTO session = getSession(userId, restaurantId)
+                    .orElse(ReviewSessionDTO.create(userId, restaurantId));
 
-        Long result = redisTemplate.execute(
-                RedisScript.of(LUA_SCRIPT_ADD_IMAGE, Long.class),
-                List.of(sessionKey),
-                imageJson,
-                userId.toString(),
-                restaurantId.toString(),
-                timestamp,
-                String.valueOf(MAX_IMAGES),
-                String.valueOf(sessionTtlHours * 3600)
-        );
+            if (session.getImageCount() >= MAX_IMAGES) {
+                log.warn("Failed to add image to session - max images reached: userId={}, restaurantId={}, imageId={}",
+                        userId, restaurantId, imageDTO.getImageId());
+                return false;
+            }
 
-        boolean success = result != null && result == 1;
+            imageDTO.setOrder(session.getImageCount() + 1);
+            session.getImages().add(imageDTO);
+            session.setLastModified(DateTimeUtil.nowWithoutNanos());
 
-        if (!success) {
-            log.warn("Failed to add image to session - max images reached: userId={}, restaurantId={}, imageId={}",
+            saveSession(session);
+
+            log.debug("Image added to session: userId={}, restaurantId={}, imageId={}",
                     userId, restaurantId, imageDTO.getImageId());
-        }
+            return true;
 
-        return success;
+        } catch (Exception e) {
+            log.error("Error adding image to session: userId={}, restaurantId={}, imageId={}",
+                    userId, restaurantId, imageDTO.getImageId(), e);
+            return false;
+        }
     }
 
     public void removeImageFromSession(Long userId, Long restaurantId, String imageId) {
-        ReviewSessionDTO session = getSession(userId, restaurantId)
-                .orElseThrow(() -> new ToktotException(ErrorCode.RESOURCE_NOT_FOUND, "세션을 찾을 수 없습니다."));
+        try {
+            ReviewSessionDTO session = getSession(userId, restaurantId)
+                    .orElseThrow(() -> new ToktotException(ErrorCode.RESOURCE_NOT_FOUND, "세션을 찾을 수 없습니다."));
 
-        if (!session.hasImage(imageId)) {
-            throw new ToktotException(ErrorCode.RESOURCE_NOT_FOUND, "이미지를 찾을 수 없습니다.");
+            if (!session.hasImage(imageId)) {
+                throw new ToktotException(ErrorCode.RESOURCE_NOT_FOUND, "이미지를 찾을 수 없습니다.");
+            }
+
+            session.removeImage(imageId);
+            reorderImages(session);
+            saveSession(session);
+
+            log.debug("Image removed from session: userId={}, restaurantId={}, imageId={}",
+                    userId, restaurantId, imageId);
+
+        } catch (ToktotException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error removing image from session: userId={}, restaurantId={}, imageId={}",
+                    userId, restaurantId, imageId, e);
+            throw new ToktotException(ErrorCode.EXTERNAL_SERVICE_ERROR, "이미지 삭제에 실패했습니다.");
         }
-
-        session.removeImage(imageId);
-        reorderImages(session);
-        saveSession(session);
     }
 
     public void deleteSession(Long userId, Long restaurantId) {
-        String sessionKey = buildSessionKey(userId, restaurantId);
-        redisTemplate.delete(sessionKey);
+        try {
+            String sessionKey = buildSessionKey(userId, restaurantId);
+            redisTemplate.delete(sessionKey);
+            log.debug("Session deleted: userId={}, restaurantId={}", userId, restaurantId);
+
+        } catch (Exception e) {
+            log.error("Error deleting session: userId={}, restaurantId={}", userId, restaurantId, e);
+        }
     }
 
     private void reorderImages(ReviewSessionDTO session) {
@@ -141,20 +153,15 @@ public class ReviewSessionService {
     }
 
     private void extendSessionTtl(String sessionKey) {
-        Duration ttl = Duration.ofHours(sessionTtlHours);
-        redisTemplate.expire(sessionKey, ttl);
+        try {
+            Duration ttl = Duration.ofHours(sessionTtlHours);
+            redisTemplate.expire(sessionKey, ttl);
+        } catch (Exception e) {
+            log.warn("Failed to extend session TTL: {}", sessionKey, e);
+        }
     }
 
     private String buildSessionKey(Long userId, Long restaurantId) {
         return String.format("%s:%d:%d", SESSION_KEY_PREFIX, userId, restaurantId);
-    }
-
-    private String serializeToJson(Object object) {
-        try {
-            return objectMapper.writeValueAsString(object);
-        } catch (JsonProcessingException e) {
-            log.error("JSON serialization error", e);
-            throw new ToktotException(ErrorCode.EXTERNAL_SERVICE_ERROR, "객체를 JSON으로 변환하는 데 실패했습니다.");
-        }
     }
 }
