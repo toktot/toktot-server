@@ -9,7 +9,14 @@ import java.util.List;
 import java.util.Set;
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
-    @Query("SELECT r FROM Review r JOIN FETCH r.user LEFT JOIN FETCH r.images WHERE r.id IN :ids")
+
+    @Query("""
+        SELECT DISTINCT r FROM Review r 
+        JOIN FETCH r.user 
+        LEFT JOIN FETCH r.images 
+        LEFT JOIN FETCH r.keywords 
+        WHERE r.id IN :ids
+        """)
     List<Review> findWithDetailsByIds(@Param("ids") List<Long> ids);
 
     @Query("SELECT r.user.id, COUNT(r) FROM Review r WHERE r.user.id IN :userIds GROUP BY r.user.id")
