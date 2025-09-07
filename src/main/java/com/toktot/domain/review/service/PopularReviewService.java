@@ -1,5 +1,11 @@
 package com.toktot.domain.review.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.toktot.common.exception.ErrorCode;
+import com.toktot.common.exception.ToktotException;
+import com.toktot.domain.block.UserBlockRepository;
 import com.toktot.domain.folder.repository.FolderReviewRepository;
 import com.toktot.domain.review.Review;
 import com.toktot.domain.review.ReviewImage;
@@ -11,11 +17,13 @@ import com.toktot.domain.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,9 +38,41 @@ public class PopularReviewService {
     private final FolderReviewRepository folderReviewRepository;
     private final ReviewRepository reviewRepository;
     private final TooltipRepository tooltipRepository;
+    private final UserBlockRepository userBlockRepository;
+    private final RedisTemplate<String, String> redisTemplate;
+    private final ObjectMapper objectMapper;
+
+    private static final String POPULAR_REVIEWS_KEY = "popular:reviews";
+
+    public List<PopularReviewResponse> getPopularReviewsForUser(Long currentUserId) {
+        log.info("사용자별 인기 리뷰 조회 - userId: {}", currentUserId);
+
+        List<PopularReviewResponse> cachedReviews = getCachedPopularReviews();
+
+        if (cachedReviews.isEmpty()) {
+            log.warn("캐시된 인기 리뷰가 없습니다. DB에서 직접 조회합니다.");
+            return getPopularReviews();
+        }
+
+        List<Long> blockedUserIds = getBlockedUserIds(currentUserId);
+
+        if (blockedUserIds.isEmpty()) {
+            log.debug("차단된 사용자가 없습니다 - userId: {}", currentUserId);
+            return cachedReviews;
+        }
+
+        List<PopularReviewResponse> filteredReviews = cachedReviews.stream()
+                .filter(review -> !blockedUserIds.contains(review.author().id()))
+                .toList();
+
+        log.info("차단 필터링 완료 - 원본: {}개, 필터링 후: {}개, 차단 사용자: {}명",
+                cachedReviews.size(), filteredReviews.size(), blockedUserIds.size());
+
+        return filteredReviews;
+    }
 
     public List<PopularReviewResponse> getPopularReviews() {
-        log.info("많이 저장한 리뷰 조회");
+        log.info("많이 저장한 리뷰 조회 (스케줄러용)");
 
         List<Long> popularReviewIds = folderReviewRepository.findPopularReviewIds(PageRequest.of(0, 15));
         if (popularReviewIds.isEmpty()) {
@@ -52,6 +92,45 @@ public class PopularReviewService {
                 .filter(review -> !review.getIsHidden())
                 .map(review -> createPopularReviewResponse(review, averageRatingsByReviewId, reviewCountsByUserId, averageRatingsByUserId))
                 .toList();
+    }
+
+    private List<PopularReviewResponse> getCachedPopularReviews() {
+        try {
+            String cachedJson = redisTemplate.opsForValue().get(POPULAR_REVIEWS_KEY);
+
+            if (cachedJson == null) {
+                log.debug("캐시된 인기 리뷰가 없습니다.");
+                return Collections.emptyList();
+            }
+
+            List<PopularReviewResponse> reviews = objectMapper.readValue(
+                    cachedJson,
+                    new TypeReference<List<PopularReviewResponse>>() {}
+            );
+
+            log.debug("캐시에서 인기 리뷰 {}개 조회", reviews.size());
+            return reviews;
+
+        } catch (JsonProcessingException e) {
+            log.error("캐시된 인기 리뷰 역직렬화 실패", e);
+            return Collections.emptyList();
+        } catch (Exception e) {
+            log.error("캐시된 인기 리뷰 조회 실패", e);
+            return Collections.emptyList();
+        }
+    }
+
+    private List<Long> getBlockedUserIds(Long currentUserId) {
+        if (currentUserId == null) {
+            return Collections.emptyList();
+        }
+
+        try {
+            return userBlockRepository.findBlockedUserIdsByBlockerUserId(currentUserId);
+        } catch (Exception e) {
+            log.error("차단 사용자 목록 조회 실패 - userId: {}", currentUserId, e);
+            return Collections.emptyList();
+        }
     }
 
     private PopularReviewResponse createPopularReviewResponse(Review review,
