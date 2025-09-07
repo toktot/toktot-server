@@ -21,4 +21,6 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 
     List<Restaurant> findByNameContainingIgnoreCaseAndIsActive(String name, Boolean isActive);
 
+    List<Restaurant> findByIsGoodPriceStoreAndIsActive(Boolean isGoodPriceStore, Boolean isActive);
+
 }
