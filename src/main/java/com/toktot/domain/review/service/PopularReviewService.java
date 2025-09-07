@@ -68,11 +68,21 @@ public class PopularReviewService {
                 .averageRating(avgRatingsByUser.get(user.getId()))
                 .build();
 
+        List<String> keywordStrings = new ArrayList<>();
+        try {
+            keywordStrings = review.getKeywords().stream()
+                    .map(rk -> rk.getKeywordType().getDisplayName())
+                    .toList();
+        } catch (Exception e) {
+            log.warn("Keywords 로딩 실패 - reviewId: {}, error: {}", review.getId(), e.getMessage());
+            keywordStrings = List.of();
+        }
+
         return PopularReviewResponse.builder()
                 .id(review.getId())
                 .author(authorResponse)
                 .valueForMoneyScore(review.getValueForMoneyScore())
-                .keywords(review.getKeywords())
+                .keywords(keywordStrings)
                 .imageUrl(getMainImageUrl(review.getImages()))
                 .rating(avgRatingsByReview.get(review.getId()))
                 .build();
@@ -110,4 +120,3 @@ public class PopularReviewService {
                 ));
     }
 }
-
