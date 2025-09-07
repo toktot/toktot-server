@@ -58,13 +58,15 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
+	// xml
+	implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.15.2'
+
 	//ecs-encoder
 	implementation 'co.elastic.logging:logback-ecs-encoder:1.5.0'
 
 	// AWS SDK
 	implementation 'software.amazon.awssdk:s3:2.21.29'
 	implementation 'software.amazon.awssdk:auth:2.21.29'
-
 
 	// QueryDSL
 	implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
