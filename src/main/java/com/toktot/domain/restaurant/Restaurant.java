@@ -119,4 +119,11 @@ public class Restaurant {
             this.image = image2;
         }
     }
+
+    public void updateSeogwipoGoodPriceInfo(String popularMenus) {
+        this.dataSource = DataSource.SEOGWIPO_GOOD_PRICE;
+        this.isGoodPriceStore = true;
+        this.popularMenus = popularMenus;
+    }
+
 }
