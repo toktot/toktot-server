@@ -126,4 +126,16 @@ public class Restaurant {
         this.popularMenus = popularMenus;
     }
 
+    public void updateJejuGoodPriceInfo(String menuInfo) {
+        this.dataSource = DataSource.JEJU_GOOD_PRICE;
+        this.isGoodPriceStore = true;
+        this.popularMenus = menuInfo;
+    }
+
+    public boolean hasRequiredFields() {
+        return this.name != null &&
+               !this.name.trim().isEmpty() &&
+               this.latitude != null &&
+               this.longitude != null;
+    }
 }
