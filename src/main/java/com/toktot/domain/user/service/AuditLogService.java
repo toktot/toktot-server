@@ -76,6 +76,9 @@ public class AuditLogService {
 
     public void recordLogout(User user, String clientIp, String userAgent) {
         try {
+            AuditLog auditLog = AuditLog.createLogout(user, clientIp, userAgent);
+            auditLogRepository.save(auditLog);
+
             securityEventLogger.logLogout(
                     user.getId().toString(),
                     clientIp,
