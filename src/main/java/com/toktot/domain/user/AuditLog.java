@@ -91,6 +91,12 @@ public class AuditLog {
         return createAnonymousAction(AuditAction.LOGIN_FAILED, "/api/auth/login", clientIp, userAgent, metadata);
     }
 
+    public static AuditLog createLogout(User user, String clientIp, String userAgent) {
+        String metadata = String.format("{\"logout_time\": \"%s\", \"client_ip\": \"%s\"}",
+                LocalDateTime.now(), clientIp);
+        return createUserAction(user, AuditAction.LOGOUT, "/v1/logout", clientIp, userAgent, metadata);
+    }
+
     private static void validateRequiredFields(AuditAction action, String clientIp, String userAgent) {
         if (action == null) {
             throw new IllegalArgumentException("액션은 필수입니다.");
