@@ -149,7 +149,8 @@ public class ReviewImageService {
                 request.totalPrice(),
                 request.servingSize(),
                 request.rating(),
-                request.detailedReview()
+                request.detailedReview(),
+                request.type()
         );
     }
 
