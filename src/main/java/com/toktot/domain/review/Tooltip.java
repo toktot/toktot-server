@@ -57,9 +57,9 @@ public class Tooltip {
 
     public static Tooltip create(BigDecimal xPosition, BigDecimal yPosition,
                                  String menuName, Integer totalPrice, Integer servingSize,
-                                 BigDecimal rating, String detailedReview) {
+                                 BigDecimal rating, String detailedReview, TooltipType type) {
         return Tooltip.builder()
-                .tooltipType(TooltipType.FOOD)
+                .tooltipType(type)
                 .xPosition(xPosition)
                 .yPosition(yPosition)
                 .rating(rating)
