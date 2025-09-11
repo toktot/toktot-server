@@ -19,7 +19,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Slf4j
 @RestController
-@RequestMapping("/v1/auth")
+@RequestMapping("/v1")
 @RequiredArgsConstructor
 public class LogoutController {
 
