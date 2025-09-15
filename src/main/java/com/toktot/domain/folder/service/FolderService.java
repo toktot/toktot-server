@@ -48,6 +48,12 @@ public class FolderService {
     }
 
     @Transactional
+    public void deleteByUserId(Long userId) {
+        List<Folder> folders = folderRepository.findAllByUserId(userId);
+        folderRepository.deleteAll(folders);
+    }
+
+    @Transactional
     public void createFolderReviews(User user, List<Long> folderIds, Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ToktotException(ErrorCode.REVIEW_NOT_FOUND));

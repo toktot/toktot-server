@@ -88,6 +88,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 return;
             }
 
+            if (user.isDeleted()) {
+                log.warn("탈퇴한 회원입니다. - userId: {}", userId);
+                return;
+            }
+
             if (!user.isEnabled() || !user.isAccountNonLocked()) {
                 log.warn("비활성화되거나 잠긴 계정 - userId: {}", userId);
                 return;

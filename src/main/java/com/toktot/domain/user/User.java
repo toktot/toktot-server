@@ -27,6 +27,8 @@ import java.util.List;
 @Builder
 public class User {
 
+    public static final String DELETE_USER_NICKNAME = "탈퇴한 사용자";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -57,6 +59,9 @@ public class User {
     @LastModifiedDate
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    @Column
+    private LocalDateTime deletedAt;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserProfile userProfile;
@@ -113,5 +118,15 @@ public class User {
 
     public void increaseReportCount() {
         this.reportCount++;
+    }
+
+    public void softDelete() {
+        nickname = DELETE_USER_NICKNAME;
+        profileImageUrl = null;
+        deletedAt = LocalDateTime.now();
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
     }
 }

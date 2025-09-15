@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -163,5 +164,21 @@ public class ReviewSessionService {
 
     private String buildSessionKey(Long userId, Long restaurantId) {
         return String.format("%s:%d:%d", SESSION_KEY_PREFIX, userId, restaurantId);
+    }
+
+    public void deleteAllUserSessions(Long userId) {
+        try {
+            String userSessionPattern = SESSION_KEY_PREFIX + ":" + userId + ":*";
+            Set<String> sessionKeys = redisTemplate.keys(userSessionPattern);
+
+            if (sessionKeys != null && !sessionKeys.isEmpty()) {
+                redisTemplate.delete(sessionKeys);
+                log.info("Deleted {} sessions for user: {}", sessionKeys.size(), userId);
+            }
+
+        } catch (Exception e) {
+            log.error("Error deleting all sessions for user: {}", userId, e);
+            throw new ToktotException(ErrorCode.EXTERNAL_SERVICE_ERROR, "사용자 세션 삭제에 실패했습니다.");
+        }
     }
 }
