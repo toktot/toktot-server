@@ -22,4 +22,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByIdentifierAndAuthProvider(@Param("identifier") String identifier,
                                                    @Param("authProvider") AuthProvider authProvider);
 
+    Optional<User> findByIdAndDeletedAtIsNull(Long userId);
 }
