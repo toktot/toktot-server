@@ -173,4 +173,15 @@ public class AuditLogService {
                     .log();
         }
     }
+
+    public void recordUserDelete(User user, String clientIp, String userAgent) {
+        AuditLog auditLog = AuditLog.createUserDelete(user, clientIp, userAgent);
+        auditLogRepository.save(auditLog);
+
+        securityEventLogger.logLogout(
+                user.getId().toString(),
+                clientIp,
+                userAgent
+        );
+    }
 }

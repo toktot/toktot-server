@@ -48,8 +48,8 @@ public class AuthService {
                 .build();
     }
 
-    public ResponseCookie createLogoutCookie() {
-        log.debug("로그아웃 쿠키 생성 (리프레시 토큰 제거)");
+    public ResponseCookie deleteRefreshToken() {
+        log.debug("리프레시 토큰 제거");
 
         return ResponseCookie.from("refresh_token", "")
                 .httpOnly(true)

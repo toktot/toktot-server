@@ -37,8 +37,8 @@ public class LogoutController {
         String clientIp = ClientInfoExtractor.getClientIp(request);
         String userAgent = ClientInfoExtractor.getUserAgent(request);
 
-        ResponseCookie logoutCookie = authService.createLogoutCookie();
-        response.addHeader("Set-Cookie", logoutCookie.toString());
+        ResponseCookie deleteRefreshToken = authService.deleteRefreshToken();
+        response.addHeader("Set-Cookie", deleteRefreshToken.toString());
 
         auditLogService.recordLogout(user, clientIp, userAgent);
 
