@@ -204,7 +204,7 @@ public class TokenRefreshController {
     }
 
     private void clearRefreshTokenCookie(HttpServletResponse response) {
-        ResponseCookie clearCookie = authService.createLogoutCookie();
+        ResponseCookie clearCookie = authService.deleteRefreshToken();
         response.addHeader("Set-Cookie", clearCookie.toString());
 
         log.atDebug()

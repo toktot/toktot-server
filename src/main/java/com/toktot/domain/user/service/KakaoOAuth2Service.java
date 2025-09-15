@@ -182,6 +182,12 @@ public class KakaoOAuth2Service {
     }
 
     private User handleExistingUser(User user, String kakaoId, String clientIp) {
+        if (user.isDeleted()) {
+            log.warn("카카오 로그인 실패 - 탈퇴한 계정: userId={}, kakaoId={}, clientIp={}",
+                    user.getId(), kakaoId, clientIp);
+            throw new ToktotException(ErrorCode.ACCOUNT_DISABLED);
+        }
+
         log.info("기존 카카오 사용자 로그인 - userId: {}, kakaoId: {}, lastLogin: {}",
                 user.getId(), kakaoId,
                 user.getUserProfile() != null ? user.getUserProfile().getLastLoginAt() : "없음");
