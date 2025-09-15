@@ -97,6 +97,13 @@ public class AuditLog {
         return createUserAction(user, AuditAction.LOGOUT, "/v1/logout", clientIp, userAgent, metadata);
     }
 
+    public static AuditLog createUserDelete(User user, String clientIp, String userAgent) {
+        String metadata = String.format("{\"deletion_time\": \"%s\", \"nickname\": \"%s\", \"auth_provider\": \"%s\"}",
+                LocalDateTime.now(), user.getNickname(), user.getAuthProvider().name());
+        return createUserAction(user, AuditAction.USER_DELETE, "/v1/auth", clientIp, userAgent, metadata);
+    }
+
+
     private static void validateRequiredFields(AuditAction action, String clientIp, String userAgent) {
         if (action == null) {
             throw new IllegalArgumentException("액션은 필수입니다.");
