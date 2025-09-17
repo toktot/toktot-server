@@ -67,8 +67,7 @@ public class ReviewController {
                 pageable
         );
 
-        EnhancedSearchResponse<Page<ReviewListResponse>> response =
-                enhancedSearchService.enhanceWithLocalFoodStats(request.query(), reviewResults);
+        EnhancedSearchResponse<Page<ReviewListResponse>> response = enhancedSearchService.enhanceWithLocalFoodStats(request, reviewResults);
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }

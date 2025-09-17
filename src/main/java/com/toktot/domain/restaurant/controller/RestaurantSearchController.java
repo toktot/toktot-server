@@ -63,8 +63,9 @@ public class RestaurantSearchController {
                 adjustedPageable
         );
 
+        // 향토음식 검색인지 확인하고 통계 데이터 포함
         EnhancedSearchResponse<Page<RestaurantInfoResponse>> response =
-                enhancedSearchService.enhanceWithLocalFoodStats(request.query(), restaurantResults);
+                enhancedSearchService.enhanceWithLocalFoodStats(request, restaurantResults);
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
