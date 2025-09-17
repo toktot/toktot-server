@@ -63,7 +63,10 @@ public record SearchCriteria(
         return query != null && !query.trim().isEmpty();
     }
 
-
     public boolean hasSortFilter() { return sort != null; }
+
+    public LocalFoodFilterRequest localFood() {
+        return new LocalFoodFilterRequest(localFoodType, localFoodMinPrice, localFoodMaxPrice);
+    }
 }
 
