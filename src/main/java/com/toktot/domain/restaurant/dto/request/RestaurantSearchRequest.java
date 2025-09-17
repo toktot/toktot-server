@@ -10,11 +10,11 @@ public record RestaurantSearchRequest(
         SortType sort
 ) {
 
-    public boolean hasQuery() {
-        return this.query != null && !this.query.isBlank();
+    public Double latitude() {
+        return location != null ? location.latitude() : null;
     }
 
-    public boolean hasPage() {
-        return this.page != null && this.page > 0;
+    public Double longitude() {
+        return location != null ? location.longitude() : null;
     }
 }

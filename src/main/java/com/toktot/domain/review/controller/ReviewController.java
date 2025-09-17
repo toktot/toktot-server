@@ -57,17 +57,29 @@ public class ReviewController {
         log.atInfo()
                 .setMessage("리뷰 검색 요청")
                 .addKeyValue("query", request.query())
+                .addKeyValue("localFoodFilter", request.hasLocalFoodFilter())
+                .addKeyValue("priceFilter", request.hasPriceRangeFilter())
                 .addKeyValue("userId", user != null ? user.getId() : null)
                 .log();
 
         SearchCriteria criteria = reviewFilterService.validateAndConvert(request);
-        Page<ReviewListResponse> reviewResults = reviewSearchService.searchReviews(
-                criteria,
-                user != null ? user.getId() : null,
-                pageable
-        );
 
-        EnhancedSearchResponse<Page<ReviewListResponse>> response = enhancedSearchService.enhanceWithLocalFoodStats(request, reviewResults);
+        Page<ReviewListResponse> reviewResults;
+
+        if (request.hasLocalFoodFilter() && request.hasPriceRangeFilter()) {
+            reviewResults = reviewSearchService.searchLocalFoodReviewsWithPriceFilter(
+                    criteria,
+                    user != null ? user.getId() : null,
+                    pageable);
+        } else {
+            reviewResults = reviewSearchService.searchReviews(
+                    criteria,
+                    user != null ? user.getId() : null,
+                    pageable);
+        }
+
+        EnhancedSearchResponse<Page<ReviewListResponse>> response =
+                enhancedSearchService.enhanceWithLocalFoodStats(request, reviewResults);
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -95,7 +107,6 @@ public class ReviewController {
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
-
 
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<Page<ReviewListResponse>>> getMyReviews(

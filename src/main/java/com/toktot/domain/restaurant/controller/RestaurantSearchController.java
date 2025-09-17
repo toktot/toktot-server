@@ -51,19 +51,28 @@ public class RestaurantSearchController {
         log.atInfo()
                 .setMessage("식당 필터 검색 요청")
                 .addKeyValue("query", request.query())
+                .addKeyValue("localFoodFilter", request.hasLocalFoodFilter())
+                .addKeyValue("priceFilter", request.hasPriceRangeFilter())
                 .addKeyValue("userId", user != null ? user.getId() : null)
                 .log();
 
         SearchCriteria criteria = reviewFilterService.validateAndConvert(request);
         Pageable adjustedPageable = createPageableWithSort(pageable, criteria.sort());
 
-        Page<RestaurantInfoResponse> restaurantResults = restaurantSearchService.searchRestaurantsWithFilters(
-                criteria,
-                user != null ? user.getId() : null,
-                adjustedPageable
-        );
+        Page<RestaurantInfoResponse> restaurantResults;
 
-        // 향토음식 검색인지 확인하고 통계 데이터 포함
+        if (request.hasLocalFoodFilter() && request.hasPriceRangeFilter()) {
+            restaurantResults = restaurantSearchService.searchLocalFoodRestaurantsWithPriceFilter(
+                    criteria,
+                    user != null ? user.getId() : null,
+                    adjustedPageable);
+        } else {
+            restaurantResults = restaurantSearchService.searchRestaurantsWithFilters(
+                    criteria,
+                    user != null ? user.getId() : null,
+                    adjustedPageable);
+        }
+
         EnhancedSearchResponse<Page<RestaurantInfoResponse>> response =
                 enhancedSearchService.enhanceWithLocalFoodStats(request, restaurantResults);
 
