@@ -3,7 +3,6 @@ package com.toktot.domain.localfood.service;
 import com.toktot.domain.localfood.LocalFoodType;
 import com.toktot.domain.localfood.dto.LocalFoodStatsResponse;
 import com.toktot.domain.review.Tooltip;
-import com.toktot.domain.review.repository.TooltipRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -11,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class LocalFoodStatisticsService {
 
-    private final TooltipRepository tooltipRepository;
     private final LocalFoodDetectionService detectionService;
 
     private static final int MIN_REVIEW_COUNT = 5;
@@ -31,11 +30,11 @@ public class LocalFoodStatisticsService {
     public LocalFoodStatsResponse calculatePriceStats(LocalFoodType localFoodType) {
         log.info("향토음식 통계 계산 시작 - 타입: {}", localFoodType.getDisplayName());
 
-        List<Tooltip> tooltips = findTooltipsForLocalFood(localFoodType);
+        List<Tooltip> tooltips = detectionService.findTooltipsByType(localFoodType);
 
         if (tooltips.size() < MIN_REVIEW_COUNT) {
             log.warn("리뷰 데이터 부족 - 타입: {}, 개수: {}", localFoodType.getDisplayName(), tooltips.size());
-            return LocalFoodStatsResponse.insufficientData(localFoodType);
+            return createInsufficientDataResponse(localFoodType);
         }
 
         List<Integer> pricesPerServing = tooltips.stream()
@@ -46,7 +45,7 @@ public class LocalFoodStatisticsService {
 
         if (pricesPerServing.size() < MIN_REVIEW_COUNT) {
             log.warn("유효 가격 데이터 부족 - 타입: {}, 개수: {}", localFoodType.getDisplayName(), pricesPerServing.size());
-            return LocalFoodStatsResponse.insufficientData(localFoodType);
+            return createInsufficientDataResponse(localFoodType);
         }
 
         int averagePrice = calculateAverage(pricesPerServing);
@@ -71,23 +70,24 @@ public class LocalFoodStatisticsService {
                 .maxPrice(maxPrice)
                 .priceDistribution(distribution)
                 .priceRanges(rangeData)
-                .lastUpdated(LocalDateTime.now().toString())
+                .lastUpdated(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                 .hasSufficientData(true)
                 .build();
     }
 
-    private List<Tooltip> findTooltipsForLocalFood(LocalFoodType localFoodType) {
-        List<Tooltip> allTooltips = tooltipRepository.findAllFoodTooltipsWithPriceData();
-
-        return allTooltips.stream()
-                .filter(tooltip -> {
-                    String menuName = tooltip.getMenuName();
-                    return menuName != null &&
-                            detectionService.detectFromMenuName(menuName)
-                                    .map(type -> type.equals(localFoodType))
-                                    .orElse(false);
-                })
-                .collect(Collectors.toList());
+    private LocalFoodStatsResponse createInsufficientDataResponse(LocalFoodType localFoodType) {
+        return LocalFoodStatsResponse.builder()
+                .localFoodType(localFoodType)
+                .displayName(localFoodType.getDisplayName())
+                .totalReviewCount(0)
+                .averagePrice(0)
+                .minPrice(0)
+                .maxPrice(0)
+                .priceDistribution(null)
+                .priceRanges(List.of())
+                .lastUpdated(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+                .hasSufficientData(false)
+                .build();
     }
 
     private Integer calculatePricePerServing(Tooltip tooltip) {
@@ -148,11 +148,7 @@ public class LocalFoodStatisticsService {
         }
 
         List<LocalFoodStatsResponse.PriceRangeData> ranges = new ArrayList<>();
-        int priceGap = (maxPrice - minPrice) / PRICE_RANGE_COUNT;
-
-        if (priceGap < 1000) {
-            priceGap = 1000;
-        }
+        int priceGap = Math.max((maxPrice - minPrice) / PRICE_RANGE_COUNT, 1000);
 
         for (int i = 0; i < PRICE_RANGE_COUNT; i++) {
             int rangeMin = minPrice + (i * priceGap);
