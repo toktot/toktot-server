@@ -23,12 +23,17 @@ public class EnhancedSearchService {
     private final LocalFoodDetectionService detectionService;
     private final LocalFoodStatisticsService statisticsService;
 
+    /**
+     * 검색 요청에서 향토음식 감지 및 통계 포함 응답 생성
+     */
     public <T> EnhancedSearchResponse<T> enhanceWithLocalFoodStats(SearchRequest request, T searchResult) {
+        // 1. 명시적 향토음식 필터가 있는 경우
         if (request.hasLocalFoodFilter()) {
             LocalFoodStatsResponse stats = statisticsService.calculatePriceStats(request.localFood().type());
             return EnhancedSearchResponse.withLocalFood(searchResult, stats);
         }
 
+        // 2. 검색어에서 향토음식 자동 감지
         if (request.hasQuery()) {
             Optional<LocalFoodType> detected = detectionService.detectFromMenuName(request.query());
             if (detected.isPresent()) {
@@ -40,7 +45,13 @@ public class EnhancedSearchService {
         return EnhancedSearchResponse.withoutLocalFood(searchResult);
     }
 
-    public boolean isLocalFoodSearch(String query) {
-        return query != null && detectionService.isLocalFood(query);
+    /**
+     * 향토음식 검색 여부 확인
+     */
+    public boolean isLocalFoodSearch(SearchRequest request) {
+        if (request.hasLocalFoodFilter()) {
+            return true;
+        }
+        return request.hasQuery() && detectionService.isLocalFood(request.query());
     }
 }
