@@ -25,4 +25,18 @@ public interface TooltipRepository extends JpaRepository<Tooltip, Long> {
     ORDER BY t.createdAt DESC
     """)
     List<Tooltip> findAllFoodTooltipsWithPriceData();
+
+    @Query("""
+    SELECT DISTINCT t FROM Tooltip t 
+    JOIN t.reviewImage ri 
+    JOIN ri.review r 
+    WHERE t.tooltipType = 'FOOD' 
+    AND t.menuName IS NOT NULL 
+    AND t.totalPrice IS NOT NULL 
+    AND t.servingSize IS NOT NULL 
+    AND t.servingSize > 0
+    AND (t.totalPrice / t.servingSize) BETWEEN :minPrice AND :maxPrice
+    """)
+    List<Tooltip> findFoodTooltipsByPriceRange(@Param("minPrice") Integer minPrice,
+                                               @Param("maxPrice") Integer maxPrice);
 }

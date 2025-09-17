@@ -1,5 +1,6 @@
 package com.toktot.domain.review.repository;
 
+import com.toktot.domain.localfood.LocalFoodType;
 import com.toktot.domain.review.dto.response.search.RestaurantDetailReviewResponse;
 import com.toktot.domain.review.dto.response.search.RestaurantReviewStatisticsResponse;
 import com.toktot.domain.review.dto.response.search.ReviewFeedResponse;
@@ -29,4 +30,14 @@ public interface ReviewSearchRepositoryCustom {
                                             List<Long> blockedUserIds, Pageable pageable);
 
     RestaurantReviewStatisticsResponse getRestaurantReviewStatistics(Long restaurantId);
+
+
+    Page<ReviewListResponse> searchLocalFoodReviewsWithPriceFilter(
+            LocalFoodType localFoodType,
+            Integer minPrice,
+            Integer maxPrice,
+            SearchCriteria criteria,
+            Long currentUserId,
+            List<Long> blockedUserIds,
+            Pageable pageable);
 }

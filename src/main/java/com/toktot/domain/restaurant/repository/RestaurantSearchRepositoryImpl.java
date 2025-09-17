@@ -13,12 +13,15 @@ import com.toktot.domain.review.type.TooltipType;
 import com.toktot.web.dto.request.SearchCriteria;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static com.toktot.domain.folder.QFolderReview.folderReview;
 import static com.toktot.domain.restaurant.QRestaurant.restaurant;
@@ -81,6 +84,63 @@ public class RestaurantSearchRepositoryImpl implements RestaurantSearchRepositor
         return PageableExecutionUtils.getPage(responseList, pageable, () -> totalCount != null ? totalCount : 0L);
     }
 
+    @Override
+    public Page<RestaurantInfoResponse> searchRestaurantsByIds(List<Long> restaurantIds,
+                                                               SearchCriteria criteria,
+                                                               Long currentUserId,
+                                                               List<Long> blockedUserIds,
+                                                               Pageable pageable) {
+
+        if (restaurantIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        BooleanBuilder builder = new BooleanBuilder();
+        builder.and(restaurant.id.in(restaurantIds))
+                .and(restaurant.isActive.isTrue());
+
+        if (criteria.hasLocationFilter()) {
+            builder.and(buildDistanceExpression(criteria).loe(criteria.radius().doubleValue()));
+        }
+
+        if (!blockedUserIds.isEmpty()) {
+            List<Long> restaurantsWithBlockedUsers = queryFactory
+                    .select(restaurant.id).distinct()
+                    .from(review)
+                    .join(review.restaurant, restaurant)
+                    .where(review.user.id.in(blockedUserIds))
+                    .fetch();
+
+            if (!restaurantsWithBlockedUsers.isEmpty()) {
+                builder.and(restaurant.id.notIn(restaurantsWithBlockedUsers));
+            }
+        }
+
+        OrderSpecifier<?>[] orderSpecifiers = buildRestaurantOrderSpecifiers(criteria);
+
+        List<Restaurant> restaurants = queryFactory
+                .selectFrom(restaurant)
+                .where(builder)
+                .orderBy(orderSpecifiers)
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+        long total = queryFactory
+                .select(restaurant.count())
+                .from(restaurant)
+                .where(builder)
+                .fetchOne();
+
+        return new PageImpl<>(
+                restaurants.stream()
+                        .map(r -> convertToRestaurantInfoResponse(r, criteria))
+                        .collect(Collectors.toList()),
+                pageable,
+                Objects.requireNonNullElse(total, 0L)
+        );
+    }
+
     private BooleanBuilder buildReviewFilterConditions(SearchCriteria criteria, List<Long> blockedUserIds) {
         BooleanBuilder builder = new BooleanBuilder();
 
@@ -113,14 +173,6 @@ public class RestaurantSearchRepositoryImpl implements RestaurantSearchRepositor
                     .where(tooltip.reviewImage.review.id.eq(review.id)
                             .and(tooltip.tooltipType.eq(TooltipType.FOOD)))
                     .goe(criteria.minRating()));
-        }
-
-        if (criteria.hasLocalFoodFilter()) {
-
-        }
-
-        if (criteria.hasPriceRangeFilter()) {
-
         }
 
         if (criteria.hasMealTimeFilter()) {

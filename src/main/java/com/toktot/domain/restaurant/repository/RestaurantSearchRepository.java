@@ -15,4 +15,10 @@ public interface RestaurantSearchRepository {
             List<Long> blockedUserIds,
             Pageable pageable
     );
+
+    Page<RestaurantInfoResponse> searchRestaurantsByIds(List<Long> restaurantIds,
+                                                        SearchCriteria criteria,
+                                                        Long currentUserId,
+                                                        List<Long> blockedUserIds,
+                                                        Pageable pageable);
 }
