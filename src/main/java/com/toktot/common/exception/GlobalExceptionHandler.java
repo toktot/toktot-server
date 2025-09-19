@@ -60,13 +60,37 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException e, HttpServletRequest request) {
         FieldError fieldError = e.getBindingResult().getFieldErrors().get(0);
         String errorMessage = fieldError.getDefaultMessage();
+        String rejectedValue = fieldError.getRejectedValue() != null ? fieldError.getRejectedValue().toString() : "null";
 
-        log.atWarn()
-                .setMessage("Validation error occurred")
-                .addKeyValue("fieldName", fieldError.getField())
-                .addKeyValue("errorMessage", errorMessage)
-                .addKeyValue("requestUri", request.getRequestURI())
-                .log();
+        log.warn("❌ VALIDATION ERROR DETAILS:");
+        log.warn("   📍 Request URI: {}", request.getRequestURI());
+        log.warn("   🔧 HTTP Method: {}", request.getMethod());
+        log.warn("   🏷️  Failed Field: {}", fieldError.getField());
+        log.warn("   💬 Error Message: {}", errorMessage);
+        log.warn("   ❌ Rejected Value: [{}]", rejectedValue);
+        log.warn("   📋 Content-Type: {}", request.getContentType());
+        log.warn("   🎯 Object Name: {}", fieldError.getObjectName());
+
+        if (e.getBindingResult().getErrorCount() > 1) {
+            log.warn("   📝 Multiple validation errors ({} total):", e.getBindingResult().getErrorCount());
+            e.getBindingResult().getFieldErrors().forEach(error -> {
+                log.warn("      - Field: [{}], Message: [{}], Rejected: [{}]",
+                        error.getField(),
+                        error.getDefaultMessage(),
+                        error.getRejectedValue());
+            });
+        }
+
+        if (e.getBindingResult().hasGlobalErrors()) {
+            log.warn("   🌐 Global validation errors:");
+            e.getBindingResult().getGlobalErrors().forEach(error -> {
+                log.warn("      - Object: [{}], Message: [{}]", error.getObjectName(), error.getDefaultMessage());
+            });
+        }
+
+        log.warn("   📨 Request Headers:");
+        log.warn("      - Content-Length: {}", request.getHeader("Content-Length"));
+        log.warn("      - User-Agent: {}", request.getHeader("User-Agent"));
 
         return ResponseEntity.ok(
                 ApiResponse.error(ErrorCode.INVALID_INPUT, errorMessage)
