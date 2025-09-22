@@ -17,4 +17,12 @@ public record RestaurantSearchRequest(
     public Double longitude() {
         return location != null ? location.longitude() : null;
     }
+
+    public boolean hasQuery() {
+        return this.query != null && !this.query.isBlank();
+    }
+
+    public boolean hasPage() {
+        return this.page != null && this.page > 0;
+    }
 }
