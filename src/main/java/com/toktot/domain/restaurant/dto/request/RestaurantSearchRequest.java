@@ -10,6 +10,14 @@ public record RestaurantSearchRequest(
         SortType sort
 ) {
 
+    public Double latitude() {
+        return location != null ? location.latitude() : null;
+    }
+
+    public Double longitude() {
+        return location != null ? location.longitude() : null;
+    }
+
     public boolean hasQuery() {
         return this.query != null && !this.query.isBlank();
     }

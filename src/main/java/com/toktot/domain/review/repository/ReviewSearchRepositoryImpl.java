@@ -10,6 +10,7 @@ import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.toktot.domain.folder.QFolderReview;
+import com.toktot.domain.localfood.LocalFoodType;
 import com.toktot.domain.review.Review;
 import com.toktot.domain.review.dto.response.search.*;
 import com.toktot.domain.review.type.KeywordType;
@@ -18,6 +19,7 @@ import com.toktot.domain.search.type.SortType;
 import com.toktot.web.dto.request.SearchCriteria;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Repository;
@@ -270,6 +272,81 @@ public class ReviewSearchRepositoryImpl implements ReviewSearchRepositoryCustom 
                 highRange,
                 midRange,
                 lowRange
+        );
+    }
+
+    @Override
+    public Page<ReviewListResponse> searchLocalFoodReviewsWithPriceFilter(LocalFoodType localFoodType,
+                                                                          Integer minPrice, Integer maxPrice,
+                                                                          SearchCriteria criteria, Long currentUserId,
+                                                                          List<Long> blockedUserIds, Pageable pageable) {
+
+        BooleanBuilder builder = new BooleanBuilder();
+
+        builder.and(tooltip.tooltipType.eq(TooltipType.FOOD))
+                .and(tooltip.menuName.isNotNull())
+                .and(tooltip.totalPrice.isNotNull())
+                .and(tooltip.servingSize.isNotNull())
+                .and(tooltip.servingSize.gt(0))
+                .and(tooltip.totalPrice.divide(tooltip.servingSize).between(minPrice, maxPrice));
+
+        if (!blockedUserIds.isEmpty()) {
+            builder.and(review.user.id.notIn(blockedUserIds));
+        }
+
+        if (criteria.hasLocationFilter()) {
+            double radiusInDegrees = criteria.radius() / 111320.0;
+            builder.and(restaurant.latitude.between(
+                            criteria.latitude() - radiusInDegrees,
+                            criteria.latitude() + radiusInDegrees))
+                    .and(restaurant.longitude.between(
+                            criteria.longitude() - radiusInDegrees,
+                            criteria.longitude() + radiusInDegrees));
+        }
+
+        if (criteria.hasRatingFilter()) {
+            builder.and(tooltip.rating.goe(BigDecimal.valueOf(criteria.minRating())));
+        }
+
+        if (criteria.hasMealTimeFilter()) {
+            builder.and(review.mealTime.eq(criteria.mealTime()));
+        }
+
+        List<Review> reviews = queryFactory
+                .select(review).distinct()
+                .from(tooltip)
+                .join(tooltip.reviewImage, reviewImage)
+                .join(reviewImage.review, review)
+                .join(review.restaurant, restaurant)
+                .join(review.user, user)
+                .where(builder)
+                .orderBy(review.createdAt.desc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+        long total = queryFactory
+                .select(review.countDistinct())
+                .from(tooltip)
+                .join(tooltip.reviewImage, reviewImage)
+                .join(reviewImage.review, review)
+                .join(review.restaurant, restaurant)
+                .where(builder)
+                .fetchOne();
+
+        List<Long> reviewIds = reviews.stream().map(Review::getId).collect(Collectors.toList());
+        Set<Long> bookmarkedReviewIds = findBookmarkedReviewIds(reviewIds, currentUserId);
+
+        return new PageImpl<>(
+                reviews.stream().map(r -> {
+                    ReviewRestaurantInfo restaurantInfo = ReviewRestaurantInfo.from(r.getRestaurant(), null);
+                    boolean isBookmarked = bookmarkedReviewIds.contains(r.getId());
+                    boolean isWriter = currentUserId != null && r.getUser().getId().equals(currentUserId);
+
+                    return ReviewListResponse.from(r, restaurantInfo, isBookmarked, isWriter);
+                }).collect(Collectors.toList()),
+                pageable,
+                total
         );
     }
 

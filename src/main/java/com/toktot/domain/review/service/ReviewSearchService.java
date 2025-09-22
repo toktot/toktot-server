@@ -35,6 +35,25 @@ public class ReviewSearchService {
         return reviewSearchRepository.searchReviewsWithFilters(criteria, currentUserId, blockedUserIds, pageable);
     }
 
+    public Page<ReviewListResponse> searchLocalFoodReviewsWithPriceFilter(SearchCriteria criteria,
+                                                                          Long currentUserId,
+                                                                          Pageable pageable) {
+        log.info("향토음식 가격 필터링 검색 시작 - localFoodType: {}, minPrice: {}, maxPrice: {}",
+                criteria.localFoodType(), criteria.localFoodMinPrice(), criteria.localFoodMaxPrice());
+
+        List<Long> blockedUserIds = getBlockedUserIds(currentUserId);
+
+        return reviewSearchRepository.searchLocalFoodReviewsWithPriceFilter(
+                criteria.localFoodType(),
+                criteria.localFoodMinPrice(),
+                criteria.localFoodMaxPrice(),
+                criteria,
+                currentUserId,
+                blockedUserIds,
+                pageable
+        );
+    }
+
     public Page<ReviewListResponse> getSavedReviews(Long userId, Long folderId, Pageable pageable) {
         log.info("저장한 리뷰 조회 - userId: {}, folderId: {}", userId, folderId);
 

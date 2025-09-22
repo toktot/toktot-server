@@ -3,17 +3,18 @@ package com.toktot.domain.restaurant.service;
 import com.toktot.common.exception.ErrorCode;
 import com.toktot.common.exception.ToktotException;
 import com.toktot.domain.block.UserBlockRepository;
+import com.toktot.domain.localfood.service.LocalFoodDetectionService;
 import com.toktot.domain.restaurant.Restaurant;
 import com.toktot.domain.restaurant.repository.RestaurantRepository;
 import com.toktot.domain.restaurant.repository.RestaurantSearchRepository;
-import com.toktot.external.kakao.KakaoApiConstants;
 import com.toktot.domain.restaurant.dto.request.RestaurantSearchRequest;
-import com.toktot.external.kakao.dto.response.KakaoPlaceInfo;
-import com.toktot.external.kakao.dto.response.KakaoPlaceSearchResponse;
-import com.toktot.external.kakao.service.KakaoMapService;
 import com.toktot.domain.restaurant.dto.response.RestaurantDetailResponse;
 import com.toktot.domain.restaurant.dto.response.RestaurantInfoResponse;
 import com.toktot.domain.restaurant.dto.response.RestaurantSearchResponse;
+import com.toktot.external.kakao.KakaoApiConstants;
+import com.toktot.external.kakao.dto.response.KakaoPlaceInfo;
+import com.toktot.external.kakao.dto.response.KakaoPlaceSearchResponse;
+import com.toktot.external.kakao.service.KakaoMapService;
 import com.toktot.web.dto.request.SearchCriteria;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,8 +37,9 @@ public class RestaurantSearchService {
 
     private final RestaurantRepository restaurantRepository;
     private final RestaurantSearchRepository restaurantSearchRepository;
-    private final KakaoMapService kakaoMapService;
     private final UserBlockRepository userBlockRepository;
+    private final KakaoMapService kakaoMapService;
+    private final LocalFoodDetectionService localFoodDetectionService;
 
     @Transactional
     public RestaurantSearchResponse searchFromKakaoWithPagination(RestaurantSearchRequest request) {
@@ -45,7 +47,12 @@ public class RestaurantSearchService {
 
         int currentPage = request.page();
 
-        KakaoPlaceSearchResponse kakaoResponse = kakaoMapService.searchJejuAllFoodAndCafePlace(request.query(), currentPage, request.location(), request.sort());
+        KakaoPlaceSearchResponse kakaoResponse = kakaoMapService.searchJejuAllFoodAndCafePlace(
+                request.query(),
+                currentPage,
+                request.location(),
+                request.sort()
+        );
 
         List<RestaurantInfoResponse> restaurantInfoResponses = new ArrayList<>(
                 processAndSaveKakaoResults(kakaoResponse.placeInfos())
@@ -55,7 +62,12 @@ public class RestaurantSearchService {
 
         while (restaurantInfoResponses.size() < KakaoApiConstants.DEFAULT_SIZE && !isEnd) {
             currentPage++;
-            KakaoPlaceSearchResponse additionalResponse = kakaoMapService.searchJejuAllFoodAndCafePlace(request.query(), currentPage, request.location(), request.sort());
+            KakaoPlaceSearchResponse additionalResponse = kakaoMapService.searchJejuAllFoodAndCafePlace(
+                    request.query(),
+                    currentPage,
+                    request.location(),
+                    request.sort()
+            );
 
             restaurantInfoResponses.addAll(processAndSaveKakaoResults(additionalResponse.placeInfos()));
             isEnd = additionalResponse.isEnd();
@@ -71,7 +83,8 @@ public class RestaurantSearchService {
     }
 
     private RestaurantInfoResponse findOrSaveRestaurant(KakaoPlaceInfo kakaoPlaceInfo) {
-        Optional<Restaurant> optionalRestaurant = restaurantRepository.findByExternalKakaoIdAndIsActive(kakaoPlaceInfo.getId(), true);
+        Optional<Restaurant> optionalRestaurant = restaurantRepository.findByExternalKakaoIdAndIsActive(
+                kakaoPlaceInfo.getId(), true);
 
         Restaurant restaurant = optionalRestaurant.orElseGet(() -> {
             Restaurant newRestaurant = kakaoPlaceInfo.toEntity();
@@ -81,33 +94,58 @@ public class RestaurantSearchService {
         return RestaurantInfoResponse.from(restaurant, kakaoPlaceInfo);
     }
 
-    public RestaurantDetailResponse searchRestaurantDetail(Long id) {
-        return restaurantRepository.findById(id)
-                .map(RestaurantDetailResponse::from)
-                .orElseThrow(() -> new ToktotException(ErrorCode.RESTAURANT_NOT_FOUND));
-    }
-
-    public Page<RestaurantInfoResponse> searchRestaurantsWithFilters(
-            SearchCriteria criteria,
-            Long currentUserId,
-            Pageable pageable) {
-
-        log.info("필터 조건으로 식당 검색 - userId: {}", currentUserId);
+    public Page<RestaurantInfoResponse> searchRestaurantsWithFilters(SearchCriteria criteria,
+                                                                     Long currentUserId,
+                                                                     Pageable pageable) {
+        log.info("필터 기반 식당 검색 - query: {}, userId: {}", criteria.query(), currentUserId);
 
         List<Long> blockedUserIds = getBlockedUserIds(currentUserId);
 
         return restaurantSearchRepository.searchRestaurantsWithFilters(
-                criteria,
-                currentUserId,
-                blockedUserIds,
-                pageable
+                criteria, currentUserId, blockedUserIds, pageable);
+    }
+
+    public Page<RestaurantInfoResponse> searchLocalFoodRestaurantsWithPriceFilter(SearchCriteria criteria,
+                                                                                  Long currentUserId,
+                                                                                  Pageable pageable) {
+        log.info("향토음식 가격 필터링 식당 검색 - localFoodType: {}, minPrice: {}, maxPrice: {}",
+                criteria.localFood().type(), criteria.localFood().minPrice(), criteria.localFood().maxPrice());
+
+        List<Long> blockedUserIds = getBlockedUserIds(currentUserId);
+
+        var tooltips = localFoodDetectionService.findTooltipsByTypeAndPrice(
+                criteria.localFood().type(),
+                criteria.localFood().minPrice(),
+                criteria.localFood().maxPrice()
         );
+
+        List<Long> restaurantIds = tooltips.stream()
+                .map(tooltip -> tooltip.getReviewImage().getReview().getRestaurant().getId())
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (restaurantIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        return restaurantSearchRepository.searchRestaurantsByIds(
+                restaurantIds, criteria, currentUserId, blockedUserIds, pageable);
+    }
+
+    public RestaurantDetailResponse searchRestaurantDetail(Long restaurantId) {
+        log.info("식당 상세 조회 - restaurantId: {}", restaurantId);
+
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> new ToktotException(ErrorCode.RESTAURANT_NOT_FOUND));
+
+        return RestaurantDetailResponse.from(restaurant);
     }
 
     private List<Long> getBlockedUserIds(Long currentUserId) {
         if (currentUserId == null) {
             return Collections.emptyList();
         }
+
         return userBlockRepository.findBlockedUserIdsByBlockerUserId(currentUserId);
     }
 
