@@ -3,6 +3,7 @@ package com.toktot.domain.restaurant.dto.cache;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.toktot.domain.restaurant.dto.response.RestaurantInfoResponse;
 import lombok.Builder;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -40,8 +41,8 @@ public record GoodPriceRestaurantDto(
                 .latitude(restaurant.getLatitude())
                 .longitude(restaurant.getLongitude())
                 .mainMenus(restaurant.getPopularMenus())
-                .averageRating(averageRating)
-                .reviewCount(reviewCount)
+                .averageRating(averageRating != null ? averageRating : BigDecimal.ZERO)
+                .reviewCount(reviewCount != null ? reviewCount : 0L)
                 .isGoodPriceStore(restaurant.getIsGoodPriceStore())
                 .isLocalStore(restaurant.getIsLocalStore())
                 .image(restaurant.getImage())
@@ -76,7 +77,7 @@ public record GoodPriceRestaurantDto(
                 .build();
     }
 
-    public RestaurantInfoResponse toRestaurantInfoResponse(String distance) {
+    public RestaurantInfoResponse toRestaurantInfoResponse(String distance, Integer valueForMoneyPoint, String pricePercentile) {
         return RestaurantInfoResponse.builder()
                 .id(this.id)
                 .name(this.name)
@@ -88,11 +89,13 @@ public record GoodPriceRestaurantDto(
                 .isGoodPriceStore(this.isGoodPriceStore)
                 .isLocalStore(this.isLocalStore)
                 .image(this.image)
+                .point(valueForMoneyPoint)
+                .percent(pricePercentile)
                 .build();
     }
 
     private String extractCityAndDistrict(String fullAddress) {
-        if (fullAddress == null || fullAddress.trim().isEmpty()) {
+        if (!StringUtils.hasText(fullAddress)) {
             return null;
         }
 
