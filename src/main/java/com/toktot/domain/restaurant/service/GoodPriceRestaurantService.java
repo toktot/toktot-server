@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 public class GoodPriceRestaurantService {
 
     private final GoodPriceCacheService goodPriceCacheService;
+    private final RestaurantStatisticsService restaurantStatisticsService;
 
     public Page<RestaurantInfoResponse> getGoodPriceRestaurants(
             Integer priceRange,
@@ -90,7 +91,10 @@ public class GoodPriceRestaurantService {
             }
         }
 
-        return dto.toRestaurantInfoResponse(distance);
+        Integer valueForMoneyPoint = restaurantStatisticsService.calculateValueForMoneyPoint(dto.id());
+        String pricePercentile = restaurantStatisticsService.calculatePricePercentile(dto.id());
+
+        return dto.toRestaurantInfoResponse(distance, valueForMoneyPoint, pricePercentile);
     }
 
     private String formatDistance(double distanceKm) {
