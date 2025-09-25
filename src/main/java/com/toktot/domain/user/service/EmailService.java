@@ -28,8 +28,7 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-    @Value("${toktot.frontend.url:http://localhost:3000}")
-    private String frontendUrl;
+    private String frontendUrl = "https://toktot.site";
 
     @Async("emailTaskExecutor")
     public void sendVerificationEmail(String toEmail, String verificationCode) {
