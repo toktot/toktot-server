@@ -1,5 +1,7 @@
 package com.toktot.domain.restaurant.controller;
 
+import com.toktot.domain.restaurant.dto.response.RestaurantMenuResponse;
+import com.toktot.domain.restaurant.service.RestaurantMenuService;
 import com.toktot.domain.restaurant.service.RestaurantSearchService;
 import com.toktot.domain.review.dto.response.search.RestaurantDetailReviewResponse;
 import com.toktot.domain.review.dto.response.search.RestaurantReviewStatisticsResponse;
@@ -18,12 +20,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Slf4j
 @RestController
 @RequestMapping("/v1/restaurants/{restaurantId}")
 @RequiredArgsConstructor
 public class RestaurantDetailController {
 
+    private final RestaurantMenuService restaurantMenuService;
     private final RestaurantSearchService restaurantSearchService;
     private final ReviewSearchService reviewSearchService;
 
@@ -35,6 +40,17 @@ public class RestaurantDetailController {
         RestaurantDetailResponse response = restaurantSearchService.searchRestaurantDetail(restaurantId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @GetMapping("/menus")
+    public ResponseEntity<ApiResponse<List<RestaurantMenuResponse>>> getRestaurantMenus(
+            @PathVariable Long restaurantId) {
+
+        log.info("get: restaurant menus - restaurants.id = {}", restaurantId);
+        List<RestaurantMenuResponse> response = restaurantMenuService.getRestaurantMenus(restaurantId);
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @GetMapping("/reviews")
     public ResponseEntity<ApiResponse<Page<RestaurantDetailReviewResponse>>> getRestaurantReviews(
             @PathVariable Long restaurantId,
