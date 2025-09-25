@@ -1,6 +1,7 @@
 package com.toktot.domain.review.repository;
 
 import com.toktot.domain.review.Tooltip;
+import com.toktot.domain.review.type.TooltipType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -39,4 +40,16 @@ public interface TooltipRepository extends JpaRepository<Tooltip, Long> {
     """)
     List<Tooltip> findFoodTooltipsByPriceRange(@Param("minPrice") Integer minPrice,
                                                @Param("maxPrice") Integer maxPrice);
+
+    @Query("SELECT t FROM Tooltip t " +
+            "JOIN FETCH t.reviewImage ri " +
+            "JOIN FETCH ri.review r " +
+            "JOIN FETCH r.restaurant " +
+            "WHERE r.restaurant.id = :restaurantId " +
+            "AND t.tooltipType = :tooltipType " +
+            "AND r.isHidden = false")
+    List<Tooltip> findByReviewImageReviewRestaurantIdAndTooltipType(
+            @Param("restaurantId") Long restaurantId,
+            @Param("tooltipType") TooltipType tooltipType
+    );
 }
