@@ -56,7 +56,11 @@ public class SecurityConfig {
     private static final String[] PUBLIC_URLS = {
             "/v1/auth/**",
             "/actuator/health",
-            "/actuator/info"
+            "/actuator/info",
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/v3/api-docs/**",
+            "/api-docs/**"
     };
 
     private static final String[] PROTECTED_URLS = {
