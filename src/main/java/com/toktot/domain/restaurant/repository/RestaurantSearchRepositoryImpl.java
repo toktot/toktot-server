@@ -8,14 +8,16 @@ import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.toktot.domain.restaurant.Restaurant;
 import com.toktot.domain.restaurant.dto.response.RestaurantInfoResponse;
+import com.toktot.domain.restaurant.service.RestaurantStatisticsService;
+import com.toktot.domain.review.QTooltip;
 import com.toktot.domain.review.type.KeywordType;
 import com.toktot.domain.review.type.TooltipType;
 import com.toktot.web.dto.request.SearchCriteria;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -30,58 +32,64 @@ import static com.toktot.domain.review.QReviewImage.reviewImage;
 import static com.toktot.domain.review.QReviewKeyword.reviewKeyword;
 import static com.toktot.domain.review.QTooltip.tooltip;
 
+@Slf4j
 @Repository
 @RequiredArgsConstructor
 public class RestaurantSearchRepositoryImpl implements RestaurantSearchRepository {
 
     private final JPAQueryFactory queryFactory;
+    private final RestaurantStatisticsService restaurantStatisticsService;
 
     @Override
-    public Page<RestaurantInfoResponse> searchRestaurantsWithFilters(
-            SearchCriteria criteria,
-            Long currentUserId,
-            List<Long> blockedUserIds,
-            Pageable pageable) {
+    public Page<RestaurantInfoResponse> searchRestaurantsWithFilters(SearchCriteria criteria,
+                                                                     Long currentUserId,
+                                                                     List<Long> blockedUserIds,
+                                                                     Pageable pageable) {
+
+        BooleanBuilder reviewFilterBuilder = buildReviewFilterConditions(criteria, blockedUserIds);
+
+        List<Long> restaurantIds = queryFactory
+                .select(restaurant.id).distinct()
+                .from(review)
+                .join(review.restaurant, restaurant)
+                .where(reviewFilterBuilder)
+                .fetch();
+
+        if (restaurantIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        BooleanBuilder restaurantBuilder = new BooleanBuilder();
+        restaurantBuilder.and(restaurant.id.in(restaurantIds))
+                .and(restaurant.isActive.isTrue());
+
+        if (criteria.hasLocationFilter()) {
+            restaurantBuilder.and(buildDistanceExpression(criteria).loe(criteria.radius().doubleValue()));
+        }
+
+        OrderSpecifier<?>[] orderSpecifiers = buildRestaurantOrderSpecifiers(criteria);
 
         List<Restaurant> restaurants = queryFactory
                 .selectFrom(restaurant)
-                .where(
-                        restaurant.isActive.isTrue()
-                                .and(
-                                        JPAExpressions
-                                                .selectOne()
-                                                .from(review)
-                                                .where(review.restaurant.id.eq(restaurant.id)
-                                                        .and(buildReviewFilterConditions(criteria, blockedUserIds)))
-                                                .exists()
-                                )
-                )
-                .orderBy(buildRestaurantOrderSpecifiers(criteria))
+                .where(restaurantBuilder)
+                .orderBy(orderSpecifiers)
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
 
-        Long totalCount = queryFactory
+        Long total = queryFactory
                 .select(restaurant.count())
                 .from(restaurant)
-                .where(
-                        restaurant.isActive.isTrue()
-                                .and(
-                                        JPAExpressions
-                                                .selectOne()
-                                                .from(review)
-                                                .where(review.restaurant.id.eq(restaurant.id)
-                                                        .and(buildReviewFilterConditions(criteria, blockedUserIds)))
-                                                .exists()
-                                )
-                )
+                .where(restaurantBuilder)
                 .fetchOne();
 
-        List<RestaurantInfoResponse> responseList = restaurants.stream()
-                .map(r -> convertToRestaurantInfoResponse(r, criteria))
-                .toList();
-
-        return PageableExecutionUtils.getPage(responseList, pageable, () -> totalCount != null ? totalCount : 0L);
+        return new PageImpl<>(
+                restaurants.stream()
+                        .map(r -> convertToRestaurantInfoResponse(r, criteria))
+                        .collect(Collectors.toList()),
+                pageable,
+                Objects.requireNonNullElse(total, 0L)
+        );
     }
 
     @Override
@@ -137,7 +145,7 @@ public class RestaurantSearchRepositoryImpl implements RestaurantSearchRepositor
                         .map(r -> convertToRestaurantInfoResponse(r, criteria))
                         .collect(Collectors.toList()),
                 pageable,
-                Objects.requireNonNullElse(total, 0L)
+                total
         );
     }
 
@@ -190,6 +198,7 @@ public class RestaurantSearchRepositoryImpl implements RestaurantSearchRepositor
                                     .and(reviewKeyword.keywordType.eq(keywordType)))
                             .exists());
                 } catch (IllegalArgumentException e) {
+                    log.warn("Invalid keyword type: {}", keyword);
                     continue;
                 }
             }
@@ -200,27 +209,29 @@ public class RestaurantSearchRepositoryImpl implements RestaurantSearchRepositor
 
     private NumberExpression<Double> buildDistanceExpression(SearchCriteria criteria) {
         return Expressions.numberTemplate(Double.class,
-                "6371 * acos(cos(radians({0})) * cos(radians(restaurant.latitude)) * cos(radians(restaurant.longitude) - radians({1})) + sin(radians({0})) * sin(radians(restaurant.latitude)))",
-                criteria.latitude(), criteria.longitude());
+                "6371 * acos(cos(radians({0})) * cos(radians({1})) * cos(radians({2}) - radians({3})) + sin(radians({0})) * sin(radians({1})))",
+                criteria.latitude(),
+                restaurant.latitude,
+                restaurant.longitude,
+                criteria.longitude());
     }
 
     private OrderSpecifier<?>[] buildRestaurantOrderSpecifiers(SearchCriteria criteria) {
-        if (criteria.hasSortFilter()) {
+        if (criteria.sort() != null) {
             return switch (criteria.sort()) {
-                case DISTANCE -> new OrderSpecifier[]{
-                        buildDistanceExpression(criteria).asc(),
+                case DISTANCE -> criteria.hasLocationFilter() ?
+                        new OrderSpecifier[]{buildDistanceExpression(criteria).asc(), restaurant.createdAt.desc()} :
+                        new OrderSpecifier[]{restaurant.createdAt.desc()};
+                case RATING -> new OrderSpecifier[]{
+                        buildRestaurantAvgRatingExpression().desc().nullsLast(),
                         restaurant.createdAt.desc()
                 };
                 case POPULARITY -> new OrderSpecifier[]{
                         buildRestaurantPopularityExpression().desc(),
                         restaurant.createdAt.desc()
                 };
-                case RATING -> new OrderSpecifier[]{
-                        buildRestaurantAvgRatingExpression().desc(),
-                        restaurant.createdAt.desc()
-                };
                 case SATISFACTION -> new OrderSpecifier[]{
-                        buildRestaurantSatisfactionExpression().desc(),
+                        buildRestaurantSatisfactionExpression().desc().nullsLast(),
                         restaurant.createdAt.desc()
                 };
             };
@@ -269,54 +280,13 @@ public class RestaurantSearchRepositoryImpl implements RestaurantSearchRepositor
             distance = distanceKm != null ? String.format("%.1fkm", distanceKm) : null;
         }
 
-        Double avgRatingDouble = queryFactory
-                .select(tooltip.rating.avg())
-                .from(tooltip)
-                .join(tooltip.reviewImage, reviewImage)
-                .join(reviewImage.review, review)
-                .where(review.restaurant.id.eq(restaurant.getId())
-                        .and(tooltip.tooltipType.eq(TooltipType.FOOD)))
-                .fetchOne();
+        BigDecimal avgRating = restaurantStatisticsService.calculateAverageRating(restaurant.getId());
+        Long reviewCount = restaurantStatisticsService.calculateReviewCount(restaurant.getId());
+        Integer valueForMoneyPoint = restaurantStatisticsService.calculateValueForMoneyPoint(restaurant.getId());
+        String pricePercentile = restaurantStatisticsService.calculatePricePercentile(restaurant.getId());
 
-        BigDecimal avgRating = (avgRatingDouble != null) ? BigDecimal.valueOf(avgRatingDouble) : BigDecimal.ZERO;
-
-        Long reviewCount = queryFactory
-                .select(review.count())
-                .from(review)
-                .where(review.restaurant.id.eq(restaurant.getId())
-                        .and(review.isHidden.isFalse()))
-                .fetchOne();
-
-        return RestaurantInfoResponse.builder()
-                .id(restaurant.getId())
-                .name(restaurant.getName())
-                .address(extractCityAndDistrict(restaurant.getAddress()))
-                .distance(distance)
-                .mainMenus(restaurant.getPopularMenus())
-                .averageRating(avgRating)
-                .reviewCount(reviewCount != null ? reviewCount : 0L)
-                .isGoodPriceStore(restaurant.getIsGoodPriceStore())
-                .isLocalStore(restaurant.getIsLocalStore())
-                .image(restaurant.getImage())
-                .point(null)
-                .percent(null)
-                .build();
-    }
-
-    private String extractCityAndDistrict(String fullAddress) {
-        if (fullAddress == null || fullAddress.trim().isEmpty()) {
-            return null;
-        }
-
-        String[] parts = fullAddress.replace("제주특별자치도", "")
-                .trim()
-                .split("\\s+");
-
-        if (parts.length < 2) {
-            return fullAddress;
-        }
-
-        return parts[0] + " " + parts[1];
+        return RestaurantInfoResponse.withStatsComplete(restaurant, null, avgRating,
+                reviewCount, distance, valueForMoneyPoint, pricePercentile);
     }
 
     private Double calculateDistance(Double lat1, Double lon1, BigDecimal lat2, BigDecimal lon2) {

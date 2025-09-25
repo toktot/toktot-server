@@ -21,8 +21,9 @@ public record RestaurantInfoResponse(
         @JsonProperty("is_local_store") Boolean isLocalStore,
         String image,
         Integer point,
-        Integer percent
+        String percent
 ) {
+
     public static RestaurantInfoResponse from(Restaurant entity, KakaoPlaceInfo kakaoPlaceInfo) {
         return RestaurantInfoResponse.builder()
                 .id(entity.getId())
@@ -30,15 +31,50 @@ public record RestaurantInfoResponse(
                 .address(extractCityAndDistrict(kakaoPlaceInfo.getAddressName()))
                 .distance(getDistance(kakaoPlaceInfo.getDistance()))
                 .mainMenus(entity.getPopularMenus())
+                .averageRating(null)
+                .reviewCount(0L)
+                .isGoodPriceStore(entity.getIsGoodPriceStore())
+                .isLocalStore(entity.getIsLocalStore())
                 .image(entity.getImage())
+                .point(null)
+                .percent(null)
                 .build();
     }
 
     public static RestaurantInfoResponse from(KakaoPlaceInfo kakaoPlaceInfo) {
         return RestaurantInfoResponse.builder()
+                .id(null)
                 .name(kakaoPlaceInfo.getPlaceName())
                 .address(extractCityAndDistrict(kakaoPlaceInfo.getAddressName()))
                 .distance(getDistance(kakaoPlaceInfo.getDistance()))
+                .mainMenus(null)
+                .averageRating(null)
+                .reviewCount(0L)
+                .isGoodPriceStore(false)
+                .isLocalStore(false)
+                .image(null)
+                .point(null)
+                .percent(null)
+                .build();
+    }
+
+    public static RestaurantInfoResponse withStatsComplete(Restaurant entity, KakaoPlaceInfo kakaoPlaceInfo,
+                                                           BigDecimal averageRating, Long reviewCount, String distance,
+                                                           Integer valueForMoneyPoint, String pricePercentile) {
+        return RestaurantInfoResponse.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .address(extractCityAndDistrict(kakaoPlaceInfo != null ?
+                        kakaoPlaceInfo.getAddressName() : entity.getAddress()))
+                .distance(distance)
+                .mainMenus(entity.getPopularMenus())
+                .averageRating(averageRating)
+                .reviewCount(reviewCount)
+                .isGoodPriceStore(entity.getIsGoodPriceStore())
+                .isLocalStore(entity.getIsLocalStore())
+                .image(entity.getImage())
+                .point(valueForMoneyPoint)
+                .percent(pricePercentile)
                 .build();
     }
 
@@ -46,7 +82,6 @@ public record RestaurantInfoResponse(
         if (distance == null || distance.isEmpty() || distance.isBlank()) {
             return null;
         }
-
         return distance;
     }
 

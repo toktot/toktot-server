@@ -23,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -40,6 +41,7 @@ public class RestaurantSearchService {
     private final UserBlockRepository userBlockRepository;
     private final KakaoMapService kakaoMapService;
     private final LocalFoodDetectionService localFoodDetectionService;
+    private final RestaurantStatisticsService restaurantStatisticsService;
 
     @Transactional
     public RestaurantSearchResponse searchFromKakaoWithPagination(RestaurantSearchRequest request) {
@@ -78,11 +80,11 @@ public class RestaurantSearchService {
 
     private List<RestaurantInfoResponse> processAndSaveKakaoResults(List<KakaoPlaceInfo> placeInfos) {
         return placeInfos.stream()
-                .map(this::findOrSaveRestaurant)
+                .map(this::findOrSaveRestaurantWithStats)
                 .collect(Collectors.toList());
     }
 
-    private RestaurantInfoResponse findOrSaveRestaurant(KakaoPlaceInfo kakaoPlaceInfo) {
+    private RestaurantInfoResponse findOrSaveRestaurantWithStats(KakaoPlaceInfo kakaoPlaceInfo) {
         Optional<Restaurant> optionalRestaurant = restaurantRepository.findByExternalKakaoIdAndIsActive(
                 kakaoPlaceInfo.getId(), true);
 
@@ -91,7 +93,14 @@ public class RestaurantSearchService {
             return restaurantRepository.save(newRestaurant);
         });
 
-        return RestaurantInfoResponse.from(restaurant, kakaoPlaceInfo);
+        BigDecimal averageRating = restaurantStatisticsService.calculateAverageRating(restaurant.getId());
+        Long reviewCount = restaurantStatisticsService.calculateReviewCount(restaurant.getId());
+        Integer valueForMoneyPoint = restaurantStatisticsService.calculateValueForMoneyPoint(restaurant.getId());
+        String pricePercentile = restaurantStatisticsService.calculatePricePercentile(restaurant.getId());
+        String distance = kakaoPlaceInfo.getDistance();
+
+        return RestaurantInfoResponse.withStatsComplete(restaurant, kakaoPlaceInfo, averageRating, reviewCount,
+                distance, valueForMoneyPoint, pricePercentile);
     }
 
     public Page<RestaurantInfoResponse> searchRestaurantsWithFilters(SearchCriteria criteria,
