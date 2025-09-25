@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "restaurant_menus", indexes = {
         @Index(name = "idx_restaurant_menu_active", columnList = "restaurant_id, is_active"),
-        @Index(name = "idx_normalized_name", columnList = "normalized_name"),
         @Index(name = "idx_local_food_type", columnList = "local_food_type, is_active")
 })
 @Getter
