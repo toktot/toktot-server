@@ -1,6 +1,7 @@
 package com.toktot.domain.restaurant;
 
 import com.toktot.domain.localfood.LocalFoodType;
+import com.toktot.domain.restaurant.type.MenuCategory;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -10,7 +11,11 @@ import java.time.LocalDateTime;
 
 @Builder
 @Entity
-@Table(name = "restaurant_menus")
+@Table(name = "restaurant_menus", indexes = {
+        @Index(name = "idx_restaurant_menu_active", columnList = "restaurant_id, is_active"),
+        @Index(name = "idx_normalized_name", columnList = "normalized_name"),
+        @Index(name = "idx_local_food_type", columnList = "local_food_type, is_active")
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
@@ -24,64 +29,55 @@ public class RestaurantMenu {
     @JoinColumn(name = "restaurant_id", nullable = false)
     private Restaurant restaurant;
 
-    @Column(name = "menu_name", nullable = false, length = 100)
+    @Column(nullable = false, length = 100)
     private String menuName;
 
-    @Column(name = "normalized_name", nullable = false, length = 100)
-    private String normalizedName;
-
-    @Column
     private Integer price;
 
     @Builder.Default
-    @Column(name = "serving_size")
-    private Integer servingSize = 1;
+    private Integer servingSize = 0;
 
-    @Column(name = "price_per_serving")
     private Integer pricePerServing;
 
-    @Column(length = 50)
-    private String category;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private MenuCategory category;
 
     @Builder.Default
-    @Column(name = "is_local_food", nullable = false)
+    @Column(nullable = false)
     private Boolean isLocalFood = false;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "local_food_type", length = 50)
+    @Column(length = 50)
     private LocalFoodType localFoodType;
 
     @Builder.Default
-    @Column(name = "is_representative", nullable = false)
-    private Boolean isRepresentative = false;
+    @Column(nullable = false)
+    private Boolean isMain = false;
 
-    @Builder.Default
-    @Column(name = "seasonal_available", nullable = false)
-    private Boolean seasonalAvailable = true;
-
-    @Builder.Default
-    @Column(name = "input_type", nullable = false, length = 20)
-    private String inputType = "ADMIN";
-
-    @Column(name = "input_by")
-    private Long inputBy;
-
-    @Column(name = "menu_image_url", length = 500)
+    @Column(length = 500)
     private String menuImageUrl;
 
     @Builder.Default
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive = false;
-
-    @Builder.Default
-    @Column(name = "is_verified", nullable = false)
-    private Boolean isVerified = false;
+    @Column(nullable = false)
+    private Boolean isActive = true;
 
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    @PreUpdate
+    private void calculatePricePerServing() {
+        if (price == null || servingSize == null || servingSize <= 0) {
+            this.pricePerServing = null;
+            return;
+        }
+
+        this.pricePerServing = price / servingSize;
+    }
 }
