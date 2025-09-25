@@ -73,6 +73,23 @@ jwt:
   access-token-expiration: 604800000
   refresh-token-expiration: 604800000
 
+
+# Swagger/OpenAPI 설정
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    display-request-duration: true
+    groups-order: ASC
+    operations-sorter: alpha
+    tags-sorter: alpha
+    try-it-out-enabled: true
+    filter: true
+  show-actuator: false
+
 # 로깅 설정
 logging:
   structured:
