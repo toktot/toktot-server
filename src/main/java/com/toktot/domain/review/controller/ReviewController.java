@@ -14,6 +14,7 @@ import com.toktot.domain.review.dto.response.create.ReviewCreateResponse;
 import com.toktot.web.dto.request.SearchCriteria;
 import com.toktot.web.dto.request.SearchRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -121,5 +122,15 @@ public class ReviewController {
         Page<ReviewListResponse> response = reviewSearchService.getMyReviews(user.getId(), pageable);
 
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @DeleteMapping("/{reviewId}")
+    public ResponseEntity<ApiResponse<Void>> deleteReview(
+            @AuthenticationPrincipal User user,
+            @PathVariable @Positive Long reviewId) {
+        log.info("delete review - reviewId: {}", reviewId);
+
+        reviewService.deleteReview(user.getId(), reviewId);
+        return ResponseEntity.ok(ApiResponse.success("리뷰가 삭제되었습니다."));
     }
 }
