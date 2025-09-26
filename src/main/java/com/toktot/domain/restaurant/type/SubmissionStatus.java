@@ -1,4 +1,4 @@
-package com.toktot.domain.menu.type;
+package com.toktot.domain.restaurant.type;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -10,7 +10,6 @@ public enum SubmissionStatus {
     PROCESSING("처리 중"),
     APPROVED("처리 완료"),
     REJECTED("반려");
-
     ;
 
     private final String description;
