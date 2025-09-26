@@ -18,7 +18,7 @@ public record ReviewImageRequest(
         Integer order,
 
         @JsonProperty("tooltips")
-        @Size(max = 4, message = "하나의 이미지에는 최대 4개의 툴팁만 입력할 수 있습니다.")
+        @Size(max = 5, message = "하나의 이미지에는 최대 5개의 툴팁만 입력할 수 있습니다.")
         @Valid
         List<TooltipRequest> tooltips,
 
