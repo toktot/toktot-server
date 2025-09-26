@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLRestriction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -19,6 +20,7 @@ import java.util.*;
 @Entity
 @Table(name = "reviews")
 @EntityListeners(AuditingEntityListener.class)
+@SQLRestriction("is_hidden = false")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -97,5 +99,9 @@ public class Review {
 
     public void increaseReportCount() {
         this.reportCount++;
+    }
+
+    public void hiddenReview() {
+        this.isHidden = true;
     }
 }

@@ -61,6 +61,16 @@ public class ReviewService {
         return ReviewCreateResponse.from(review.getId(), review.getRestaurant().getId());
     }
 
+    @Transactional
+    public void deleteReview(Long userId, Long reviewId) {
+        Review review = findReview(reviewId);
+        if (!review.getUser().getId().equals(userId)) {
+            throw new ToktotException(ErrorCode.ACCESS_DENIED);
+        }
+
+        review.hiddenReview();
+    }
+
     private void validateIsMain(List<ReviewImageRequest> requests) {
         int isMainCount = 0;
         for (ReviewImageRequest request : requests) {
@@ -132,5 +142,11 @@ public class ReviewService {
                 }
             }
         }
+    }
+
+    private Review findReview(Long reviewId) {
+        return reviewRepository
+                .findById(reviewId)
+                .orElseThrow(() -> new ToktotException(ErrorCode.REVIEW_NOT_FOUND));
     }
 }
