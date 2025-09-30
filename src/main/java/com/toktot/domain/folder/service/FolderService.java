@@ -48,6 +48,23 @@ public class FolderService {
     }
 
     @Transactional
+    public void deleteFolder(User user, Long folderId) {
+        Folder folder = folderRepository.findById(folderId)
+                .orElseThrow(() -> new ToktotException(ErrorCode.FOLDER_NOT_FOUND));
+
+        if (!folder.getUser().getId().equals(user.getId())) {
+            throw new ToktotException(ErrorCode.ACCESS_DENIED, "권한이 없는 폴더입니다.");
+        }
+
+        if (folder.getIsDefault()) {
+            throw new ToktotException(ErrorCode.DEFAULT_FOLDER_CANNOT_DELETE);
+        }
+
+        folderRepository.delete(folder);
+        log.info("폴더 삭제 완료 - folderId: {}, userId: {}", folderId, user.getId());
+    }
+
+    @Transactional
     public void deleteByUserId(Long userId) {
         List<Folder> folders = folderRepository.findAllByUserId(userId);
         folderRepository.deleteAll(folders);
@@ -63,11 +80,17 @@ public class FolderService {
         }
     }
 
-    public void validateFolderOwn(Long userId, Long folderId) {
-        if (!folderRepository.existsFolderByUserIdAndId(userId, folderId)) {
-            log.info("folder {} does not exist, userId {}", folderId, userId);
-            throw new ToktotException(ErrorCode.ACCESS_DENIED, "접근할 수 없는 폴더입니다.");
+    @Transactional
+    public void deleteFolderReview(User user, Long folderReviewId) {
+        FolderReview folderReview = folderReviewRepository.findById(folderReviewId)
+                .orElseThrow(() -> new ToktotException(ErrorCode.FOLDER_REVIEW_NOT_FOUND));
+
+        if (!folderReview.getFolder().getUser().getId().equals(user.getId())) {
+            throw new ToktotException(ErrorCode.ACCESS_DENIED, "권한이 없는 폴더입니다.");
         }
+
+        folderReviewRepository.delete(folderReview);
+        log.info("폴더에 저장된 리뷰 삭제 완료 - folderReviewId: {}, userId: {}", folderReviewId, user.getId());
     }
 
     private void createFolderReview(User user, Long folderId, Review review) {

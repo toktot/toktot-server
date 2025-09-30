@@ -100,7 +100,8 @@ public enum ErrorCode {
     NETWORK_ERROR("네트워크 오류가 발생했습니다."),
     TIMEOUT_ERROR("요청 시간이 초과되었습니다."),
     UNKNOWN_ERROR("알 수 없는 오류가 발생했습니다."),
-
+    DEFAULT_FOLDER_CANNOT_DELETE("기본 폴더는 삭제할 수 없습니다."),
+    FOLDER_REVIEW_NOT_FOUND("폴더에 저장된 리뷰를 찾을 수 없습니다."),
     ;
 
     private final String message;

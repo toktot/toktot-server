@@ -1,6 +1,5 @@
 package com.toktot.domain.folder.controller;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.toktot.domain.folder.service.FolderService;
 import com.toktot.domain.review.dto.response.search.ReviewListResponse;
 import com.toktot.domain.review.service.ReviewSearchService;
@@ -61,6 +60,38 @@ public class FolderController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @DeleteMapping("/{folderId}")
+    public ResponseEntity<ApiResponse<Void>> deleteFolder(
+            @PathVariable Long folderId,
+            @AuthenticationPrincipal User user) {
+
+        log.atInfo()
+                .setMessage("폴더 삭제 요청")
+                .addKeyValue("userId", user.getId())
+                .addKeyValue("folderId", folderId)
+                .log();
+
+        folderService.deleteFolder(user, folderId);
+
+        return ResponseEntity.ok(ApiResponse.success("폴더가 삭제되었습니다.", null));
+    }
+
+    @DeleteMapping("/reviews/{folderReviewId}")
+    public ResponseEntity<ApiResponse<Void>> deleteFolderReview(
+            @PathVariable Long folderReviewId,
+            @AuthenticationPrincipal User user) {
+
+        log.atInfo()
+                .setMessage("폴더에 저장된 리뷰 삭제 요청")
+                .addKeyValue("userId", user.getId())
+                .addKeyValue("folderReviewId", folderReviewId)
+                .log();
+
+        folderService.deleteFolderReview(user, folderReviewId);
+
+        return ResponseEntity.ok(ApiResponse.success("저장된 리뷰가 삭제되었습니다.", null));
+    }
+
     @PostMapping("/review-save")
     public ResponseEntity<ApiResponse<List<FolderResponse>>> createReviewToFolders(
             @AuthenticationPrincipal User user,
@@ -90,7 +121,7 @@ public class FolderController {
                 .addKeyValue("userId", user.getId())
                 .addKeyValue("folderId", folderId)
                 .log();
-        folderService.validateFolderOwn(user.getId(), folderId);
+
         Page<ReviewListResponse> response = reviewSearchService.getSavedReviews(
                 user.getId(),
                 folderId,
@@ -99,6 +130,5 @@ public class FolderController {
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
-
 
 }
