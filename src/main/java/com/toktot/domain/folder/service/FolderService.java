@@ -78,7 +78,13 @@ public class FolderService {
             throw new ToktotException(ErrorCode.ACCESS_DENIED, "권한이 없는 폴더입니다.");
         }
 
+        if (folderReviewRepository.existsByFolderIdAndReviewId(folderId, review.getId())) {
+            log.debug("이미 저장된 리뷰 - folderId: {}, reviewId: {}", folderId, review.getId());
+            return;
+        }
+
         folderReviewRepository.save(FolderReview.create(folder, review));
+        log.debug("리뷰 저장 완료 - folderId: {}, reviewId: {}", folderId, review.getId());
     }
 
 }
