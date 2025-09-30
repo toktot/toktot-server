@@ -21,4 +21,6 @@ public interface FolderReviewRepository extends JpaRepository<FolderReview, Long
     """)
     List<Long> findBookmarkedReviewIds(@Param("reviewIds") List<Long> reviewIds,
                                        @Param("userId") Long userId);
+
+    boolean existsByFolderIdAndReviewId(Long folderId, Long reviewId);
 }
