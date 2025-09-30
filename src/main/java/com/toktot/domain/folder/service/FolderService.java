@@ -43,8 +43,26 @@ public class FolderService {
 
     public List<FolderResponse> readFolders(User user) {
         folderDefaultService.ensureDefaultFolderExists(user);
-
         return folderRepository.findFoldersWithReviewCountByUserId(user.getId());
+    }
+
+    public List<FolderResponse> readUserFolders(Long userId) {
+        return folderRepository.findFoldersWithReviewCountByUserId(userId);
+    }
+
+    @Transactional
+    public FolderResponse updateFolderName(User user, Long folderId, String newFolderName) {
+        Folder folder = folderRepository.findById(folderId)
+                .orElseThrow(() -> new ToktotException(ErrorCode.FOLDER_NOT_FOUND));
+
+        if (!folder.getUser().getId().equals(user.getId())) {
+            throw new ToktotException(ErrorCode.ACCESS_DENIED, "권한이 없는 폴더입니다.");
+        }
+
+        folder.updateFolderName(newFolderName);
+        log.info("폴더명 변경 완료 - folderId: {}, userId: {}, newName: {}", folderId, user.getId(), newFolderName);
+
+        return FolderResponse.fromNewFolder(folder);
     }
 
     @Transactional

@@ -6,6 +6,7 @@ import com.toktot.domain.review.service.ReviewSearchService;
 import com.toktot.domain.user.User;
 import com.toktot.web.dto.ApiResponse;
 import com.toktot.domain.folder.dto.request.FolderCreateRequest;
+import com.toktot.domain.folder.dto.request.FolderUpdateRequest;
 import com.toktot.domain.folder.dto.request.FolderReviewCreateRequest;
 import com.toktot.domain.folder.dto.response.FolderResponse;
 import jakarta.validation.Valid;
@@ -58,6 +59,38 @@ public class FolderController {
         List<FolderResponse> response = folderService.readFolders(user);
 
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<ApiResponse<List<FolderResponse>>> readUserFolders(
+            @PathVariable Long userId) {
+
+        log.atInfo()
+                .setMessage("특정 유저의 폴더 목록 조회 요청")
+                .addKeyValue("targetUserId", userId)
+                .log();
+
+        List<FolderResponse> response = folderService.readUserFolders(userId);
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PatchMapping("/{folderId}")
+    public ResponseEntity<ApiResponse<FolderResponse>> updateFolderName(
+            @PathVariable Long folderId,
+            @Valid @RequestBody FolderUpdateRequest request,
+            @AuthenticationPrincipal User user) {
+
+        log.atInfo()
+                .setMessage("폴더명 변경 요청")
+                .addKeyValue("userId", user.getId())
+                .addKeyValue("folderId", folderId)
+                .addKeyValue("newFolderName", request.folderName())
+                .log();
+
+        FolderResponse response = folderService.updateFolderName(user, folderId, request.folderName());
+
+        return ResponseEntity.ok(ApiResponse.success("폴더명이 변경되었습니다.", response));
     }
 
     @DeleteMapping("/{folderId}")
