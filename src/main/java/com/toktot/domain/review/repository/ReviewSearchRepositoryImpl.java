@@ -139,6 +139,34 @@ public class ReviewSearchRepositoryImpl implements ReviewSearchRepositoryCustom 
     }
 
     @Override
+    public Page<ReviewListResponse> findUserReviews(Long targetUserId, Long currentUserId, Pageable pageable) {
+        BooleanBuilder builder = new BooleanBuilder();
+
+        builder.and(review.user.id.eq(targetUserId));
+        builder.and(review.isHidden.eq(false));
+
+        List<Review> reviews = queryFactory
+                .selectFrom(review)
+                .join(review.user, user).fetchJoin()
+                .join(review.restaurant, restaurant).fetchJoin()
+                .leftJoin(review.images, reviewImage).fetchJoin()
+                .where(builder)
+                .orderBy(review.createdAt.desc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+        List<ReviewListResponse> content = convertToReviewListResponses(reviews, currentUserId);
+
+        JPAQuery<Long> countQuery = queryFactory
+                .select(review.count())
+                .from(review)
+                .where(builder);
+
+        return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
+    }
+
+    @Override
     public Page<RestaurantDetailReviewResponse> findRestaurantReviews(Long restaurantId, Long reviewId,
                                                                       SortType sortType, Long currentUserId,
                                                                       List<Long> blockedUserIds, Pageable pageable) {
