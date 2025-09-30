@@ -6,6 +6,7 @@ import com.toktot.domain.review.repository.TooltipRepository;
 import com.toktot.domain.review.type.TooltipType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -91,7 +92,11 @@ public class RestaurantStatisticsService {
             }
         }
 
-        return restaurantRepository.findMostReviewedMenuPriceByRestaurantId(restaurantId);
+        List<Integer> prices = restaurantRepository.findMostReviewedMenuPricesByRestaurantId(
+                restaurantId,
+                PageRequest.of(0, 1)
+        );
+        return prices.isEmpty() ? null : prices.get(0);
     }
 
     private Integer extractPriceFromPopularMenus(String popularMenus) {
