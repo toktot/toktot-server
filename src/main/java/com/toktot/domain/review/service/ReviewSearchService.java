@@ -68,6 +68,12 @@ public class ReviewSearchService {
         return reviewSearchRepository.findMyReviews(userId, pageable);
     }
 
+    public Page<ReviewListResponse> getUserReviews(Long targetUserId, Long currentUserId, Pageable pageable) {
+        log.info("특정 사용자 리뷰 조회 - targetUserId: {}, currentUserId: {}", targetUserId, currentUserId);
+
+        return reviewSearchRepository.findUserReviews(targetUserId, currentUserId, pageable);
+    }
+
     public Page<RestaurantDetailReviewResponse> getRestaurantReviews(Long restaurantId, Long reviewId,
                                                                      SortType sortType, Long currentUserId,
                                                                      Pageable pageable) {

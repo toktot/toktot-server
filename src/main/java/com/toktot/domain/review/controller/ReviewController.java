@@ -124,6 +124,27 @@ public class ReviewController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<ApiResponse<Page<ReviewListResponse>>> getUserReviews(
+            @PathVariable @Positive Long userId,
+            @AuthenticationPrincipal User currentUser,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        log.atInfo()
+                .setMessage("특정 사용자 리뷰 조회 요청")
+                .addKeyValue("targetUserId", userId)
+                .addKeyValue("currentUserId", currentUser != null ? currentUser.getId() : null)
+                .log();
+
+        Page<ReviewListResponse> response = reviewSearchService.getUserReviews(
+                userId,
+                currentUser != null ? currentUser.getId() : null,
+                pageable
+        );
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @DeleteMapping("/{reviewId}")
     public ResponseEntity<ApiResponse<Void>> deleteReview(
             @AuthenticationPrincipal User user,

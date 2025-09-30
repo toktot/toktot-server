@@ -40,4 +40,6 @@ public interface ReviewSearchRepositoryCustom {
             Long currentUserId,
             List<Long> blockedUserIds,
             Pageable pageable);
+
+    Page<ReviewListResponse> findUserReviews(Long targetUserId, Long currentUserId, Pageable pageable);
 }
