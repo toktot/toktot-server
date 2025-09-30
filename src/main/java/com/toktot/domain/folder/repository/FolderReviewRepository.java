@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface FolderReviewRepository extends JpaRepository<FolderReview, Long> {
 
@@ -23,4 +24,6 @@ public interface FolderReviewRepository extends JpaRepository<FolderReview, Long
                                        @Param("userId") Long userId);
 
     boolean existsByFolderIdAndReviewId(Long folderId, Long reviewId);
+
+    Optional<FolderReview> findByFolderIdAndReviewId(Long folderId, Long reviewId);
 }

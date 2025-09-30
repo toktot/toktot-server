@@ -43,6 +43,7 @@ public class FolderService {
 
     public List<FolderResponse> readFolders(User user) {
         folderDefaultService.ensureDefaultFolderExists(user);
+
         return folderRepository.findFoldersWithReviewCountByUserId(user.getId());
     }
 
@@ -99,8 +100,8 @@ public class FolderService {
     }
 
     @Transactional
-    public void deleteFolderReview(User user, Long folderReviewId) {
-        FolderReview folderReview = folderReviewRepository.findById(folderReviewId)
+    public void deleteFolderReview(User user, Long folderId, Long reviewId) {
+        FolderReview folderReview = folderReviewRepository.findByFolderIdAndReviewId(folderId, reviewId)
                 .orElseThrow(() -> new ToktotException(ErrorCode.FOLDER_REVIEW_NOT_FOUND));
 
         if (!folderReview.getFolder().getUser().getId().equals(user.getId())) {
@@ -108,7 +109,15 @@ public class FolderService {
         }
 
         folderReviewRepository.delete(folderReview);
-        log.info("폴더에 저장된 리뷰 삭제 완료 - folderReviewId: {}, userId: {}", folderReviewId, user.getId());
+        log.info("폴더에 저장된 리뷰 삭제 완료 - folderId: {}, reviewId: {}, userId: {}",
+                folderId, reviewId, user.getId());
+    }
+
+    public void validateFolderOwn(Long userId, Long folderId) {
+        if (!folderRepository.existsFolderByUserIdAndId(userId, folderId)) {
+            log.info("folder {} does not exist, userId {}", folderId, userId);
+            throw new ToktotException(ErrorCode.ACCESS_DENIED, "접근할 수 없는 폴더입니다.");
+        }
     }
 
     private void createFolderReview(User user, Long folderId, Review review) {
