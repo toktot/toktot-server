@@ -109,18 +109,20 @@ public class FolderController {
         return ResponseEntity.ok(ApiResponse.success("폴더가 삭제되었습니다.", null));
     }
 
-    @DeleteMapping("/reviews/{folderReviewId}")
+    @DeleteMapping("{folderId}/reviews/{reviewId}")
     public ResponseEntity<ApiResponse<Void>> deleteFolderReview(
-            @PathVariable Long folderReviewId,
+            @PathVariable Long folderId,
+            @PathVariable Long reviewId,
             @AuthenticationPrincipal User user) {
 
         log.atInfo()
                 .setMessage("폴더에 저장된 리뷰 삭제 요청")
                 .addKeyValue("userId", user.getId())
-                .addKeyValue("folderReviewId", folderReviewId)
+                .addKeyValue("folderId", folderId)
+                .addKeyValue("reviewId", reviewId)
                 .log();
 
-        folderService.deleteFolderReview(user, folderReviewId);
+        folderService.deleteFolderReview(user, folderId, reviewId);
 
         return ResponseEntity.ok(ApiResponse.success("저장된 리뷰가 삭제되었습니다.", null));
     }
