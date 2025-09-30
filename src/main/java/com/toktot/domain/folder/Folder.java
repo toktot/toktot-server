@@ -71,4 +71,11 @@ public class Folder {
                 .build();
     }
 
+    public void updateFolderName(String newFolderName) {
+        if (newFolderName == null || newFolderName.trim().isBlank()) {
+            this.folderName = DEFAULT_NEW_FOLDER_NAME;
+        } else {
+            this.folderName = newFolderName.trim();
+        }
+    }
 }
