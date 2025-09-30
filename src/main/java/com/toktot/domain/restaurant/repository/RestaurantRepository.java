@@ -2,6 +2,7 @@ package com.toktot.domain.restaurant.repository;
 
 import com.toktot.domain.restaurant.Restaurant;
 import com.toktot.domain.restaurant.type.DataSource;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -41,12 +42,16 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
     Optional<String> findPopularMenusByRestaurantId(@Param("restaurantId") Long restaurantId);
 
     @Query("SELECT t.totalPrice FROM Tooltip t " +
-            "JOIN t.reviewImage ri JOIN ri.review r " +
+            "JOIN t.reviewImage ri " +
+            "JOIN ri.review r " +
             "WHERE r.restaurant.id = :restaurantId " +
             "AND t.totalPrice IS NOT NULL " +
+            "AND r.isHidden = false " +
             "GROUP BY t.totalPrice " +
-            "ORDER BY COUNT(t) DESC")
-    Integer findMostReviewedMenuPriceByRestaurantId(@Param("restaurantId") Long restaurantId);
+            "ORDER BY COUNT(t) DESC, t.totalPrice ASC")
+    List<Integer> findMostReviewedMenuPricesByRestaurantId(
+            @Param("restaurantId") Long restaurantId,
+            Pageable pageable);
 
     Optional<Restaurant> findByExternalTourApiId(String externalTourApiId);
 
