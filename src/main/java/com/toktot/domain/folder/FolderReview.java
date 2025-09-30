@@ -9,7 +9,14 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "folder_reviews")
+@Table(name = "folder_reviews",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_folder_review",
+                        columnNames = {"folder_id", "review_id"}
+                )
+        }
+)
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
