@@ -145,6 +145,18 @@ public class ReviewController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @GetMapping("/{reviewId}")
+    public ResponseEntity<ApiResponse<ReviewFeedResponse>> getReviewDetail(
+            @PathVariable @Positive Long reviewId,
+            @AuthenticationPrincipal User user
+    ) {
+        log.atInfo().setMessage("리뷰 상세 조회 요청").addKeyValue("reviewId", reviewId).log();
+
+        ReviewFeedResponse response = reviewSearchService.getReviewDetail(reviewId, user.getId());
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @DeleteMapping("/{reviewId}")
     public ResponseEntity<ApiResponse<Void>> deleteReview(
             @AuthenticationPrincipal User user,
