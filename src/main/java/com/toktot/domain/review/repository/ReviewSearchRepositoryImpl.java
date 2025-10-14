@@ -11,11 +11,13 @@ import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.toktot.domain.folder.QFolderReview;
 import com.toktot.domain.localfood.LocalFoodType;
+import com.toktot.domain.review.QReview;
 import com.toktot.domain.review.Review;
 import com.toktot.domain.review.dto.response.search.*;
 import com.toktot.domain.review.type.KeywordType;
 import com.toktot.domain.review.type.TooltipType;
 import com.toktot.domain.search.type.SortType;
+import com.toktot.domain.user.User;
 import com.toktot.web.dto.request.SearchCriteria;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,11 +28,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.toktot.domain.folder.QFolderReview.folderReview;
@@ -376,6 +374,83 @@ public class ReviewSearchRepositoryImpl implements ReviewSearchRepositoryCustom 
                 pageable,
                 total
         );
+    }
+
+    @Override
+    public Optional<ReviewFeedResponse> findReviewDetailById(Long reviewId, Long currentUserId) {
+        Review foundReview = queryFactory
+                .selectFrom(review)
+                .join(review.user, user).fetchJoin()
+                .join(review.restaurant, restaurant).fetchJoin()
+                .leftJoin(review.images, reviewImage).fetchJoin()
+                .leftJoin(reviewImage.tooltips, tooltip).fetchJoin()
+                .leftJoin(review.keywords, reviewKeyword).fetchJoin()
+                .where(
+                        review.id.eq(reviewId),
+                        review.isHidden.isFalse()
+                )
+                .fetchOne();
+
+        if (foundReview == null) {
+            return Optional.empty();
+        }
+
+        User authorUser = foundReview.getUser();
+
+        Long reviewCount = queryFactory
+                .select(review.count())
+                .from(review)
+                .where(review.user.id.eq(authorUser.getId()))
+                .fetchOne();
+
+        Double avgRatingDouble = queryFactory
+                .select(tooltip.rating.avg())
+                .from(tooltip)
+                .join(tooltip.reviewImage, reviewImage)
+                .join(reviewImage.review, review)
+                .where(
+                        review.user.id.eq(authorUser.getId()),
+                        tooltip.tooltipType.eq(TooltipType.FOOD)
+                )
+                .fetchOne();
+
+        ReviewAuthorResponse author = ReviewAuthorResponse.from(
+                authorUser,
+                reviewCount != null ? reviewCount.intValue() : 0,
+                avgRatingDouble != null ? BigDecimal.valueOf(avgRatingDouble) : BigDecimal.ZERO
+        );
+
+        Set<String> keywords = foundReview.getKeywords().stream()
+                .map(k -> k.getKeywordType().getDisplayName())
+                .collect(Collectors.toSet());
+
+        ReviewRestaurantInfo restaurantInfo = ReviewRestaurantInfo.from(foundReview.getRestaurant(), null);
+
+        boolean isBookmarked = false;
+        if (currentUserId != null) {
+            Long bookmarkCount = queryFactory
+                    .select(folderReview.count())
+                    .from(folderReview)
+                    .where(
+                            folderReview.review.id.eq(reviewId),
+                            folderReview.folder.user.id.eq(currentUserId)
+                    )
+                    .fetchOne();
+            isBookmarked = bookmarkCount != null && bookmarkCount > 0;
+        }
+
+        boolean isWriter = currentUserId != null && authorUser.getId().equals(currentUserId);
+
+        ReviewFeedResponse response = ReviewFeedResponse.from(
+                foundReview,
+                author,
+                keywords,
+                restaurantInfo,
+                isBookmarked,
+                isWriter
+        );
+
+        return Optional.of(response);
     }
 
     private BooleanBuilder buildCommonWhereClause(SearchCriteria criteria, List<Long> blockedUserIds) {

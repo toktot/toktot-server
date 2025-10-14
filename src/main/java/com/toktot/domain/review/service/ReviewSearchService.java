@@ -1,5 +1,7 @@
 package com.toktot.domain.review.service;
 
+import com.toktot.common.exception.ErrorCode;
+import com.toktot.common.exception.ToktotException;
 import com.toktot.domain.block.UserBlockRepository;
 import com.toktot.domain.review.dto.response.search.RestaurantDetailReviewResponse;
 import com.toktot.domain.review.dto.response.search.RestaurantReviewStatisticsResponse;
@@ -106,5 +108,12 @@ public class ReviewSearchService {
         }
 
         return userBlockRepository.findBlockedUserIdsByBlockerUserId(currentUserId);
+    }
+
+    public ReviewFeedResponse getReviewDetail(Long reviewId, Long currentUserId) {
+        log.info("리뷰 상세 조회 - reviewId: {}, currentUserId: {}", reviewId, currentUserId);
+
+        return reviewSearchRepository.findReviewDetailById(reviewId, currentUserId)
+                .orElseThrow(() -> new ToktotException(ErrorCode.REVIEW_NOT_FOUND));
     }
 }
