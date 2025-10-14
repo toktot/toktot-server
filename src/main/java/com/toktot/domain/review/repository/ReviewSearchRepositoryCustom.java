@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ReviewSearchRepositoryCustom {
 
@@ -42,4 +43,5 @@ public interface ReviewSearchRepositoryCustom {
             Pageable pageable);
 
     Page<ReviewListResponse> findUserReviews(Long targetUserId, Long currentUserId, Pageable pageable);
-}
+
+    Optional<ReviewFeedResponse> findReviewDetailById(Long reviewId, Long currentUserId);}
