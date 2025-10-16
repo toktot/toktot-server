@@ -2,9 +2,14 @@ package com.toktot.domain.localfood.service;
 
 import com.toktot.domain.localfood.LocalFoodType;
 import com.toktot.domain.localfood.dto.LocalFoodStatsResponse;
+import com.toktot.domain.localfood.dto.PriceRangeRequest;
+import com.toktot.domain.restaurant.dto.response.PriceRangeRestaurantResponse;
+import com.toktot.domain.restaurant.repository.RestaurantPriceRangeRepository;
 import com.toktot.domain.review.Tooltip;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +28,7 @@ import java.util.stream.Collectors;
 public class LocalFoodStatisticsService {
 
     private final LocalFoodDetectionService detectionService;
+    private final RestaurantPriceRangeRepository restaurantPriceRangeRepository;
 
     private static final int MIN_REVIEW_COUNT = 5;
     private static final int PRICE_RANGE_COUNT = 8;
@@ -44,7 +50,8 @@ public class LocalFoodStatisticsService {
                 .collect(Collectors.toList());
 
         if (pricesPerServing.size() < MIN_REVIEW_COUNT) {
-            log.warn("유효 가격 데이터 부족 - 타입: {}, 개수: {}", localFoodType.getDisplayName(), pricesPerServing.size());
+            log.warn("유효 가격 데이터 부족 - 타입: {}, 개수: {}",
+                    localFoodType.getDisplayName(), pricesPerServing.size());
             return createInsufficientDataResponse(localFoodType);
         }
 
@@ -73,6 +80,30 @@ public class LocalFoodStatisticsService {
                 .lastUpdated(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                 .hasSufficientData(true)
                 .build();
+    }
+
+    public Page<PriceRangeRestaurantResponse> getRestaurantsByPriceRange(
+            PriceRangeRequest request,
+            Pageable pageable
+    ) {
+        Integer minPrice = request.getMinPrice();
+        Integer maxPrice = request.getMaxPrice();
+
+        log.info("가격대별 가게 조회 - 향토음식: {}, 클릭 가격: {}원, 범위: {}~{}원",
+                request.localFoodType().getDisplayName(),
+                request.clickedPrice(),
+                minPrice,
+                maxPrice);
+
+        return restaurantPriceRangeRepository.findRestaurantsByPriceRange(
+                request.localFoodType(),
+                minPrice,
+                maxPrice,
+                request.latitude(),
+                request.longitude(),
+                request.getRadius(),
+                pageable
+        );
     }
 
     private LocalFoodStatsResponse createInsufficientDataResponse(LocalFoodType localFoodType) {
@@ -152,7 +183,8 @@ public class LocalFoodStatisticsService {
 
         for (int i = 0; i < PRICE_RANGE_COUNT; i++) {
             int rangeMin = minPrice + (i * priceGap);
-            int rangeMax = (i == PRICE_RANGE_COUNT - 1) ? maxPrice : rangeMin + priceGap - 1;
+            int rangeMax = (i == PRICE_RANGE_COUNT - 1) ?
+                    maxPrice : rangeMin + priceGap - 1;
 
             long reviewCount = prices.stream()
                     .filter(price -> price >= rangeMin && price <= rangeMax)
