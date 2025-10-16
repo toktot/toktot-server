@@ -199,3 +199,6 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+
+firebase:
+  service-account-key-path: ${FIREBASE_SERVICE_ACCOUNT_KEY_BASE64}
