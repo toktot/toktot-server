@@ -201,4 +201,4 @@ management:
       show-details: when-authorized
 
 firebase:
-  service-account-key-path: ${FIREBASE_SERVICE_ACCOUNT_KEY_BASE64}
+  service-account-key-base64: ${FIREBASE_SERVICE_ACCOUNT_KEY_BASE64}
