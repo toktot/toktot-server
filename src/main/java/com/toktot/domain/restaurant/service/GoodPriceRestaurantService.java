@@ -85,9 +85,10 @@ public class GoodPriceRestaurantService {
                 );
 
                 distance = formatDistance(distanceKm);
+                log.debug("거리 계산 완료 - 가게: {}, 거리: {}", dto.name(), distance);
 
             } catch (Exception e) {
-                log.debug("거리 계산 실패: 매장 ID {}", dto.id(), e);
+                log.warn("거리 계산 실패 - 가게: {}", dto.name(), e);
             }
         }
 
@@ -117,5 +118,4 @@ public class GoodPriceRestaurantService {
 
         return new PageImpl<>(pageContent, pageable, allRestaurants.size());
     }
-
 }
