@@ -26,17 +26,22 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
     @Query("SELECT r.valueForMoneyScore FROM Review r WHERE r.restaurant.id = :restaurantId AND r.isHidden = false")
     List<Integer> findValueForMoneyScoresByRestaurantId(@Param("restaurantId") Long restaurantId);
 
-    @Query("SELECT COUNT(r) FROM Restaurant r WHERE r.isActive = true")
-    Integer countActiveRestaurants();
+    @Query("""
+        SELECT COUNT(DISTINCT rm.restaurant.id)
+        FROM RestaurantMenu rm
+        WHERE rm.isMain = true 
+          AND rm.isActive = true
+        """)
+    Long countRestaurantsWithMainMenu();
 
-    @Query("SELECT COUNT(DISTINCT r) FROM Restaurant r " +
-            "LEFT JOIN RestaurantMenu rm ON rm.restaurant.id = r.id AND rm.isMain = true " +
-            "WHERE r.isActive = true AND " +
-            "(rm.price IS NULL OR rm.price < :price OR " +
-            "(rm.price IS NULL AND EXISTS (" +
-            "  SELECT t FROM Tooltip t JOIN t.reviewImage ri JOIN ri.review rev " +
-            "  WHERE rev.restaurant.id = r.id AND t.totalPrice < :price)))")
-    Integer countRestaurantsWithCheaperRepresentativeMenu(@Param("price") Integer price);
+    @Query("""
+        SELECT COUNT(DISTINCT rm.restaurant.id)
+        FROM RestaurantMenu rm
+        WHERE rm.isMain = true
+          AND rm.isActive = true
+          AND rm.pricePerServing < :price
+        """)
+    Long countRestaurantsWithCheaperMainMenu(@Param("price") Integer price);
 
     @Query("SELECT r.popularMenus FROM Restaurant r WHERE r.id = :restaurantId")
     Optional<String> findPopularMenusByRestaurantId(@Param("restaurantId") Long restaurantId);
