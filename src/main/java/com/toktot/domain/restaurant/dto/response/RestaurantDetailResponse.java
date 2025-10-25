@@ -18,7 +18,9 @@ public record RestaurantDetailResponse(
         String phone,
         String image,
         BigDecimal latitude,
-        BigDecimal longitude
+        BigDecimal longitude,
+        @JsonProperty("value_for_money_point") Integer valueForMoneyPoint,
+        @JsonProperty("percent") String percent
 ) {
 
     public static RestaurantDetailResponse from(Restaurant restaurant) {

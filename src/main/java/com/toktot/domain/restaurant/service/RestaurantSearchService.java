@@ -147,7 +147,20 @@ public class RestaurantSearchService {
         Restaurant restaurant = restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new ToktotException(ErrorCode.RESTAURANT_NOT_FOUND));
 
-        return RestaurantDetailResponse.from(restaurant);
+        Integer valueForMoneyPoint = restaurantStatisticsService.calculateValueForMoneyPoint(restaurantId);
+        String pricePercentile = restaurantStatisticsService.calculatePricePercentile(restaurantId);
+
+        return RestaurantDetailResponse.builder()
+                .id(restaurant.getId())
+                .name(restaurant.getName())
+                .address(restaurant.getAddress())
+                .phone(restaurant.getPhone())
+                .image(restaurant.getImage())
+                .latitude(restaurant.getLatitude())
+                .longitude(restaurant.getLongitude())
+                .valueForMoneyPoint(valueForMoneyPoint)
+                .percent(pricePercentile)
+                .build();
     }
 
     private List<Long> getBlockedUserIds(Long currentUserId) {

@@ -1,18 +1,17 @@
 package com.toktot.domain.restaurant.service;
 
 import com.toktot.domain.restaurant.repository.RestaurantRepository;
+import com.toktot.domain.restaurant.repository.RestaurantMenuRepository;
 import com.toktot.domain.review.Tooltip;
 import com.toktot.domain.review.repository.TooltipRepository;
 import com.toktot.domain.review.type.TooltipType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -21,6 +20,7 @@ import java.util.Optional;
 public class RestaurantStatisticsService {
 
     private final RestaurantRepository restaurantRepository;
+    private final RestaurantMenuRepository restaurantMenuRepository;
     private final TooltipRepository tooltipRepository;
 
     public BigDecimal calculateAverageRating(Long restaurantId) {
@@ -44,7 +44,8 @@ public class RestaurantStatisticsService {
     }
 
     public Integer calculateValueForMoneyPoint(Long restaurantId) {
-        List<Integer> valueForMoneyScores = restaurantRepository.findValueForMoneyScoresByRestaurantId(restaurantId);
+        List<Integer> valueForMoneyScores = restaurantRepository
+                .findValueForMoneyScoresByRestaurantId(restaurantId);
 
         if (valueForMoneyScores.isEmpty()) {
             return null;
@@ -59,20 +60,26 @@ public class RestaurantStatisticsService {
     }
 
     public String calculatePricePercentile(Long restaurantId) {
-        Integer representativeMenuPrice = getRepresentativeMenuPrice(restaurantId);
+        Integer mainMenuPrice = restaurantMenuRepository.findMainMenuPricePerServing(restaurantId);
 
-        if (representativeMenuPrice == null) {
+        if (mainMenuPrice == null) {
+            log.debug("대표메뉴가 없는 가게: restaurantId={}", restaurantId);
             return null;
         }
 
-        Integer totalRestaurantCount = restaurantRepository.countActiveRestaurants();
-        Integer cheaperRestaurantCount = restaurantRepository.countRestaurantsWithCheaperRepresentativeMenu(representativeMenuPrice);
+        Long totalRestaurantCount = restaurantRepository.countRestaurantsWithMainMenu();
+        Long cheaperRestaurantCount = restaurantRepository
+                .countRestaurantsWithCheaperMainMenu(mainMenuPrice);
 
-        if (totalRestaurantCount == null || totalRestaurantCount == 0) {
+        return calculatePercentileLabel(cheaperRestaurantCount, totalRestaurantCount);
+    }
+
+    private String calculatePercentileLabel(Number lowerCount, Number totalCount) {
+        if (totalCount == null || totalCount.longValue() == 0) {
             return null;
         }
 
-        double percentile = ((double) cheaperRestaurantCount / totalRestaurantCount) * 100;
+        double percentile = (lowerCount.doubleValue() / totalCount.doubleValue()) * 100;
 
         if (percentile >= 70) {
             return "상위 30%";
@@ -81,43 +88,5 @@ public class RestaurantStatisticsService {
         } else {
             return "하위 30%";
         }
-    }
-
-    private Integer getRepresentativeMenuPrice(Long restaurantId) {
-        Optional<String> popularMenus = restaurantRepository.findPopularMenusByRestaurantId(restaurantId);
-        if (popularMenus.isPresent() && !popularMenus.get().isEmpty()) {
-            Integer extractedPrice = extractPriceFromPopularMenus(popularMenus.get());
-            if (extractedPrice != null) {
-                return extractedPrice;
-            }
-        }
-
-        List<Integer> prices = restaurantRepository.findMostReviewedMenuPricesByRestaurantId(
-                restaurantId,
-                PageRequest.of(0, 1)
-        );
-        return prices.isEmpty() ? null : prices.get(0);
-    }
-
-    private Integer extractPriceFromPopularMenus(String popularMenus) {
-        if (popularMenus == null || popularMenus.trim().isEmpty()) {
-            return null;
-        }
-
-        String[] prices = popularMenus.split("[^0-9,]+");
-        for (String priceStr : prices) {
-            try {
-                String cleanPrice = priceStr.replaceAll("[^0-9]", "");
-                if (!cleanPrice.isEmpty()) {
-                    int price = Integer.parseInt(cleanPrice);
-                    if (price >= 1000 && price <= 100000) {
-                        return price;
-                    }
-                }
-            } catch (NumberFormatException e) {
-                continue;
-            }
-        }
-        return null;
     }
 }
