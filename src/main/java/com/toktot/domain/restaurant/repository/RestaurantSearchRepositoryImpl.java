@@ -8,6 +8,7 @@ import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.toktot.domain.restaurant.Restaurant;
 import com.toktot.domain.restaurant.dto.response.RestaurantInfoResponse;
+import com.toktot.domain.restaurant.service.RestaurantStatisticsService;
 import com.toktot.domain.review.type.KeywordType;
 import com.toktot.domain.review.type.TooltipType;
 import com.toktot.web.dto.request.SearchCriteria;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -36,6 +38,7 @@ import static com.toktot.domain.review.QTooltip.tooltip;
 public class RestaurantSearchRepositoryImpl implements RestaurantSearchRepository {
 
     private final JPAQueryFactory queryFactory;
+    private final RestaurantStatisticsService restaurantStatisticsService;
 
     @Override
     public Page<RestaurantInfoResponse> searchRestaurantsWithFilters(
@@ -78,19 +81,35 @@ public class RestaurantSearchRepositoryImpl implements RestaurantSearchRepositor
                 )
                 .fetchOne();
 
-        List<RestaurantInfoResponse> responseList = restaurants.stream()
-                .map(r -> convertToRestaurantInfoResponse(r, criteria))
+        List<Long> restaurantIds = restaurants.stream()
+                .map(Restaurant::getId)
                 .toList();
 
-        return PageableExecutionUtils.getPage(responseList, pageable, () -> totalCount != null ? totalCount : 0L);
+        Map<Long, Integer> valueForMoneyMap = restaurantStatisticsService
+                .calculateValueForMoneyPointsBatch(restaurantIds);
+        Map<Long, String> percentileMap = restaurantStatisticsService
+                .calculatePricePercentilesBatch(restaurantIds);
+
+        List<RestaurantInfoResponse> responseList = restaurants.stream()
+                .map(r -> convertToRestaurantInfoResponseWithStats(
+                        r,
+                        criteria,
+                        valueForMoneyMap.get(r.getId()),
+                        percentileMap.get(r.getId())
+                ))
+                .toList();
+
+        return PageableExecutionUtils.getPage(responseList, pageable, () -> totalCount != null ?
+                totalCount : 0L);
     }
 
     @Override
-    public Page<RestaurantInfoResponse> searchRestaurantsByIds(List<Long> restaurantIds,
-                                                               SearchCriteria criteria,
-                                                               Long currentUserId,
-                                                               List<Long> blockedUserIds,
-                                                               Pageable pageable) {
+    public Page<RestaurantInfoResponse> searchRestaurantsByIds(
+            List<Long> restaurantIds,
+            SearchCriteria criteria,
+            Long currentUserId,
+            List<Long> blockedUserIds,
+            Pageable pageable) {
 
         if (restaurantIds.isEmpty()) {
             return Page.empty(pageable);
@@ -133,13 +152,78 @@ public class RestaurantSearchRepositoryImpl implements RestaurantSearchRepositor
                 .where(builder)
                 .fetchOne();
 
+        List<Long> fetchedIds = restaurants.stream()
+                .map(Restaurant::getId)
+                .toList();
+
+        Map<Long, Integer> valueForMoneyMap = restaurantStatisticsService
+                .calculateValueForMoneyPointsBatch(fetchedIds);
+        Map<Long, String> percentileMap = restaurantStatisticsService
+                .calculatePricePercentilesBatch(fetchedIds);
+
         return new PageImpl<>(
                 restaurants.stream()
-                        .map(r -> convertToRestaurantInfoResponse(r, criteria))
+                        .map(r -> convertToRestaurantInfoResponseWithStats(
+                                r,
+                                criteria,
+                                valueForMoneyMap.get(r.getId()),
+                                percentileMap.get(r.getId())
+                        ))
                         .collect(Collectors.toList()),
                 pageable,
                 Objects.requireNonNullElse(total, 0L)
         );
+    }
+
+    private RestaurantInfoResponse convertToRestaurantInfoResponseWithStats(
+            Restaurant restaurant,
+            SearchCriteria criteria,
+            Integer valueForMoneyPoint,
+            String pricePercentile) {
+
+        String distance = null;
+        if (criteria.hasLocationFilter()) {
+            Double distanceKm = calculateDistance(
+                    criteria.latitude(), criteria.longitude(),
+                    restaurant.getLatitude(), restaurant.getLongitude()
+            );
+            distance = distanceKm != null ? String.format("%.1fkm", distanceKm) : null;
+        }
+
+        Double avgRatingDouble = queryFactory
+                .select(tooltip.rating.avg())
+                .from(review)
+                .join(review.images, reviewImage)
+                .join(reviewImage.tooltips, tooltip)
+                .where(review.restaurant.id.eq(restaurant.getId())
+                        .and(tooltip.tooltipType.eq(TooltipType.FOOD))
+                        .and(review.isHidden.isFalse()))
+                .fetchOne();
+
+        BigDecimal avgRating = (avgRatingDouble != null) ?
+                BigDecimal.valueOf(avgRatingDouble).setScale(1, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+
+        Long reviewCount = queryFactory
+                .select(review.count())
+                .from(review)
+                .where(review.restaurant.id.eq(restaurant.getId())
+                        .and(review.isHidden.isFalse()))
+                .fetchOne();
+
+        return RestaurantInfoResponse.builder()
+                .id(restaurant.getId())
+                .name(restaurant.getName())
+                .address(extractCityAndDistrict(restaurant.getAddress()))
+                .distance(distance)
+                .mainMenus(restaurant.getPopularMenus())
+                .averageRating(avgRating)
+                .reviewCount(reviewCount != null ? reviewCount : 0L)
+                .isGoodPriceStore(restaurant.getIsGoodPriceStore())
+                .isLocalStore(restaurant.getIsLocalStore())
+                .image(restaurant.getImage())
+                .point(valueForMoneyPoint)
+                .percent(pricePercentile)
+                .build();
     }
 
     private BooleanBuilder buildReviewFilterConditions(SearchCriteria criteria, List<Long> blockedUserIds) {
@@ -260,52 +344,6 @@ public class RestaurantSearchRepositoryImpl implements RestaurantSearchRepositor
                         .where(review.restaurant.id.eq(restaurant.id)
                                 .and(review.isHidden.isFalse()))
         );
-    }
-
-    private RestaurantInfoResponse convertToRestaurantInfoResponse(Restaurant restaurant, SearchCriteria criteria) {
-        String distance = null;
-        if (criteria.hasLocationFilter()) {
-            Double distanceKm = calculateDistance(
-                    criteria.latitude(), criteria.longitude(),
-                    restaurant.getLatitude(), restaurant.getLongitude()
-            );
-            distance = distanceKm != null ? String.format("%.1fkm", distanceKm) : null;
-        }
-
-        Double avgRatingDouble = queryFactory
-                .select(tooltip.rating.avg())
-                .from(review)
-                .join(review.images, reviewImage)
-                .join(reviewImage.tooltips, tooltip)
-                .where(review.restaurant.id.eq(restaurant.getId())
-                        .and(tooltip.tooltipType.eq(TooltipType.FOOD))
-                        .and(review.isHidden.isFalse()))
-                .fetchOne();
-
-        BigDecimal avgRating = (avgRatingDouble != null) ?
-                BigDecimal.valueOf(avgRatingDouble).setScale(1, RoundingMode.HALF_UP) : BigDecimal.ZERO;
-
-        Long reviewCount = queryFactory
-                .select(review.count())
-                .from(review)
-                .where(review.restaurant.id.eq(restaurant.getId())
-                        .and(review.isHidden.isFalse()))
-                .fetchOne();
-
-        return RestaurantInfoResponse.builder()
-                .id(restaurant.getId())
-                .name(restaurant.getName())
-                .address(extractCityAndDistrict(restaurant.getAddress()))
-                .distance(distance)
-                .mainMenus(restaurant.getPopularMenus())
-                .averageRating(avgRating)
-                .reviewCount(reviewCount != null ? reviewCount : 0L)
-                .isGoodPriceStore(restaurant.getIsGoodPriceStore())
-                .isLocalStore(restaurant.getIsLocalStore())
-                .image(restaurant.getImage())
-                .point(null)
-                .percent(null)
-                .build();
     }
 
     private String extractCityAndDistrict(String fullAddress) {

@@ -21,4 +21,13 @@ public interface RestaurantMenuRepository extends JpaRepository<RestaurantMenu, 
         LIMIT 1
         """)
     Integer findMainMenuPricePerServing(@Param("restaurantId") Long restaurantId);
+
+    @Query("""
+        SELECT rm.restaurant.id, rm.pricePerServing
+        FROM RestaurantMenu rm
+        WHERE rm.restaurant.id IN :restaurantIds
+          AND rm.isMain = true
+          AND rm.isActive = true
+        """)
+    List<Object[]> findMainMenuPricesBatch(@Param("restaurantIds") List<Long> restaurantIds);
 }
