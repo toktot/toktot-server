@@ -200,5 +200,16 @@ management:
     health:
       show-details: when-authorized
 
+
+# 제주시 착한가격업소 설정
+jeju:
+  good-price:
+    service-key: ${TOUR_API_SERVICE_KEY}
+
+# 서귀포시 착한가격업소 설정
+seogwipo:
+  good-price:
+    service-key: ${TOUR_API_SERVICE_KEY}
+
 firebase:
   service-account-key-base64: ${FIREBASE_SERVICE_ACCOUNT_KEY_BASE64}
