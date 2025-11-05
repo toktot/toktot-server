@@ -1,40 +1,63 @@
 package com.toktot.external.seogwipo.dto;
 
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
 public class SeogwipoGoodPriceItem {
 
-    @JacksonXmlProperty(localName = "shop_code")
-    private String shopCode;
+    @JsonProperty("경도")
+    private String longitude;
 
-    @JacksonXmlProperty(localName = "shop_title")
+    @JsonProperty("데이터기준일자")
+    private String dataDate;
+
+    @JsonProperty("업소명")
     private String shopTitle;
 
-    @JacksonXmlProperty(localName = "shop_tel")
+    @JsonProperty("업종")
+    private String businessType;
+
+    @JsonProperty("연락처")
     private String shopTel;
 
-    @JacksonXmlProperty(localName = "shop_local")
-    private String shopLocal;
+    @JsonProperty("위도")
+    private String latitude;
 
-    @JacksonXmlProperty(localName = "shop_address")
+    @JsonProperty("주소")
     private String shopAddress;
-
-    @JacksonXmlProperty(localName = "shop_goods")
-    private String shopGoods;
-
-    @JacksonXmlProperty(localName = "shop_holiday")
-    private String shopHoliday;
-
-    @JacksonXmlProperty(localName = "shop_thumb")
-    private String shopThumb;
 
     public boolean hasValidShopTitle() {
         return shopTitle != null && !shopTitle.trim().isEmpty();
     }
 
-    public boolean hasMenuInfo() {
-        return shopGoods != null && !shopGoods.trim().isEmpty();
+    public boolean isRestaurant() {
+        if (businessType == null) {
+            return false;
+        }
+
+        return businessType.contains("한식")
+                || businessType.contains("중식")
+                || businessType.contains("일식")
+                || businessType.contains("양식")
+                || businessType.contains("분식")
+                || businessType.contains("카페")
+                || businessType.contains("식당")
+                || businessType.contains("음식점")
+                || businessType.contains("뷔페")
+                || businessType.contains("레스토랑");
     }
+
+    public boolean hasMenuInfo() {
+        return businessType != null && !businessType.trim().isEmpty() && isRestaurant();
+    }
+
+    public String getShopGoods() {
+        return businessType;
+    }
+
+    public String getShopCode() {
+        return null;
+    }
+
 }

@@ -1,26 +1,32 @@
 package com.toktot.external.seogwipo.dto;
 
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
-@JacksonXmlRootElement(localName = "Response")
 public class SeogwipoGoodPriceResponse {
 
-        @JacksonXmlProperty(localName = "total")
-        private Integer total;
+        @JsonProperty("currentCount")
+        private Integer currentCount;
 
-        @JacksonXmlProperty(localName = "page")
+        @JsonProperty("data")
+        private List<SeogwipoGoodPriceItem> data;
+
+        @JsonProperty("matchCount")
+        private Integer matchCount;
+
+        @JsonProperty("page")
         private Integer page;
 
-        @JacksonXmlProperty(localName = "pageSize")
-        private Integer pageSize;
+        @JsonProperty("perPage")
+        private Integer perPage;
 
-        @JacksonXmlElementWrapper(localName = "items")
-        @JacksonXmlProperty(localName = "item")
-        private List<SeogwipoGoodPriceItem> items;
+        @JsonProperty("totalCount")
+        private Integer totalCount;
+
+        public List<SeogwipoGoodPriceItem> getItems() {
+                return data;
+        }
 }
