@@ -1,0 +1,107 @@
+package com.toktot.domain.review;
+
+import com.toktot.domain.report.ReviewReport;
+import com.toktot.domain.restaurant.Restaurant;
+import com.toktot.domain.review.type.MealTime;
+import com.toktot.domain.user.User;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLRestriction;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+import java.util.*;
+
+@Entity
+@Table(name = "reviews")
+@EntityListeners(AuditingEntityListener.class)
+@SQLRestriction("is_hidden = false")
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Review {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "restaurant_id", nullable = false)
+    private Restaurant restaurant;
+
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<ReviewImage> images = new HashSet<>();
+
+    @Column(name = "meal_time", length = 20, nullable = false)
+    @Enumerated(EnumType.STRING)
+    private MealTime mealTime;
+
+    @Column(name = "value_for_money_score", nullable = false)
+    private Integer valueForMoneyScore;
+
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
+
+    @Builder.Default
+    @Column(name = "report_count", nullable = false)
+    private Integer reportCount = 0;
+
+    @Builder.Default
+    @Column(name = "is_hidden", nullable = false)
+    private Boolean isHidden = false;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ReviewReport> reports = new ArrayList<>();
+
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ReviewKeyword> keywords = new ArrayList<>();
+
+    public static Review create(User user, Restaurant restaurant, Integer valueForMoneyScore, MealTime mealTime) {
+        return Review.builder()
+                .user(user)
+                .restaurant(restaurant)
+                .images(new HashSet<>())
+                .keywords(new ArrayList<>())
+                .isHidden(false)
+                .reportCount(0)
+                .valueForMoneyScore(valueForMoneyScore)
+                .mealTime(mealTime)
+                .build();
+    }
+
+    public void addImage(ReviewImage reviewImage) {
+        this.images.add(reviewImage);
+        reviewImage.assignReview(this);
+    }
+
+    public void addKeyword(ReviewKeyword reviewKeyword) {
+        this.keywords.add(reviewKeyword);
+        reviewKeyword.assignReview(this);
+    }
+
+    public void increaseReportCount() {
+        this.reportCount++;
+    }
+
+    public void hiddenReview() {
+        this.isHidden = true;
+    }
+}

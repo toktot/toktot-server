@@ -35,6 +35,9 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 # 작업 디렉토리 설정
 WORKDIR /app
 
+# 로그 디렉토리 생성 및 권한 설정
+RUN mkdir -p /app/logs && chown -R appuser:appuser /app/logs
+
 # 빌드된 JAR 파일 복사
 COPY --from=builder /app/build/libs/*.jar app.jar
 

@@ -1,5 +1,7 @@
 package com.toktot.config.security;
 
+import com.toktot.common.exception.ErrorCode;
+import com.toktot.common.exception.ToktotException;
 import com.toktot.domain.user.User;
 import com.toktot.domain.user.repository.UserRepository;
 import jakarta.servlet.FilterChain;
@@ -26,6 +28,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
+    private final SecurityErrorResponseUtil securityErrorResponseUtil;
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
@@ -33,26 +36,34 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-
         String requestURI = request.getRequestURI();
 
         try {
             String jwt = extractTokenFromRequest(request);
 
             if (StringUtils.hasText(jwt)) {
+                if (jwtTokenProvider.isTokenExpired(jwt)) {
+                    log.warn("JWT 토큰 만료 - uri: {}, token: {}...",
+                            requestURI, jwt.substring(0, Math.min(20, jwt.length())));
+                    securityErrorResponseUtil.writeErrorResponse(response, ErrorCode.TOKEN_EXPIRED);
+                    return;
+                }
+
                 if (jwtTokenProvider.validateToken(jwt) && jwtTokenProvider.isAccessToken(jwt)) {
                     Long userId = jwtTokenProvider.getUserIdFromToken(jwt);
-
                     setAuthenticationFromUserId(userId, request);
-
                     log.debug("JWT 인증 성공 - userId: {}, uri: {}", userId, requestURI);
                 } else {
-                    log.warn("JWT 토큰 검증 실패 - uri: {}, token: {}...",
+                    log.warn("JWT 토큰 무효 - uri: {}, token: {}...",
                             requestURI, jwt.substring(0, Math.min(20, jwt.length())));
+                    securityErrorResponseUtil.writeErrorResponse(response, ErrorCode.TOKEN_INVALID);
+                    return;
                 }
             }
         } catch (Exception e) {
             log.error("JWT 인증 처리 중 오류 발생 - uri: {}, error: {}", requestURI, e.getMessage());
+            securityErrorResponseUtil.writeErrorResponse(response, ErrorCode.TOKEN_INVALID);
+            return;
         }
 
         filterChain.doFilter(request, response);
@@ -77,6 +88,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 return;
             }
 
+            if (user.isDeleted()) {
+                log.warn("탈퇴한 회원입니다. - userId: {}", userId);
+                return;
+            }
+
             if (!user.isEnabled() || !user.isAccountNonLocked()) {
                 log.warn("비활성화되거나 잠긴 계정 - userId: {}", userId);
                 return;
@@ -90,7 +106,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     new UsernamePasswordAuthenticationToken(user, null, authorities);
 
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             log.debug("사용자 인증 완료 - userId: {}, email: {}", user.getId(), user.getEmail());

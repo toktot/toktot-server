@@ -2,7 +2,7 @@ package com.toktot.domain.user.service;
 
 import com.toktot.config.security.JwtTokenProvider;
 import com.toktot.domain.user.User;
-import com.toktot.web.dto.auth.response.TokenResponse;
+import com.toktot.domain.user.dto.response.TokenResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,19 +44,19 @@ public class AuthService {
                 .secure(true)
                 .sameSite("Strict")
                 .maxAge(Duration.ofMillis(refreshTokenExpirationMs))
-                .path("/api/v1/auth")
+                .path("/")
                 .build();
     }
 
-    public ResponseCookie createLogoutCookie() {
-        log.debug("로그아웃 쿠키 생성 (리프레시 토큰 제거)");
+    public ResponseCookie deleteRefreshToken() {
+        log.debug("리프레시 토큰 제거");
 
         return ResponseCookie.from("refresh_token", "")
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("Strict")
                 .maxAge(Duration.ZERO)
-                .path("/api/v1/auth")
+                .path("/")
                 .build();
     }
 }

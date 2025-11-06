@@ -118,8 +118,17 @@ public class JwtTokenProvider {
     }
 
     public boolean isTokenExpired(String token) {
-        Date expiration = getExpirationFromToken(token);
-        return expiration.before(new Date());
+        try {
+            Jwts.parserBuilder()
+                    .setSigningKey(secretKey)
+                    .build()
+                    .parseClaimsJws(token);
+            return false;
+        } catch (ExpiredJwtException e) {
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public long getExpirationTimeInSeconds(String token) {
@@ -140,4 +149,5 @@ public class JwtTokenProvider {
             throw new ToktotException(ErrorCode.TOKEN_INVALID);
         }
     }
+
 }

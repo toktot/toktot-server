@@ -59,6 +59,11 @@ public class LoginService {
     }
 
     private void validateUserAccountStatus(User user, String email, String clientIp) {
+        if (user.isDeleted()) {
+            log.warn("이메일 로그인 실패 - 탈퇴한 계정: {}, clientIp: {}", email, clientIp);
+            throw new ToktotException(ErrorCode.ACCOUNT_DISABLED);
+        }
+
         if (!user.isEnabled()) {
             log.warn("이메일 로그인 실패 - 비활성화된 계정: {}, clientIp: {}", email, clientIp);
             throw new ToktotException(ErrorCode.ACCOUNT_DISABLED);

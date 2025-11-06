@@ -1,18 +1,20 @@
 package com.toktot.config.security;
 
 import com.toktot.common.exception.ErrorCode;
-import com.toktot.common.exception.ToktotException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.cors.CorsConfiguration;
@@ -23,6 +25,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Configuration
@@ -32,6 +35,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final SecurityErrorResponseUtil errorResponseUtil;
     private static final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     @Value("${toktot.security.cors.allowed-origins}")
@@ -50,95 +54,149 @@ public class SecurityConfig {
     private boolean allowCredentials;
 
     private static final String[] PUBLIC_URLS = {
-            // 인증 관련 API
-            "/api/v1/auth/**",
-
-            // OAuth2 관련
-            "/oauth2/**",
-            "/login/oauth2/**",
-
-            // 헬스체크 및 모니터링
-            "/api/health",
+            "/v1/auth/**",
             "/actuator/health",
             "/actuator/info",
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/v3/api-docs/**",
+            "/api-docs/**"
     };
+
+    private static final String[] PROTECTED_URLS = {
+            "/v1/users/**",
+            "/v1/reviews/**",
+            "/v1/folders/**",
+            "/v1/routes/**"
+    };
+
+    private static final List<String> DEFAULT_METHODS = Arrays.asList(
+            "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
+    );
+
+    private static final List<String> DEFAULT_HEADERS = Arrays.asList("*");
+
+    private static final List<String> EXPOSED_HEADERS = Arrays.asList(
+            "Authorization",
+            "Content-Type",
+            "X-Requested-With",
+            "Access-Control-Allow-Origin",
+            "Access-Control-Allow-Credentials"
+    );
 
     public static boolean isPublicUrl(String path) {
         return Arrays.stream(PUBLIC_URLS)
                 .anyMatch(pattern -> pathMatcher.match(pattern, path));
     }
 
-    static final String[] PROTECTED_URLS = {
-            "/api/v1/users/**",
-            "/api/v1/reviews/**",
-            "/api/v1/bookmarks/**",
-            "/api/v1/routes/**"
-    };
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        log.info("Spring Security 설정 초기화 시작 - JWT 인증 적용");
+        log.info("Spring Security 설정 초기화 시작");
 
-        http
+        return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
 
-                .oauth2Login(oauth2 -> oauth2
-                        .loginPage("/api/v1/auth/kakao/login")
-                        .defaultSuccessUrl("/api/v1/auth/kakao/callback")
-                        .failureUrl("/api/v1/auth/kakao/failure")
-                )
-
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(PUBLIC_URLS).permitAll()
                         .requestMatchers(PROTECTED_URLS).authenticated()
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
+
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-
                 .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            log.warn("인증되지 않은 요청 - URI: {}, IP: {}, Error: {}",
-                                    request.getRequestURI(),
-                                    getClientIp(request),
-                                    authException.getMessage());
-                            throw new ToktotException(ErrorCode.LOGIN_REQUIRED);
-                        })
-                        .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            log.warn("접근 권한 없음 - URI: {}, IP: {}, Error: {}",
-                                    request.getRequestURI(),
-                                    getClientIp(request),
-                                    accessDeniedException.getMessage());
-                            throw new ToktotException(ErrorCode.ACCESS_DENIED);
-                        })
-                );
-
-        log.info("Spring Security 설정 완료 - JWT 필터 적용됨");
-        return http.build();
+                        .authenticationEntryPoint(createAuthenticationEntryPoint())
+                        .accessDeniedHandler(createAccessDeniedHandler()))
+                .build();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        log.debug("CORS 설정 구성 시작 - Origins: {}", allowedOrigins);
+        log.debug("CORS 설정 구성 - Origins: {}", allowedOrigins);
 
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(allowedOrigins);
-        configuration.setAllowedMethods(allowedMethods);
-        configuration.setAllowedHeaders(allowedHeaders);
-        configuration.setAllowCredentials(allowCredentials);
-        configuration.setMaxAge(maxAge);
+        configureCorsOrigins(configuration);
+        configureCorsMethodsAndHeaders(configuration);
+        configureAdvancedCors(configuration);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
 
         log.debug("CORS 설정 완료");
         return source;
+    }
+
+    private AuthenticationEntryPoint createAuthenticationEntryPoint() {
+        return (request, response, authException) -> {
+            logSecurityEvent("인증 실패", request, authException.getMessage());
+            handleSecurityError(response, ErrorCode.LOGIN_REQUIRED, "Authentication error");
+        };
+    }
+
+    private AccessDeniedHandler createAccessDeniedHandler() {
+        return (request, response, accessDeniedException) -> {
+            logSecurityEvent("권한 거부", request, accessDeniedException.getMessage());
+            handleSecurityError(response, ErrorCode.ACCESS_DENIED, "Access denied error");
+        };
+    }
+
+    private void logSecurityEvent(String eventType, HttpServletRequest request, String errorMessage) {
+        log.warn("{} - URI: {}, IP: {}, Error: {}",
+                eventType,
+                request.getRequestURI(),
+                getClientIp(request),
+                errorMessage);
+    }
+
+    private void handleSecurityError(jakarta.servlet.http.HttpServletResponse response,
+                                     ErrorCode errorCode, String context) {
+        try {
+            errorResponseUtil.writeErrorResponse(response, errorCode);
+        } catch (Exception e) {
+            log.error("{} response 작성 중 오류: {}", context, e.getMessage(), e);
+            response.setStatus(500);
+        }
+    }
+
+    private void configureCorsOrigins(CorsConfiguration configuration) {
+        if (allowedOrigins == null || allowedOrigins.isEmpty()) {
+            return;
+        }
+
+        List<String> directOrigins = allowedOrigins.stream()
+                .filter(origin -> !origin.contains("*"))
+                .collect(Collectors.toList());
+
+        List<String> patternOrigins = allowedOrigins.stream()
+                .filter(origin -> origin.contains("*"))
+                .collect(Collectors.toList());
+
+        if (!directOrigins.isEmpty()) {
+            configuration.setAllowedOrigins(directOrigins);
+        }
+        if (!patternOrigins.isEmpty()) {
+            configuration.setAllowedOriginPatterns(patternOrigins);
+        }
+    }
+
+    private void configureCorsMethodsAndHeaders(CorsConfiguration configuration) {
+        configuration.setAllowedMethods(
+                allowedMethods != null ? allowedMethods : DEFAULT_METHODS
+        );
+        configuration.setAllowedHeaders(
+                allowedHeaders != null ? allowedHeaders : DEFAULT_HEADERS
+        );
+    }
+
+    private void configureAdvancedCors(CorsConfiguration configuration) {
+        configuration.setExposedHeaders(EXPOSED_HEADERS);
+        configuration.setAllowCredentials(allowCredentials);
+        configuration.setMaxAge(maxAge);
     }
 
     private String getClientIp(HttpServletRequest request) {
