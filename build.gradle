@@ -61,9 +61,6 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
-	// xml
-	implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.15.2'
-
 	//ecs-encoder
 	implementation 'co.elastic.logging:logback-ecs-encoder:1.5.0'
 
