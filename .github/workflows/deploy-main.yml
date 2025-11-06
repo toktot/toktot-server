@@ -1,12 +1,12 @@
-name: Deploy To Dev Server
+name: Deploy To Server
 
 on:
   push:
     branches:
-      - dev
+      - main
 
 concurrency:
-  group: deploy-dev
+  group: deploy-main
   cancel-in-progress: false
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: "⚠️ TokTot Dev 서버 배포 시작"
+          title: "⚠️ TokTot 서버 배포 시작"
           description: |
             **🔧 배포 진행 중 - 일시적 서비스 중단**
             
@@ -62,14 +62,16 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/toktot:dev
-            ${{ secrets.DOCKERHUB_USERNAME }}/toktot:dev-${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/toktot:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/toktot:main
+            ${{ secrets.DOCKERHUB_USERNAME }}/toktot:main-${{ github.sha }}
 
       - name: EC2 배포 실행
         uses: appleboy/ssh-action@v1.0.3
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           COMMIT_SHA: ${{ github.sha }}
+          DEPLOY_BRANCH: main
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}
@@ -91,28 +93,22 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
-          envs: DOCKERHUB_USERNAME,COMMIT_SHA,DISCORD_WEBHOOK_URL,GITHUB_REPOSITORY,GITHUB_RUN_ID,POSTGRES_PASSWORD,JWT_SECRET,KAKAO_CLIENT_ID,KAKAO_CLIENT_SECRET,MAIL_USERNAME,MAIL_PASSWORD,REDIS_PASSWORD,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,S3_BUCKET_NAME,KAKAO_REST_API_KEY,TOUR_API_SERVICE_KEY
+          envs: DOCKERHUB_USERNAME,COMMIT_SHA,DEPLOY_BRANCH,DISCORD_WEBHOOK_URL,GITHUB_REPOSITORY,GITHUB_RUN_ID,POSTGRES_PASSWORD,JWT_SECRET,KAKAO_CLIENT_ID,KAKAO_CLIENT_SECRET,MAIL_USERNAME,MAIL_PASSWORD,REDIS_PASSWORD,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,S3_BUCKET_NAME,KAKAO_REST_API_KEY,TOUR_API_SERVICE_KEY,FIREBASE_SERVICE_ACCOUNT_KEY_BASE64,FIREBASE_PROJECT_ID
           script: |
-            # 프로젝트 디렉토리로 이동
             cd toktot-server
-            
-            # 스크립트 실행 권한 부여
             chmod +x scripts/*.sh
-            
-            # 배포 스크립트 실행 (환경변수는 자동으로 전달됨)
             ./scripts/deploy.sh
-
       - name: Discord 배포 성공 알림
         if: success()
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: "✅ TokTot Dev 서버 배포 성공"
+          title: "✅ TokTot 서버 배포 성공"
           description: |
             **🎉 배포 완료 - 서비스 정상 운영 중**
             
             **커밋**: ${{ github.event.head_commit.message }}
-            **새 버전**: `dev-${{ github.sha }}`
+            **새 버전**: `main-${{ github.sha }}`
             **배포 시간**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           color: 0x00ff00
           username: "TokTot Deploy Bot"
@@ -123,14 +119,13 @@ jobs:
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: "🔄 TokTot Dev 서버 배포 실패"
+          title: "❌ TokTot 서버 배포 실패"
           description: |
             **⚠️ 배포 실패 감지**
             
             **🔍 실패한 배포**:
             - **브랜치**: ${{ github.ref_name }}
             - **커밋**: ${{ github.event.head_commit.message }}
-            - **작성자**: ${{ github.event.head_commit.author.name }}
-          color: 0xff9900
+          color: 0xff0000
           username: "TokTot Deploy Bot"
           avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
