@@ -2,9 +2,12 @@
 
 set -e  # 에러 발생 시 즉시 종료
 
-# 스크립트 디렉토리 (수정됨)
+# 스크립트 디렉토리
 SCRIPT_DIR="/home/ubuntu/toktot-server/scripts"
 PROJECT_DIR="/home/ubuntu/toktot-server"
+
+# ✅ 배포 브랜치 설정 (환경변수로 받거나 기본값 main 사용)
+DEPLOY_BRANCH="${DEPLOY_BRANCH:-main}"
 
 # 로그 함수
 log_info() {
@@ -33,7 +36,6 @@ handle_error() {
         log_info "자동 롤백 시작..."
         bash "$SCRIPT_DIR/rollback.sh" || {
             log_error "롤백도 실패했습니다. 긴급 대응 필요!"
-            # 긴급 알림 함수 호출
             send_emergency_alert "배포 실패 + 롤백 실패"
         }
     fi
@@ -41,7 +43,7 @@ handle_error() {
     exit $exit_code
 }
 
-# 긴급 알림 함수 (보안 강화)
+# 긴급 알림 함수
 send_emergency_alert() {
     local failure_reason="$1"
 
@@ -52,7 +54,7 @@ send_emergency_alert() {
                \"username\": \"TokTot EMERGENCY Bot\",
                \"avatar_url\": \"https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png\",
                \"embeds\": [{
-                 \"title\": \"🚨 CRITICAL: TokTot Dev 서버 완전 중단\",
+                 \"title\": \"🚨 CRITICAL: TokTot 서버 완전 중단\",
                  \"description\": \"**❌ 배포 실패 + 롤백 실패 → 서비스 완전 중단**\\n\\n**실패 원인**: $failure_reason\",
                  \"color\": 16711680,
                  \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)\"
@@ -67,7 +69,7 @@ trap handle_error ERR
 
 # 메인 배포 함수
 main() {
-    log_info "🚀 TokTot Dev 서버 배포 시작..."
+    log_info "🚀 TokTot 서버 배포 시작 (브랜치: $DEPLOY_BRANCH)..."
 
     # 0. 필수 환경변수 사전 검증
     log_info "필수 환경변수 검증 중..."
@@ -90,8 +92,8 @@ main() {
         exit 1
     fi
 
-    # 3. Git 업데이트 (충돌 방지 개선)
-    log_info "Git 저장소 업데이트 중..."
+    # 3. Git 업데이트 (✅ main 브랜치로 변경)
+    log_info "Git 저장소 업데이트 중 (브랜치: $DEPLOY_BRANCH)..."
 
     # 로컬 변경사항 안전하게 백업
     log_info "로컬 변경사항 백업 중..."
@@ -108,14 +110,14 @@ main() {
         exit 1
     }
 
-    # 로컬 브랜치를 origin/dev로 강제 리셋 (더 안전한 방법)
-    git checkout dev 2>/dev/null || git checkout -b dev
-    git reset --hard origin/dev || {
+    # ✅ 로컬 브랜치를 origin/main으로 강제 리셋
+    git checkout $DEPLOY_BRANCH 2>/dev/null || git checkout -b $DEPLOY_BRANCH
+    git reset --hard origin/$DEPLOY_BRANCH || {
         log_error "Git reset 실패!"
         exit 1
     }
 
-    log_success "Git 저장소 업데이트 완료"
+    log_success "Git 저장소 업데이트 완료 (현재 브랜치: $(git rev-parse --abbrev-ref HEAD))"
 
     # 4. 필요한 디렉토리 생성
     log_info "필요한 디렉토리 생성 중..."
@@ -132,16 +134,23 @@ main() {
         fi
     fi
 
-    # 6. Docker 이미지 pull 및 검증
+    # 6. Docker 이미지 pull 및 검증 (✅ latest 태그 사용)
     log_info "최신 Docker 이미지 다운로드 중..."
-    docker pull "$DOCKERHUB_USERNAME/toktot:dev" || {
+
+    # ✅ main 브랜치는 latest 태그 사용
+    DOCKER_IMAGE_TAG="latest"
+    if [ "$DEPLOY_BRANCH" != "main" ]; then
+        DOCKER_IMAGE_TAG="$DEPLOY_BRANCH"
+    fi
+
+    docker pull "$DOCKERHUB_USERNAME/toktot:$DOCKER_IMAGE_TAG" || {
         log_error "Docker 이미지 pull 실패!"
         exit 1
     }
 
     # Docker 이미지 무결성 검증
     log_info "Docker 이미지 무결성 검증 중..."
-    if ! docker image inspect "$DOCKERHUB_USERNAME/toktot:dev" >/dev/null 2>&1; then
+    if ! docker image inspect "$DOCKERHUB_USERNAME/toktot:$DOCKER_IMAGE_TAG" >/dev/null 2>&1; then
         log_error "Docker 이미지가 손상되었거나 존재하지 않습니다!"
         exit 1
     fi
@@ -183,12 +192,14 @@ main() {
     fi
 
     # 12. 배포 성공
-    log_success "🎉 Dev 서버 배포 성공!"
+    log_success "🎉 서버 배포 성공!"
+    log_info "📝 브랜치: $DEPLOY_BRANCH"
     log_info "📝 커밋: $COMMIT_SHA"
+    log_info "🐳 Docker 이미지: $DOCKERHUB_USERNAME/toktot:$DOCKER_IMAGE_TAG"
     log_info "🕐 배포 시간: $(date)"
     log_info "🔄 롤백 시스템: 활성"
 
-    # 임시 파일 정리 (경로 수정)
+    # 임시 파일 정리
     rm -f "$SCRIPT_DIR"/*.tmp 2>/dev/null || true
 }
 
