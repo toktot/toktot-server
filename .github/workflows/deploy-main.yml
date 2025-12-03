@@ -109,7 +109,6 @@ jobs:
             
             **커밋**: ${{ github.event.head_commit.message }}
             **새 버전**: `main-${{ github.sha }}`
-            **배포 시간**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           color: 0x00ff00
           username: "TokTot Deploy Bot"
           avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
