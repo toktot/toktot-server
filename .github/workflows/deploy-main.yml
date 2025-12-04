@@ -24,11 +24,11 @@ jobs:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           title: "⚠️ TokTot 서버 배포 시작"
           description: |
-            **🔧 배포 진행 중 - 일시적 서비스 중단**
+            🔧 배포 진행 중 - 일시적 서비스 중단
             
-            **커밋**: ${{ github.event.head_commit.message }}
+            커밋: ${{ github.event.head_commit.message }}
             
-            📊 **진행상황**: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            📊 진행상황: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           color: 0xffa500
           username: "TokTot Deploy Bot"
           avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
@@ -48,7 +48,7 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
       - name: Build with Gradle
-        run: ./gradlew clean build -x test
+        run: ./gradlew clean build -x test --no-build-cache
 
       - name: Docker Hub 로그인
         uses: docker/login-action@v3
@@ -65,6 +65,7 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/toktot:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/toktot:main
             ${{ secrets.DOCKERHUB_USERNAME }}/toktot:main-${{ github.sha }}
+          no-cache: true
 
       - name: EC2 배포 실행
         uses: appleboy/ssh-action@v1.0.3
@@ -98,6 +99,7 @@ jobs:
             cd toktot-server
             chmod +x scripts/*.sh
             ./scripts/deploy.sh
+
       - name: Discord 배포 성공 알림
         if: success()
         uses: sarisia/actions-status-discord@v1
@@ -105,10 +107,10 @@ jobs:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           title: "✅ TokTot 서버 배포 성공"
           description: |
-            **🎉 배포 완료 - 서비스 정상 운영 중**
+            🎉 배포 완료 - 서비스 정상 운영 중
             
-            **커밋**: ${{ github.event.head_commit.message }}
-            **새 버전**: `main-${{ github.sha }}`
+            커밋: ${{ github.event.head_commit.message }}
+            새 버전: `main-${{ github.sha }}`
           color: 0x00ff00
           username: "TokTot Deploy Bot"
           avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
@@ -120,11 +122,10 @@ jobs:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           title: "❌ TokTot 서버 배포 실패"
           description: |
-            **⚠️ 배포 실패 감지**
-            
-            **🔍 실패한 배포**:
-            - **브랜치**: ${{ github.ref_name }}
-            - **커밋**: ${{ github.event.head_commit.message }}
+            ⚠️ 배포 실패 감지
+            🔍 실패한 배포:
+            - 브랜치: ${{ github.ref_name }}
+            - 커밋: ${{ github.event.head_commit.message }}
           color: 0xff0000
           username: "TokTot Deploy Bot"
           avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
