@@ -78,7 +78,7 @@ services:
       --save 900 1 300 10 60 10000
 
   app:
-    image: ${DOCKERHUB_USERNAME}/toktot:dev
+    image: ${DOCKERHUB_USERNAME}/toktot:main
     container_name: toktot-dev-app
     environment:
       - DB_PASSWORD=${POSTGRES_PASSWORD}
