@@ -26,7 +26,7 @@ public class RestaurantScheduler {
     private final RestaurantMatchService restaurantMatchService;
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    @Scheduled(cron = "0 0 2 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "${toktot.scheduler.cron.tour-api-base-data}", zone = "Asia/Seoul")
     @Async
     public void scheduledBaseData() {
         log.info("TourAPI 기본정보 배치 동기화 시작");
@@ -38,7 +38,7 @@ public class RestaurantScheduler {
         }
     }
 
-    @Scheduled(cron = "0 20 2 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "${toktot.scheduler.cron.tour-api-detail-intro}", zone = "Asia/Seoul")
     @Async
     public void scheduledDetailIntroSync() {
         String startTime = LocalDateTime.now().format(FORMATTER);
@@ -67,7 +67,7 @@ public class RestaurantScheduler {
         }
     }
 
-    @Scheduled(cron = "0 40 2 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "${toktot.scheduler.cron.tour-api-detail-common}", zone = "Asia/Seoul")
     public void syncRestaurantDetailCommon() {
         log.info("DetailCommon 배치 스케줄러 시작");
 
@@ -79,7 +79,7 @@ public class RestaurantScheduler {
         }
     }
 
-    @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "${toktot.scheduler.cron.kakao-match}", zone = "Asia/Seoul")
     public void syncKakaoAndTourApiData() {
         String startTime = LocalDateTime.now().format(FORMATTER);
         log.info("TourAPI & 카카오 매칭 배치 스케줄러 시작 - {}", startTime);

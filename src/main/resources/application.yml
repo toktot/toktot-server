@@ -137,6 +137,16 @@ toktot:
       max-count: 5
       max-size-mb: 5
       allowed-types: image/jpeg,image/png
+  scheduler:
+    cron:
+      tour-api-base-data: "0 0 2 * * *"
+      tour-api-detail-intro: "0 20 2 * * *"
+      tour-api-detail-common: "0 40 2 * * *"
+      kakao-match: "0 0 3 * * *"
+      seogwipo-good-price: "0 20 3 * * *"
+      jeju-good-price: "0 30 3 * * *"
+      good-price-cache: "0 40 3 * * *"
+      popular-review: "0 0 * * * *"
 
 # AWS S3 설정
 aws:
@@ -167,13 +177,6 @@ tour-api:
     chunk-size: 100         # 청크 단위 처리 크기
     max-retry-count: 3      # 최대 재시도 횟수
     retry-delay-ms: 1000    # 재시도 지연시간 (1초)
-
-  # 스케줄러 설정
-  scheduler:
-    # 주 1회 데이터 동기화 (일요일 새벽 2시)
-    data-sync: "0 0 2 * * SUN"
-    # 월 1회 데이터 정리 (매월 1일 새벽 1시)
-    cleanup: "0 0 1 1 * ?"
 
 # 카카오 로컬 설정
 kakao:
@@ -210,6 +213,3 @@ jeju:
 seogwipo:
   good-price:
     service-key: ${TOUR_API_SERVICE_KEY}
-
-firebase:
-  service-account-key-base64: ${FIREBASE_SERVICE_ACCOUNT_KEY_BASE64}

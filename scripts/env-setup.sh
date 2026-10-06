@@ -30,12 +30,6 @@ main() {
     if [ -n "$DOCKERHUB_USERNAME" ]; then
         github_vars+=("DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME")
     fi
-    if [ -n "$FIREBASE_SERVICE_ACCOUNT_KEY_BASE64" ]; then
-        github_vars+=("FIREBASE_SERVICE_ACCOUNT_KEY_BASE64=$FIREBASE_SERVICE_ACCOUNT_KEY_BASE64")
-    fi
-    if [ -n "$FIREBASE_PROJECT_ID" ]; then
-        github_vars+=("FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID")
-    fi
     if [ -n "$JWT_SECRET" ]; then
         github_vars+=("JWT_SECRET=$JWT_SECRET")
     fi
@@ -120,9 +114,6 @@ main() {
 
     export MAIL_USERNAME="${MAIL_USERNAME:-}"
     export MAIL_PASSWORD="${MAIL_PASSWORD:-}"
-
-    export FIREBASE_SERVICE_ACCOUNT_KEY_BASE64="${FIREBASE_SERVICE_ACCOUNT_KEY_BASE64:-}"
-    export FIREBASE_PROJECT_ID="${FIREBASE_PROJECT_ID:-}"
 
 
     if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then

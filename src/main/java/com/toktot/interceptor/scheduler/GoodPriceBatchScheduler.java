@@ -13,7 +13,7 @@ public class GoodPriceBatchScheduler {
 
     private final GoodPriceCacheService goodPriceCacheService;
 
-    @Scheduled(cron = "0 40 3 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "${toktot.scheduler.cron.good-price-cache}", zone = "Asia/Seoul")
     public void updateGoodPriceCache() {
         log.info("착한가격업소 가격대별 캐시 갱신 배치 시작");
 

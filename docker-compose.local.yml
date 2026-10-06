@@ -1,3 +1,5 @@
+name: toktot-local
+
 services:
   postgres:
     image: postgres:15-alpine
@@ -8,17 +10,15 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       TZ: Asia/Seoul
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${TOKTOT_PG_PORT:-15432}:5432"
     volumes:
-      - postgres_local_data:/var/lib/postgresql/data
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U toktot_user -d toktot_local"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 10
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
@@ -26,60 +26,23 @@ services:
     environment:
       TZ: Asia/Seoul
     ports:
-      - "6379:6379"
+      - "127.0.0.1:${TOKTOT_REDIS_PORT:-16379}:6379"
     volumes:
-      - redis_local_data:/data
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      interval: 5s
+      timeout: 5s
+      retries: 10
     command: >
-      redis-server 
+      redis-server
       --appendonly yes
-      --maxmemory 128mb
+      --maxmemory 256mb
       --maxmemory-policy allkeys-lru
       --tcp-keepalive 60
       --timeout 300
-
-  app:
-    build: .
-    container_name: toktot-local-app
-    env_file:
-      - .env
-    environment:
-      - SPRING_PROFILES_ACTIVE=local
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/toktot_local
-      - SPRING_DATASOURCE_USERNAME=toktot_user
-      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
-      - SPRING_DATA_REDIS_HOST=redis
-      - SPRING_DATA_REDIS_PORT=6379
-      - DB_PASSWORD=${DB_PASSWORD}
-      - JWT_SECRET=${JWT_SECRET}
-      - KAKAO_CLIENT_ID=${KAKAO_CLIENT_ID}
-      - KAKAO_CLIENT_SECRET=${KAKAO_CLIENT_SECRET}
-      - MAIL_USERNAME=${MAIL_USERNAME}
-      - MAIL_PASSWORD=${MAIL_PASSWORD}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
-      - TZ=Asia/Seoul
-    ports:
-      - "8080:8080"
-    volumes:
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      --save 900 1 300 10 60 10000
 
 volumes:
-  postgres_local_data:
-    driver: local
-  redis_local_data:
-    driver: local
+  postgres_data:
+  redis_data:

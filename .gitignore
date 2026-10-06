@@ -306,3 +306,5 @@ nginx/conf.d/*.backup
 ### Docker 볼륨 데이터 ###
 # Docker 볼륨 바인드된 로컬 디렉토리
 docker-volumes/
+CLAUDE.local.md
+docs/private/

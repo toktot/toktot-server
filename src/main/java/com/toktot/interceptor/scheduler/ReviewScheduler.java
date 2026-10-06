@@ -26,7 +26,7 @@ public class ReviewScheduler {
 
     private static final String POPULAR_REVIEWS_KEY = "popular:reviews";
 
-    @Scheduled(cron = "0 0 * * * *")
+    @Scheduled(cron = "${toktot.scheduler.cron.popular-review}", zone = "Asia/Seoul")
     public void cachePopularReviews() {
         log.info("많이 저장된 리뷰 스케줄러 시작: Redis 캐싱 작업을 수행합니다.");
         try {
