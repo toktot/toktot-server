@@ -210,6 +210,3 @@ jeju:
 seogwipo:
   good-price:
     service-key: ${TOUR_API_SERVICE_KEY}
-
-firebase:
-  service-account-key-base64: ${FIREBASE_SERVICE_ACCOUNT_KEY_BASE64}
