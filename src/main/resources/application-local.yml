@@ -1,7 +1,7 @@
 # 로컬 개발 환경 전용 설정
 spring:
   datasource:
-    url: jdbc:postgresql://postgres:5432/toktot_local
+    url: jdbc:postgresql://localhost:${TOKTOT_PG_PORT:15432}/toktot_local
     username: toktot_user
     password: ${DB_PASSWORD}
 
@@ -15,8 +15,8 @@ spring:
 
   data:
     redis:
-      host: redis
-      port: 6379
+      host: localhost
+      port: ${TOKTOT_REDIS_PORT:16379}
 
   security:
     oauth2:
@@ -27,6 +27,8 @@ spring:
 
 # 로깅 설정 (더 자세히)
 logging:
+  file:
+    path: logs
   level:
     com.toktot: DEBUG
     org.hibernate.SQL: DEBUG
