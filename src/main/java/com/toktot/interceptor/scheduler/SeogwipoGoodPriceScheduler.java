@@ -17,7 +17,7 @@ public class SeogwipoGoodPriceScheduler {
     private final SeogwipoGoodPriceProperties properties;
     private final SeogwipoGoodPriceService seogwipoGoodPriceService;
 
-    @Scheduled(cron = "0 20 3 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "${toktot.scheduler.cron.seogwipo-good-price}", zone = "Asia/Seoul")
     public void syncSeogwipoGoodPriceStores() {
         if (!properties.isEnabledBatch()) {
             log.info("서귀포 착한가격업소 배치가 비활성화되어 있습니다.");

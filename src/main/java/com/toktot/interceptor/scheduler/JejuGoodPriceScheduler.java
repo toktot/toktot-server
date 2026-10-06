@@ -18,7 +18,7 @@ public class JejuGoodPriceScheduler {
     private final JejuGoodPriceProperties properties;
     private final JejuGoodPriceService jejuGoodPriceService;
 
-    @Scheduled(cron = "0 30 3 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "${toktot.scheduler.cron.jeju-good-price}", zone = "Asia/Seoul")
     public void syncJejuGoodPriceStores() {
         if (!properties.isEnabledBatch()) {
             log.info("제주시 착한가격업소 배치가 비활성화되어 있습니다.");
