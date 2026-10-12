@@ -2,7 +2,7 @@
 
 set -e
 
-PROJECT_DIR="/home/ubuntu/toktot-server"
+PROJECT_DIR="${TOKTOT_PROJECT_DIR:-/home/ubuntu/toktot-server}"
 MAX_WAIT_TIME=${1:-120}
 
 # 로그 함수
